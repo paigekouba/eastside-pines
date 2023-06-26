@@ -82,3 +82,5 @@ OH3_UTM <- OHstems23 %>%
   filter(Plot == "OH3") %>% 
   mutate(Eutm = 347280 + X) %>% 
   mutate(Nutm = 4181093 + Y)
+
+# hi
