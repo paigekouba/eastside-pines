@@ -1,0 +1,136 @@
+---
+title: "JMIE Poster Figures"
+author: "Paige Kouba"
+date: "11/4/2019"
+output: html_document
+---
+###Code for JMIE Poster Figures
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+stems18 <- read.csv("stem_mapping.csv")
+```
+
+```{r}
+# Code for Indiana Summit Stem Map(s)
+stems18$cond[!is.na(stems18$Dec) & stems18$DBH < 34.1]="orange"
+stems18$cond[is.na(stems18$Dec) & stems18$DBH < 34.1]="darkolivegreen3"
+stems18$cond[!is.na(stems18$Dec) & stems18$DBH >= 34.1]="orange4"
+stems18$cond[is.na(stems18$Dec) & stems18$DBH >= 34.1]="darkolivegreen"
+
+treeplots=unique(stems18$Plot)
+
+par(mfrow=c(2,3))
+for(treeplot in treeplots){
+#define inplot as trees within the plot the loop is acting on  
+# for each unique plot name, define inplot as 
+#  trees where plot= current plot
+  inplot=stems18[stems18$Plot==treeplot,]
+  plot(inplot$X, inplot$Y, col=inplot$cond,pch=19,cex=(inplot$DBH/50),
+       asp=1,xlim=c(-60,60),ylim=c(-60,60),xlab="X (meters)", ylab="Y (meters)", 
+       main=paste("Trees in",treeplot))
+  text(paste("N = ",length(inplot$DBH)), x = 50, y = -55)
+  legend(x="topright", cex = 0.5, pt.cex = 0.6, col=c("darkolivegreen","orange4","darkolivegreen3","orange"), pch=c(19,19), 
+         legend=c("Live", 
+                  "Dead",
+                  "Live Ingrowth",
+                  "Dead Ingrowth"))
+}
+
+
+jpeg("IS_map",1200,1200, quality =100, pointsize = 36)
+  inplot=stems18[stems18$Plot=="IS1",]
+  plot(inplot$X, inplot$Y, col=inplot$cond,pch=19,cex=(inplot$DBH/50),
+       asp=1,xlim=c(-60,60),ylim=c(-60,60),xlab="X (meters)", ylab="Y (meters)", 
+       bty="n",
+       main=paste("Trees in Indiana Summit 1"))
+  text(paste("N = ",length(inplot$DBH)), x = 50, y = -55)
+ # legend(x="topright", cex = 1.5, pt.cex =c(2,2,0.75,0.75), col=c("darkolivegreen","orange4","darkolivegreen3","orange"), pch=c(19,19), 
+  #       legend=c("Live", 
+  #                "Dead",
+  #                "Live Ingrowth",
+  #                "Dead Ingrowth"))
+dev.off()
+```
+
+```{r}
+# Code for Age Distribution Histogram for Indiana Summit
+
+# very sloppy age-size regression from last fall
+stems18$age_est <- trunc(stems18$DBH/0.3697)
+stems18$estab_est <- 2018 - stems18$age_est
+
+jpeg("IS_Ages",1920,1200, quality =100, pointsize = 46)
+# Histograms of age distn at Indiana Summit
+    inplot=stems18[stems18$Site=="IS",]
+    hist(inplot$estab_est, breaks = 20, main=paste("Establishment Dates at Indiana Summit"), 
+         col="lightblue",
+       xlim=c(1625,2010), ylim =c(0,120), xlab = "Estimated First Year of Growth")
+    text(paste("N = ",length(inplot$age_est)), x = 350, y = 49)
+    abline(v=1950, lwd = 5.5, lty = 2, col = "red")
+  dev.off()
+```
+
+```{r}
+# Code for RWI v. PDSI 
+climate_data <- read.csv("4_3_ClimateData.csv", stringsAsFactors = FALSE)
+
+str(climate_data)
+library(dplyr)
+library(ggplot2)
+PDSI <- select(climate_data, YearMonth, PDSI)
+str(PDSI)
+PDSI$Date <- as.Date(paste0(PDSI$YearMonth,-1), format = "%Y-%m-%d")
+
+yearly_PDSI <-
+  climate_data %>% 
+  select(Year, Month, PDSI) %>% 
+  group_by(Year) %>% 
+  summarize(yearly_PDSI = mean(PDSI))
+
+library(dplR)
+IS = read.rwl("IndianaSummit18.rwl")
+IS_pdsi <- IS[257:379,]
+
+## Detrend the ring-width data using a spline
+ISp_detrended = detrend(IS_pdsi,make.plot=TRUE,method="Spline",nyrs=30)
+
+## Compute the coorrelation of each individual core against the mean of all of them (internally, this function computes your "temporary reference chronology" although you never see it--which is OK)
+corr = corr.rwl.seg(ISp_detrended,seg.length=20,bin.floor=14,prewhiten=FALSE,pcrit=0.1,label.cex=.7,main=paste("All cores"))
+
+## To build the final reference chronology, use only cores that had high correlation with the temporary reference chronology (overall rho > 0.5) - you can adjust the threshold
+## Determine what those cores are
+corr_overall = as.data.frame(corr$overall)
+ref_cores = rownames(corr_overall[corr_overall$rho > 0.5,]) # get the names of the cores that correlate well
+
+# Make sure you have enough cores contributing to the overall reference chron
+# I AM SKIPPING THIS BECAUSE TRIAGE
+ if(length(ref_cores) < 20) stop("Too few cores in reference chronology. That is, too few cores that correlate well with the mean across all cores in the dataset")
+
+## Drop the poorly-correlating cores from the data (keep only the highly-correlating ones)
+chron_ref = ISp_detrended[,ref_cores]
+
+## Visualize the correlations of each core in the reference chronology with the mean reference chronology
+corr.rwl.seg(chron_ref,seg.length=20,bin.floor=14,pcrit=0.10,prewhiten=FALSE,label.cex=.7,main=paste("Cores in reference chronology"))
+
+## Make a mean value reference chronology in order to save it to file
+chron_ref_mean = chron(chron_ref,biweight=TRUE,prewhiten=FALSE)
+
+IS_PDSI_df <- cbind(yearly_PDSI[-c(124:125),], chron_ref_mean)
+
+# plot the Palmer Drought Index (PDSI) and RWI of the consensus chronology for Indiana Summit
+jpeg("PDSI_RWI_IS", 1920,1200, quality =100, pointsize = 46)
+ggplot(data=IS_PDSI_df,
+             aes(Year,yearly_PDSI)) +  # x is Date & y is drought index
+         geom_bar(stat="identity",position = "identity", fill = "grey69") +   # bar plot 
+       xlab("Year") + ylab("Palmer Drought Severity Index") +  # axis labels
+       ggtitle("Drought and Tree Growth at Indiana Summit") +
+  geom_line(aes(y = (xxxstd - 1)*7, color = "RWI"), colour = "forest green", size = 5.5) +
+  scale_y_continuous(sec.axis = sec_axis(~./7, name = "Ring Width Index")) +
+  theme_bw() +
+  theme(title = element_text(size=48),
+        axis.text=element_text(size=36),
+        axis.title=element_text(size=36,face="bold"))
+dev.off()
+```
+
