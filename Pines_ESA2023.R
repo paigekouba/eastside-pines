@@ -9,13 +9,13 @@ library(tidyverse)
 #1 Started by making the final .rwl collection for Indiana Summit, IS_2022 (in Images and POS Files > Indiana Summit).
 # add all .pos files to a rwl, excluding original core if a duplicate was made (e.g. for IS140 and IS140B, keep only IS140B). N = 91
 # Read in the files. Need rwl collection from IS, and core height data.
-setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Images and POS files/Indiana_Summit")
+#setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Images and POS files/Indiana_Summit")
 IS_data = read.rwl("IS_2022.rwl")
 
 # IS21003 has no pith estimate due to aberrations; remove from df. 
 IS_data <- subset(IS_data, select = -c(IS21003))
 
-setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Spreadsheets")
+#setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Spreadsheets")
 core_height = read.csv("coredata_PK.csv")
 
 # 3. dplR can extract establishment year and age for each core
@@ -97,7 +97,12 @@ AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
 # visualize the model!
 ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
   geom_point() +
-  stat_smooth(method = lm, formula = y ~ poly(x, 1, raw= TRUE))
+  stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
+
+# poly 2 is less over-fitted; bascially a straight line
+ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+  geom_point() +
+  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
 
 # try fitting a line for a power law fit
 ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
@@ -108,17 +113,32 @@ ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
       se=FALSE)
 # it looks almost indistinguishable from a straight line model
 IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
-summary(IS_exp) # a = 3.2088, b = 0.9783; compare to coefficients from straight-line model
-summary(IS_lm)  # age = dbh*2.8425 + 5.7005 ... so different slopes? They really do not look that different.
+summary(IS_exp) # a = 3.2088, b = 0.9783
+# plotting IS_exp and the 2-degree polynomial
+ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+  geom_point() +
+  geom_smooth(data = IS_correction,
+              method = "nls",
+              method.args=list(formula = y ~ a*(x^b), start = list(a=1, b=2)),
+              se=FALSE, color="red")+
+  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
 
 # more messing around
 IS_exp_inv <- nls(dbh ~ a*corrected_age^b, data = IS_correction, start = list(a=1, b=.1))
 #summary(IS_exp_inv)
-IS_exponential <- nls(corrected_age ~ a*exp(dbh*b), data = IS_correction, start = list(a=1, b=0.1))
-summary(IS_exponential)
+#IS_exponential <- nls(corrected_age ~ a*exp(dbh*b), data = IS_correction, start = list(a=1, b=0.1))
+#summary(IS_exponential)
 
 # Test AICs
 AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5, IS_exp_inv, IS_exp)
+# the inverse model has almost 200 points lower AIC does this matter??
+# plotting it 
+ggplot(data=IS_correction,aes(y=dbh,x=corrected_age))+
+  geom_point() +
+  geom_smooth(data = IS_correction,
+              method = "nls",
+              method.args=list(formula = y ~ a*(x^b), start = list(a=1, b=2)),
+              se=FALSE) 
 
 # Cross-validation
 # 1. split data into training and testing sets
@@ -160,13 +180,16 @@ test[,22]
 # STOP. Everything below is based on an incorrect model! The coefficient is wrong :( Will fix it
 # 5/8/23 in the process of fixing! 
 
-## 6. Age-size regression model: IS_lm2 = lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
+## 6. Age-size regression model: 
+#IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
+# age = 3.2088(x^0.9783)
+# dbh = (age^(1/0.9783))/3.2088
+
 # Steps:
 # Find model-estimated age for each tree in the dataset
 # Use that to find model-estimated age in 1941 (simple subtraction)
 # Use 1941 age to calculate model-estimated *size* in 1941
 # Calculate stand metrics for 1941 vs. 2019
-
 
 tree_data <- read.csv("Treedata_9-3_Em_DB.csv")
 # fix data entry error in row 192
@@ -188,7 +211,7 @@ IS_livetrees <- IS_trees[is.na(IS_trees$Dec),] # later I will do stand metrics o
 #Example: Tree of diameter 23.7 is still 77 years old at IS, but if decay class is 4, then establishment date = 2018-(77+10)
 # Need to add column for age estimate:
 IS_snags <- IS_snags %>%
-  mutate(age_est = predict(IS_lm4, newdata = IS_snags)) %>% 
+  mutate(age_est = predict(IS_exp, newdata = IS_snags)) %>% 
 # mutate(age_est = DBH/0.307204)%>%  # Old method based on straight-line regression; now need to use predict
   mutate(snag_correction =
            case_when(Dec == 1 ~ 2,
@@ -199,7 +222,7 @@ IS_snags <- IS_snags %>%
 
 IS_livetrees <- IS_livetrees %>%
 #  mutate(age_est = DBH/0.307204) %>% # Old method based on straight-line regression; now need to use predict
-  mutate(age_est = predict(IS_lm4, newdata = IS_livetrees)) %>% 
+  mutate(age_est = predict(IS_exp, newdata = IS_livetrees)) %>% 
   mutate(estab_est = round(2018 - age_est,0))
 # SO ARE LIVETREES
 
@@ -219,15 +242,15 @@ IS_logs$log_correction[IS_logs$Dec > 1 & IS_logs$Dec < 4]=15
 IS_logs$log_correction[IS_logs$Dec > 3 & IS_logs$Dec <=5]=20
 IS_logs <- IS_logs %>%
 #  mutate(age_est = DBH/0.307204) %>%   # Old method based on straight-line regression; now need to use predict
-  mutate(age_est = predict(IS_lm4, newdata = IS_logs)) %>% 
+  mutate(age_est = predict(IS_exp, newdata = IS_logs)) %>% 
   mutate(estab_est = round(2018 - (age_est+log_correction),0))
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
 names(IS_livetrees)
 names(IS_snags)
-names(IS_logs)
-IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c(1:9,11,12)])
+names(IS_logs) 
+IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c(1:9,16,17)])
 
 #______________________________________________________________________________#
 # Size in 1941 = (1941 - estab. year) * size coefficient
@@ -240,48 +263,43 @@ IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c
 # but snags and logs shouldn't be penalized for the time they spent dead; they get back x years of deadness * growth coefficient
 # NEW MODEL NEW METHOD
 # Subtract 77y from each age in 2018 = 1941 age
-# find dbh from 1941 age -- this actually sucks! help forums say use approx() but I am not doing the right arguments
-IS_livetrees <- IS_livetrees %>% 
-  mutate(age1941 = age_est - 77) #%>% 
-#  mutate(dbh1941 = # want to add a column containing estimates of dbh in 1941, based on age in 1941. ie predict x from y
-
-# For 1941 reconstruction: DBH1941 = DBH - 23.7 + (coeff * snag_correction)
-#  DBH1941 = DBH - 23.7 + (coeff * log_correction)
-IS_livetrees <- IS_livetrees %>% 
-  mutate(DBH1941 = DBH - (2018-1941)*0.307204) %>%
-  filter(DBH1941 >= 5)
-
-IS_snags <- IS_snags %>% 
-  mutate(DBH1941 = DBH - (2018-1941-snag_correction)*0.307204) %>%
-  filter(DBH1941 >= 5)
-
-IS_logs <- IS_logs %>% 
-  mutate(DBH1941 = DBH - (2018-1941-log_correction)*0.307204) %>%
-  filter(DBH1941 >= 5)
-
-IS_trees1941 <- rbind(IS_livetrees[,c(1:9,14,15,16)],IS_snags[,c(1:9,14,16,17)],IS_logs[,c(1:9,11,12,13)])
+# find dbh from 1941 age using dbh = (age^(1/0.9783))/3.2088
+IS_trees1941 <- IS_trees %>% 
+  mutate(age1941 = 1941 - estab_est) %>% 
+  mutate(dbh1941 =round(age1941^(1/0.9783)/3.2088)) %>% 
+    # I think this worked; need to filter out rows with trees that have NaN or <5 DBH
+  filter(!is.na(dbh1941)) %>% # this takes it from 650 to 412 trees
+  filter(dbh1941>=5) # and this goes from 412 to 326 ! #IS_livetrees has 361 observations :)
+hist(IS_trees1941$dbh1941, breaks = 10)
+hist(IS_livetrees$dbh, breaks = 10)
 # then we are ready to compare stand metrics in 1941 to 2018 using MANOVA
 #______________________________________________________________________________#
 
-# Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 2018:
-meanIS <- mean(IS_livetrees$DBH)
-sd(IS_livetrees$DBH) #28.5
-maxIS <- max(IS_livetrees$DBH)
-stemsIS <- nrow(IS_livetrees)/3
-BA_IS <- sum(pi*(IS_livetrees$DBH/200)^2)/3
-QMD_IS <- sqrt(sum(IS_livetrees$DBH^2)/nrow(IS_livetrees))
+# NON-SPATIAL METRICS
 
-meanIS1941 <- mean(IS_trees1941$DBH1941)
-maxIS1941 <- max(IS_trees1941$DBH1941)
+# Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 2018:
+meanIS <- mean(IS_livetrees$dbh)
+sd(IS_livetrees$dbh) #28.5
+maxIS <- max(IS_livetrees$dbh)
+stemsIS <- nrow(IS_livetrees)/3
+BA_IS <- sum(pi*(IS_livetrees$dbh/200)^2)/3
+QMD_IS <- sqrt(sum(IS_livetrees$dbh^2)/nrow(IS_livetrees))
+
+# Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 1941:
+meanIS1941 <- mean(IS_trees1941$dbh1941)
+maxIS1941 <- max(IS_trees1941$dbh1941)
 stemsIS1941 <- nrow(IS_trees1941)/3
-BA_IS1941 <- sum(pi*(IS_trees1941$DBH1941/200)^2)/3
-QMD_IS1941 <- sqrt(sum(IS_trees1941$DBH1941^2)/nrow(IS_trees1941))
+BA_IS1941 <- sum(pi*(IS_trees1941$dbh1941/200)^2)/3
+QMD_IS1941 <- sqrt(sum(IS_trees1941$dbh1941^2)/nrow(IS_trees1941))
 
 IS_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QMD"), 
                          IS2018 = c(meanIS, maxIS, stemsIS, BA_IS, QMD_IS),
                          IS1941 = c(meanIS1941, maxIS1941, stemsIS1941, BA_IS1941, QMD_IS1941))
 
 #______________________________________________________________________________#
+
+# SPATIAL STUFF
+
 install.packages("spatstat")
 library(spatstat)
 IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
