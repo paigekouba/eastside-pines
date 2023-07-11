@@ -109,7 +109,7 @@ ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
   geom_point() +
     geom_smooth(data = IS_correction,
       method = "nls",
-      method.args=list(formula = y ~ a*(x^b), start = list(a=1, b=2)),
+      method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
       se=FALSE)
 # it looks almost indistinguishable from a straight line model
 IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
@@ -119,9 +119,14 @@ ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
   geom_point() +
   geom_smooth(data = IS_correction,
               method = "nls",
-              method.args=list(formula = y ~ a*(x^b), start = list(a=1, b=2)),
-              se=FALSE, color="red")+
-  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
+              method.args=list(formula = y ~ a*(x^b)+ c, start = list(a=1, b=2, c=5)),
+              se=FALSE, color="red")#+
+  #stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
+
+# add an intercept to IS_exp
+IS_expc <- nls(corrected_age ~ a*(dbh^b) + c, data = IS_correction, start = list(a=1, b=2, c=5))
+summary(IS_expc)
+AIC(IS_exp, IS_expc)
 
 # more messing around
 IS_exp_inv <- nls(dbh ~ a*corrected_age^b, data = IS_correction, start = list(a=1, b=.1))
