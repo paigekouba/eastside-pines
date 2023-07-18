@@ -40,7 +40,9 @@ require(sp)
 # dbh.units="cm" or "in"
 # Species.correct, sets all species codes to 4 letter codes. May not have your species, add as needed. 
 
-formatSummaryInput <- function(plot.data, corner.0 = F, x.min=0, x.max=0, y.min=0, y.max=0, poly="NA",dbh.units,Species.correct=F)
+plot.data <- IS1_2018 # comes from Pines_ESA2023
+
+formatSummaryInput <- function(plot.data, corner.0 = F, x.min=-60, x.max=60, y.min=-60, y.max=60, poly="NA",dbh.units="cm",Species.correct=F)
 {
   
   if(corner.0==T & class(poly)=="SpatialPolygonsDataFrame") (stop("corner.0 cannot be T if polygon boundary is used"))
@@ -116,11 +118,17 @@ formatSummaryInput <- function(plot.data, corner.0 = F, x.min=0, x.max=0, y.min=
   }
   
   if(class(poly)=="character"){
-    pointData <- ppp(plot.data[,x.index], plot.data[,y.index],xrange=c(x.min, x.max), yrange=c(y.min, y.max),marks=Tree.ID)
+    #pointData <- ppp(plot.data[,x.index], plot.data[,y.index],xrange=c(x.min, x.max), yrange=c(y.min, y.max),marks=Tree.ID)
   }
   
-  treeData  <- data.frame(dbh=plot.data[,dbh.index], spp=Species, crown=plot.data[,crown.index], 
-                          Tree.ID=Tree.ID,Clump.ID=plot.data[,clumpid.index])
+pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = 60, centre = c(0,0)), 
+                      marks = as.numeric(rownames(plot.data) ))
+  
+  #treeData  <- data.frame(dbh=plot.data[,dbh.index], spp=Species, crown=plot.data[,crown.index], 
+  #                        Tree.ID=Tree.ID,Clump.ID=plot.data[,clumpid.index])
+  
+  # leaving out crown for now...
+treeData <- data.frame(dbh=plot.data$dbh, spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)))
   
   
   # These possibility lists could probably be expanded
@@ -131,10 +139,10 @@ formatSummaryInput <- function(plot.data, corner.0 = F, x.min=0, x.max=0, y.min=
   else if(!(tolower(dbh.units) %in% metric))
     stop("dbh.units must be one of: cm, in")
   
-  plot.ha = round(((x.max - x.min) * (y.max - x.min))/10000,2)
+#  plot.ha = round(((x.max - x.min) * (y.max - x.min))/10000,2)
+plot.ha = round((pi*57.4^2)/10000,2)  
   
-  
-  out <- list(pointData=pointData, treeData=treeData,plot.ha = plot.ha )
+  out <- list(pointData=PVKpointData, treeData=PVKtreeData,plot.ha = plot.ha )
   class(out) <- c(class(out), "summary.input")
   return(out)
 }
@@ -363,7 +371,7 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
               clusters=clusters, maxbin=maxbin,clump.bins =clump.bins, edge.cut = edge.cut))
 }
 
-
+summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "Name")
 
 
 ###########################################
