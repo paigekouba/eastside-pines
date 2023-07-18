@@ -136,7 +136,7 @@ IS_exp_inv <- nls(dbh ~ a*corrected_age^b, data = IS_correction, start = list(a=
 
 # Test AICs
 AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5, IS_exp_inv, IS_exp)
-# the inverse model has almost 200 points lower AIC does this matter??
+# the inverse model has almost 200 points lower AIC does this matter?? No
 # plotting it 
 ggplot(data=IS_correction,aes(y=dbh,x=corrected_age))+
   geom_point() +
@@ -304,39 +304,26 @@ IS_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QM
 
 # SPATIAL STUFF
 
-install.packages("spatstat")
+#install.packages("spatstat")
 library(spatstat)
+# subset just IS1 for mapping practice
 IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
 IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
 
+# convert x, y data to point patter
 IS1_2018ppp <- ppp(IS1_2018$X, IS1_2018$Y, c(-60,60), c(-60,60))
 IS1_1941ppp <- ppp(IS1_1941$X, IS1_1941$Y, c(-60,60), c(-60,60))
+# plot with dbh
+marks(IS1_1941ppp) <- IS1_1941[,13]
+marks(IS1_2018ppp) <- IS1_2018[,5]
 par(mfrow=c(1,2))
 plot(IS1_2018ppp)
 plot(IS1_1941ppp)
 
-par(mfrow=c(1,2))
-plot(Kest(IS1_2018ppp))
-plot(Kest(IS1_1941ppp))
+par(mfrow=c(1,2)) # plot as heatmap of biggest-dbh trees
+plot(Smooth(IS1_1941ppp))
+plot(Smooth(IS1_2018ppp))
 
-IS2_2018 <- IS_livetrees[IS_livetrees$Plot == "IS2",]
-IS2_1941 <- IS_trees1941[IS_trees1941$Plot == "IS2",]
-
-IS2_2018ppp <- ppp(IS2_2018$X, IS2_2018$Y, c(-60,60), c(-60,60))
-IS2_1941ppp <- ppp(IS2_1941$X, IS2_1941$Y, c(-60,60), c(-60,60))
-
-
-par(mfrow=c(1,2))
-plot(Kest(IS2_2018ppp))
-plot(Kest(IS2_1941ppp))
-
-IS3_2018 <- IS_livetrees[IS_livetrees$Plot == "IS3",]
-IS3_1941 <- IS_trees1941[IS_trees1941$Plot == "IS3",]
-
-IS3_2018ppp <- ppp(IS3_2018$X, IS3_2018$Y, c(-60,60), c(-60,60))
-IS3_1941ppp <- ppp(IS3_1941$X, IS3_1941$Y, c(-60,60), c(-60,60))
-
-
-par(mfrow=c(1,2))
-plot(Kest(IS3_2018ppp))
-plot(Kest(IS3_1941ppp))
+par(mfrow=c(1,2)) # plot as heatmap of most stems per area
+plot(density(IS1_1941ppp))
+plot(density(IS1_2018ppp))
