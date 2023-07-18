@@ -182,8 +182,7 @@ test[,22]
 # For now I will proceed using IS_exp, which has the form age = 3.2088(x^0.9783)
 
 #______________________________________________________________________________#
-# STOP. Everything below is based on an incorrect model! The coefficient is wrong :( Will fix it
-# 5/8/23 in the process of fixing! 
+# 
 
 ## 6. Age-size regression model: 
 #IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
