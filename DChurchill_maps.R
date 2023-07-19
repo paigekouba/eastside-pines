@@ -96,14 +96,18 @@ Plot.cluster = function(data.xy,radi =3, int.dist=6, x.max=142,y.max=142,plot.ba
 
 ###############################################################################
 
+# from DChurchill_ICO.R (aka Plotkin_Cluster_Crown.R)
+point.data <- pointData
+tree.data <- treeData
 
-Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3,cm="Y",axes="n",QM=F,newPlot=T,clust.breaks=c(1,2,5,10,16),d.factor=120){
+Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3,cm="Y",axes="n",QM=F,newPlot=T,
+                           clust.breaks=c(1,2,5,10,16),d.factor=120){
   
-  #data.xy = point.data
-  x.max = point.data$window$xrange[2]
-  y.max = point.data$window$yrange[2]
-  x.min = point.data$window$xrange[1]
-  x.min = point.data$window$xrange[1]
+  data.xy = point.data
+  x.max = 60 #point.data$window$xrange[2]
+  y.max = 60 #point.data$window$yrange[2]
+  x.min = -60 #point.data$window$xrange[1]
+  y.min = -60 #point.data$window$xrange[1] EDIT: y.min and yrange ?
   
   dbh= tree.data[,which(colnames(tree.data)=="dbh")]
   Species = tree.data[,which(colnames(tree.data)=="spp")]
@@ -124,21 +128,22 @@ Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3
     clus.sizes= sort(unique(clusts))
   }
   
-  
-  data.frame(spcs= c("ABCO","ABGR","PIPO","PSME","LAOC","Unk","CELE3","JUOC","PICO"),colr = c("black","black","orange","brown","red","gray","gray","gray","gray"))
+  # PVK changed ABGR to PIJE
+  data.frame(spcs= c("ABCO","PIJE","PIPO","PSME","LAOC","Unk","CELE3","JUOC","PICO"),colr = c("black","black","orange","brown","red","gray","gray","gray","gray"))
   
   ## set up color ramp for crowns by size
   rgb.palette <- colorRampPalette(c("palegreen","darkgreen"),space = "rgb")
-  if (length(clust.breaks) == 1)  (color.list=rgb.palette(length(clus.sizes)))
-  if (length(clust.breaks)>1) color.list = lut(rgb.palette(length(clust.breaks)),breaks=c(clust.breaks,1000))(clus.sizes)  
-  clust.color = lut(color.list,inputs=clus.sizes)(clusts)
+  if (length(clust.breaks) == 1)  (clust.color=rgb.palette(length(clus.sizes)))
+  if (length(clust.breaks)>1) {
+    clust.lut = lut(rgb.palette(length(clust.breaks)),breaks=c(clust.breaks,100))  
+    clust.color = clust.lut(clus.sizes)}
   
   ## Set up species codes and colors for tree boles 
   if(species.color=="PP-DF-WL") (species.color= data.frame(spcs= c("PIPO","PSME","LAOC"),colr = c("orange","black","red")))
   else if(species.color=="PP-DF") (species.color= data.frame(spcs= c("PIPO","PSME"),colr = c("black","orange")))
-  else if(species.color=="Malhuer") (species.color= data.frame(spcs= c("ABCO","ABGR","PIPO","PSME","LAOC","Unk","CELE3","JUOC","PICO"),colr = c("black","black","orange","brown","red","gray","gray","gray","gray")))
+  else if(species.color=="Malhuer") (species.color= data.frame(spcs= c("ABCO","PIJE","PIPO","PSME","LAOC","Unk","CELE3","JUOC","PICO"),colr = c("black","black","orange","brown","red","gray","gray","gray","gray")))
   else if(species.color=="Colville") (species.color=data.frame(spcs= c("PSME","PIPO","LAOC","PICO","THPL","ABLA","PIEN"),colr = c("black","orange","brown","blue","red","purple","gray")))
-  else if(species.color=="EWACas") (species.color=data.frame(spcs= c("PIPO","PSME","LAOC","PICO","ABGR","UNKN"),colr = c("orange","black","red","blue","purple","gray")))
+  else if(species.color=="EWACas") (species.color=data.frame(spcs= c("PIPO","PSME","LAOC","PICO","PIJE","UNKN"),colr = c("orange","black","red","blue","purple","gray")))
   else if(species.color=="SWOr") (species.color=data.frame(spcs= c("PSME", "PIPO", "PILA", "ABCO", "ARME", "QUKE", "CHCH", "ABMAS", "CADE", "QUGA", "QUCH"), colr=c("black","orange","brown","blue","red","gray","gray","gray","gray","gray","gray")))
   else if(species.color=="PP-LP") (species.color=data.frame(spcs=c("PP", "LP"), c("orange", "black")))
   else if(species.color=="Tonasket") (species.color=data.frame(spcs=c("YoungPP", "OldPP","DF","WL","LP","Snag"), c("orange", "red","black","brown","blue","purple")))
@@ -157,5 +162,7 @@ Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3
   #return(clust.color)
 }
 
+Plot.pp.cluster(point.data, tree.data,species.color="PP-DF-WL", radi = 3, cm="Y", axes="n", QM=F, newPlot=T, 
+                clust.breaks=c(1,2,5,10,16),d.factor=120)
 
 
