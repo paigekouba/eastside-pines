@@ -128,7 +128,7 @@ pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = 60, centre = c
   #                        Tree.ID=Tree.ID,Clump.ID=plot.data[,clumpid.index])
   
   # leaving out crown for now...
-treeData <- data.frame(dbh=plot.data$dbh, spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)))
+treeData <- data.frame(dbh=plot.data$dbh, spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)),Clump.ID=as.numeric(rownames(plot.data)) )
   
   
   # These possibility lists could probably be expanded
@@ -371,7 +371,7 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
               clusters=clusters, maxbin=maxbin,clump.bins =clump.bins, edge.cut = edge.cut))
 }
 
-summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "Name")
+summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "IS1")
 
 
 ###########################################
