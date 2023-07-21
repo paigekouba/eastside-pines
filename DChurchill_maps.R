@@ -30,7 +30,7 @@ draw.circle2 =function(x, y, radius, nv = 100, border = NULL, col = NA, lty = 1,
 ## data input must have x,y coord in meters plus dbh and spp colums
 
 Plot.cluster = function(data.xy,radi =3, int.dist=6, x.max=142,y.max=142,plot.base="T",clust.breaks=0){
-  pattern = as.ppp(data.xy[,c(1,2)],W=c(0,x.max,0,y.max))
+  pattern = as.ppp(data.xy[,c(1,2)],W=c(-x.max,x.max,-y.max,y.max))
   my.clust.table = Clust.table(pattern,maxdist=int.dist)
   clusterss = my.clust.table$cluster.membership
   tree.n= nrow(clusterss)
@@ -64,8 +64,10 @@ Plot.cluster = function(data.xy,radi =3, int.dist=6, x.max=142,y.max=142,plot.ba
   my.cols = lut(c("orange","brown","black"),inputs=levels(my.cols))(my.cols)
   
   # Plot map and then crowns
-  if(plot.base == "T") plot(pattern$x,pattern$y,cex=.1,pch=1,xlab="",ylab="",xaxt="n",yaxt="n",ylim=c(0,y.max),xlim=c(0,x.max)) 
+if(plot.base == "T") plot(pattern$x,pattern$y,cex=.1,pch=1,xlab="",ylab="",xaxt="n",yaxt="n",ylim=c(-y.max,y.max),xlim=c(-x.max,x.max)) 
+  # trying with -60 60
   
+#  if(plot.base == "T") plot(pattern$x,pattern$y,cex=.1,pch=1,xlab="",ylab="",xaxt="n",yaxt="n",ylim=c(-60,60),xlim=c(-60,60))
   for (i in 1:length(clus.sizes)){
     tree.hold = subset(clusts,clusts[,2]==clus.sizes[i])
     for(j in 1:nrow(tree.hold)){
@@ -98,26 +100,33 @@ Plot.cluster = function(data.xy,radi =3, int.dist=6, x.max=142,y.max=142,plot.ba
 
 # from DChurchill_ICO.R (aka Plotkin_Cluster_Crown.R)
 point.data <- pointData
-tree.data <- treeData
+#tree.data <- treeData did not work, error in l 139
+tree.data <- tree.data_out
 
 Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3,cm="Y",axes="n",QM=F,newPlot=T,
                            clust.breaks=c(1,2,5,10,16),d.factor=120){
   
   data.xy = point.data
-  x.max = 60 #point.data$window$xrange[2]
-  y.max = 60 #point.data$window$yrange[2]
-  x.min = -60 #point.data$window$xrange[1]
-  y.min = -60 #point.data$window$xrange[1] EDIT: y.min and yrange ?
+  x.max = point.data$window$xrange[2]
+  y.max = point.data$window$yrange[2]
+  x.min = point.data$window$xrange[1]
+  y.min = point.data$window$yrange[1] #EDIT: y.min and yrange ?
   
-  dbh= tree.data[,which(colnames(tree.data)=="dbh")]
-  Species = tree.data[,which(colnames(tree.data)=="spp")]
+# this is causing error:  Error in tree.data[, which(colnames(tree.data) == "dbh")] : 
+ # incorrect number of dimensions
+ # dbh= tree.data[,which(colnames(tree.data)=="dbh")]
+#  Species = tree.data[,which(colnames(tree.data)=="spp")]
+  
+# trying tree.data --> treeData swap, as treeData actually IS a df
+  dbh= treeData[,which(colnames(treeData)=="dbh")]
+  Species = treeData[,which(colnames(treeData)=="spp")]
   
   
   ## Set up clump info
   if(QM==F){
     clust.mem = tree.data$Clump.ID
     n.pts = point.data$n
-    clusts = tree.data$clust.sz
+    clusts = tree.data$trees$clust.sz
     clus.sizes= sort(unique(clusts))
   }
   
@@ -128,8 +137,7 @@ Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3
     clus.sizes= sort(unique(clusts))
   }
   
-  # PVK changed ABGR to PIJE
-  data.frame(spcs= c("ABCO","PIJE","PIPO","PSME","LAOC","Unk","CELE3","JUOC","PICO"),colr = c("black","black","orange","brown","red","gray","gray","gray","gray"))
+  data.frame(spcs= c("ABCO","ABGR","PIPO","PSME","LAOC","Unk","CELE3","JUOC","PICO"),colr = c("black","black","orange","brown","red","gray","gray","gray","gray"))
   
   ## set up color ramp for crowns by size
   rgb.palette <- colorRampPalette(c("palegreen","darkgreen"),space = "rgb")
@@ -152,7 +160,9 @@ Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3
   my.cols = lut(species.color[,2],inputs=species.color[,1])(Species)
   
   # Plot map and then crowns
-  if(newPlot == T) plot(point.data$x,point.data$y,cex=.1,pch=1,xlab="",ylab="",xaxt=axes,yaxt=axes,ylim=c(0,y.max),xlim=c(0,x.max)) 
+  if(newPlot == T) plot(point.data$x,point.data$y,cex=.1,pch=1,xlab="",ylab="",xaxt=axes,yaxt=axes,ylim=c(y.min,y.max),xlim=c(x.min,x.max)) 
+# trying with -60, 60
+#    if(newPlot == T) plot(point.data$x,point.data$y,cex=.1,pch=1,xlab="",ylab="",xaxt#=axes,yaxt=axes,ylim=c(-60,60),xlim=c(-60,60)) 
   
   for (i in 1:n.pts) draw.circle2(point.data$x[i],point.data$y[i],radius=radi, nv=1000,col=clust.color[i],lty=0,lwd=1,density=NULL,angle=NULL)
   
@@ -162,7 +172,7 @@ Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3
   #return(clust.color)
 }
 
-Plot.pp.cluster(point.data, tree.data,species.color="PP-DF-WL", radi = 3, cm="Y", axes="n", QM=F, newPlot=T, 
+Plot.pp.cluster(point.data, tree.data,species.color="EWACas", radi = 3, cm="Y", axes="n", QM=F, newPlot=T, 
                 clust.breaks=c(1,2,5,10,16),d.factor=120)
 
 
