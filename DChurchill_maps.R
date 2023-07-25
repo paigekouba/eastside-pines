@@ -30,7 +30,8 @@ draw.circle2 =function(x, y, radius, nv = 100, border = NULL, col = NA, lty = 1,
 ## data input must have x,y coord in meters plus dbh and spp colums
 
 Plot.cluster = function(data.xy,radi =3, int.dist=6, x.max=142,y.max=142,plot.base="T",clust.breaks=0){
-  pattern = as.ppp(data.xy[,c(1,2)],W=c(-x.max,x.max,-y.max,y.max))
+  pattern = #as.ppp(data.xy[,c(1,2)],W=c(-x.max,x.max,-y.max,y.max)) # try with circular window???
+    as.ppp(data.xy[,c(1,2)],W=disc(radius = 60, centre = c(0,0)))
   my.clust.table = Clust.table(pattern,maxdist=int.dist)
   clusterss = my.clust.table$cluster.membership
   tree.n= nrow(clusterss)
@@ -103,7 +104,7 @@ point.data <- pointData
 #tree.data <- treeData did not work, error in l 139
 tree.data <- tree.data_out
 
-Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3,cm="Y",axes="n",QM=F,newPlot=T,
+Plot.pp.cluster = function(point.data,tree.data,species.color="Eastside",radi =3,cm="Y",axes="n",QM=F,newPlot=T,
                            clust.breaks=c(1,2,5,10,16),d.factor=120){
   
   data.xy = point.data
@@ -148,13 +149,8 @@ Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3
   
   ## Set up species codes and colors for tree boles 
   if(species.color=="PP-DF-WL") (species.color= data.frame(spcs= c("PIPO","PSME","LAOC"),colr = c("orange","black","red")))
-  else if(species.color=="PP-DF") (species.color= data.frame(spcs= c("PIPO","PSME"),colr = c("black","orange")))
-  else if(species.color=="Malhuer") (species.color= data.frame(spcs= c("ABCO","PIJE","PIPO","PSME","LAOC","Unk","CELE3","JUOC","PICO"),colr = c("black","black","orange","brown","red","gray","gray","gray","gray")))
-  else if(species.color=="Colville") (species.color=data.frame(spcs= c("PSME","PIPO","LAOC","PICO","THPL","ABLA","PIEN"),colr = c("black","orange","brown","blue","red","purple","gray")))
-  else if(species.color=="EWACas") (species.color=data.frame(spcs= c("PIPO","PSME","LAOC","PICO","PIJE","UNKN"),colr = c("orange","black","red","blue","purple","gray")))
-  else if(species.color=="SWOr") (species.color=data.frame(spcs= c("PSME", "PIPO", "PILA", "ABCO", "ARME", "QUKE", "CHCH", "ABMAS", "CADE", "QUGA", "QUCH"), colr=c("black","orange","brown","blue","red","gray","gray","gray","gray","gray","gray")))
-  else if(species.color=="PP-LP") (species.color=data.frame(spcs=c("PP", "LP"), c("orange", "black")))
-  else if(species.color=="Tonasket") (species.color=data.frame(spcs=c("YoungPP", "OldPP","DF","WL","LP","Snag"), c("orange", "red","black","brown","blue","purple")))
+# adding in my own color set ???
+  else if (species.color =="Eastside") (species.color=data.frame(spcs=c("PIJE", "ABCO", "PICO", "JUGR"), colr = c("black","orange","brown","blue"))) # see if can use viridis or similar?
   else (species.color=species.color)
   
   my.cols = lut(species.color[,2],inputs=species.color[,1])(Species)
@@ -172,7 +168,7 @@ Plot.pp.cluster = function(point.data,tree.data,species.color="PP-DF-WL",radi =3
   #return(clust.color)
 }
 
-Plot.pp.cluster(point.data, tree.data,species.color="EWACas", radi = 3, cm="Y", axes="n", QM=F, newPlot=T, 
+Plot.pp.cluster(point.data, tree.data,species.color="Eastside", radi = 3, cm="Y", axes="n", QM=F, newPlot=T, 
                 clust.breaks=c(1,2,5,10,16),d.factor=120)
 
 
