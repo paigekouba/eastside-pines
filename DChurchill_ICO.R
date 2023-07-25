@@ -42,84 +42,85 @@ require(sp)
 
 plot.data <- IS1_2018 # comes from Pines_ESA2023
 
-formatSummaryInput <- function(plot.data, corner.0 = F, x.min=-60, x.max=60, y.min=-60, y.max=60, poly="NA",dbh.units="cm",Species.correct=F)
-{
+#______Found a workaround for the function below, bc it requires square window______
+#formatSummaryInput <- function(plot.data, corner.0 = F, x.min=-60, x.max=60, y.min=-60, y.max=60, poly="NA",dbh.units="cm",Species.correct=F)
+#{
   
-  if(corner.0==T & class(poly)=="SpatialPolygonsDataFrame") (stop("corner.0 cannot be T if polygon boundary is used"))
-  # Looks for x and y as the first or last letter in the column name
-  # Otherwise we may pick up spurious columns
-  x.index <- grep("(^x|x$)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
-  y.index <- grep("(^y|y$)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
-  # If we picked up more than one, we remove any columns that aren't numeric
-  # Hopefully we don't have anything left...
-  if(length(x.index) > 1)
-    x.index <- x.index[which(lapply(plot.data[,x.index], class) == "numeric")]
-  if(length(y.index) > 1)
-    y.index <- y.index[which(lapply(plot.data[,y.index], class) == "numeric")]
-  
-  dbh.index <- grep("(dbh|dia)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
-  spp.index <- grep("(spec|spp|spc|spcs)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
-  crown.index <- grep("(crown|crwn|cr.rad)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
-  treeid.index <- grep("(plot.id|tree.id|tag)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
-  clumpid.index <- grep("(clumpid|clump)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
-  
-
- 	# Sorry that this goes so wide...
-  if(length(c(x.index, y.index, dbh.index, spp.index)) != 4)
-    stop("The following columns cannot be distinguished in plot.data: ", paste(c("x", "y", "dbh", "spp")[which(c(length(x.index), length(y.index), length(dbh.index), length(spp.index)) == 0)], collapse=", "))
-	  
-    if(!is.numeric(c(x.min, x.max, y.min, y.max)))
-    stop("x.min, x.max, y.min, y.max must all be numeric values")
-  
-  ## Set to 0,0 if called for by corner.0 = T & deal with min, max values
-  if(corner.0 == T) (plot.data[,x.index] = plot.data[,x.index] - min(plot.data[,x.index])) & 
-    (plot.data[,y.index] = plot.data[,y.index] - min(plot.data[,y.index]))
-  
-  if(x.max==0) (x.min = min(plot.data[,x.index]))
-  if(y.max==0) (y.min = min(plot.data[,y.index]))
-  if(x.max==0) (x.max = max(plot.data[,x.index]))
-  if(y.max==0) (y.max = max(plot.data[,y.index]))
-  
-  ### Set uniform species codes if called by Species.correct = T
-  Species = as.character(plot.data[,spp.index])
-  
-  if (Species.correct==T) {
-  Species[grep("^P$",Species,fixed=F)]="PIPO"  # fixed=T restricts to only p
-  Species[grep("^p$",Species,fixed=F)]="PIPO"  # fixed=T restricts to only p
-  Species[grep("^PP|PIPO$",Species,ignore.case=T)]="PIPO"
-  Species[grep("^F$",Species,fixed=F)]="PSME"  # fixed=T restricts to only F
-  Species[grep("^f$",Species,fixed=F)]="PSME"  # fixed=T restricts to only f
-  Species[grep("^DF|PSME$",Species,ignore.case=T)]="PSME"
-  Species[grep("^L|WL|LAOC|Lar$",Species,ignore.case=T)]="LAOC"
-  Species[grep("^G|GF|ABGR$",Species,ignore.case=T)]="ABGR"
-  Species[grep("^WF|ABCO$",Species,ignore.case=T)]="ABCO"
-  Species[grep("^S|ES|PIEN$",Species,ignore.case=T)]="PIEN"
-  Species[grep("^SA|ABLA$",Species,ignore.case=T)]="ABLA"
-  Species[grep("^RC|THPL$",Species,ignore.case=T)]="THPL"
-  Species[grep("^WP|WWP|PIMO|PIMO3$",Species,ignore.case=T)]="PIMO"
-  Species[grep("^LP|PICO$",Species,ignore.case=T)]="PICO"
-  }
-  
-  
-  # We need to make sure that the tree.ids that are provided are unique since we're using them as our ppp mark
-  # if not, or if none are provided, then use row names.
-  if(length(unique(rownames(plot.data))) != nrow(plot.data)) (rownames(plot.data) <- as.character(1:nrow(plot.data)))
-  
-  if(length(treeid.index) > 1) stop("Cannot determine tree id column")
-  if(length(treeid.index) == 1) (Tree.ID = plot.data[,treeid.index]) 
-  if(length(treeid.index) == 0) (Tree.ID = as.numeric(rownames(plot.data)))    
-  
-  class("NA")
-  if(class(poly)!="character"){ 
-    windd = poly@polygons[[1]]@Polygons[[1]]@coords
-    windd = windd[-nrow(windd),]
-    print("creating ppp with polygon")
-    pointData <- ppp(plot.data[,x.index], plot.data[,y.index],poly=list(x=rev(windd[,1]),y=rev(windd[,2])),marks=Tree.ID)
-  }
-  
-  if(class(poly)=="character"){
-    #pointData <- ppp(plot.data[,x.index], plot.data[,y.index],xrange=c(x.min, x.max), yrange=c(y.min, y.max),marks=Tree.ID)
-  }
+ #  if(corner.0==T & class(poly)=="SpatialPolygonsDataFrame") (stop("corner.0 cannot be T if polygon boundary is used"))
+ #  # Looks for x and y as the first or last letter in the column name
+ #  # Otherwise we may pick up spurious columns
+ #  x.index <- grep("(^x|x$)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
+ #  y.index <- grep("(^y|y$)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
+ #  # If we picked up more than one, we remove any columns that aren't numeric
+ #  # Hopefully we don't have anything left...
+ #  if(length(x.index) > 1)
+ #    x.index <- x.index[which(lapply(plot.data[,x.index], class) == "numeric")]
+ #  if(length(y.index) > 1)
+ #    y.index <- y.index[which(lapply(plot.data[,y.index], class) == "numeric")]
+ #  
+ #  dbh.index <- grep("(dbh|dia)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
+ #  spp.index <- grep("(spec|spp|spc|spcs)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
+ #  crown.index <- grep("(crown|crwn|cr.rad)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
+ #  treeid.index <- grep("(plot.id|tree.id|tag)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
+ #  clumpid.index <- grep("(clumpid|clump)", colnames(plot.data), perl=TRUE, ignore.case=TRUE)
+ #  
+ # 
+ # 	# Sorry that this goes so wide...
+ #  if(length(c(x.index, y.index, dbh.index, spp.index)) != 4)
+ #    stop("The following columns cannot be distinguished in plot.data: ", paste(c("x", "y", "dbh", "spp")[which(c(length(x.index), length(y.index), length(dbh.index), length(spp.index)) == 0)], collapse=", "))
+ #   
+ #    if(!is.numeric(c(x.min, x.max, y.min, y.max)))
+ #    stop("x.min, x.max, y.min, y.max must all be numeric values")
+ #  
+ #  ## Set to 0,0 if called for by corner.0 = T & deal with min, max values
+ #  if(corner.0 == T) (plot.data[,x.index] = plot.data[,x.index] - min(plot.data[,x.index])) & 
+ #    (plot.data[,y.index] = plot.data[,y.index] - min(plot.data[,y.index]))
+ #  
+ #  if(x.max==0) (x.min = min(plot.data[,x.index]))
+ #  if(y.max==0) (y.min = min(plot.data[,y.index]))
+ #  if(x.max==0) (x.max = max(plot.data[,x.index]))
+ #  if(y.max==0) (y.max = max(plot.data[,y.index]))
+ #  
+ #  ### Set uniform species codes if called by Species.correct = T
+ #  Species = as.character(plot.data[,spp.index])
+ #  
+ #  if (Species.correct==T) {
+ #  Species[grep("^P$",Species,fixed=F)]="PIPO"  # fixed=T restricts to only p
+ #  Species[grep("^p$",Species,fixed=F)]="PIPO"  # fixed=T restricts to only p
+ #  Species[grep("^PP|PIPO$",Species,ignore.case=T)]="PIPO"
+ #  Species[grep("^F$",Species,fixed=F)]="PSME"  # fixed=T restricts to only F
+ #  Species[grep("^f$",Species,fixed=F)]="PSME"  # fixed=T restricts to only f
+ #  Species[grep("^DF|PSME$",Species,ignore.case=T)]="PSME"
+ #  Species[grep("^L|WL|LAOC|Lar$",Species,ignore.case=T)]="LAOC"
+ #  Species[grep("^G|GF|ABGR$",Species,ignore.case=T)]="ABGR"
+ #  Species[grep("^WF|ABCO$",Species,ignore.case=T)]="ABCO"
+ #  Species[grep("^S|ES|PIEN$",Species,ignore.case=T)]="PIEN"
+ #  Species[grep("^SA|ABLA$",Species,ignore.case=T)]="ABLA"
+ #  Species[grep("^RC|THPL$",Species,ignore.case=T)]="THPL"
+ #  Species[grep("^WP|WWP|PIMO|PIMO3$",Species,ignore.case=T)]="PIMO"
+ #  Species[grep("^LP|PICO$",Species,ignore.case=T)]="PICO"
+ #  }
+ #  
+ #  
+ #  # We need to make sure that the tree.ids that are provided are unique since we're using them as our ppp mark
+ #  # if not, or if none are provided, then use row names.
+ #  if(length(unique(rownames(plot.data))) != nrow(plot.data)) (rownames(plot.data) <- as.character(1:nrow(plot.data)))
+ #  
+ #  if(length(treeid.index) > 1) stop("Cannot determine tree id column")
+ #  if(length(treeid.index) == 1) (Tree.ID = plot.data[,treeid.index]) 
+ #  if(length(treeid.index) == 0) (Tree.ID = as.numeric(rownames(plot.data)))    
+ #  
+ #  class("NA")
+ #  if(class(poly)!="character"){ 
+ #    windd = poly@polygons[[1]]@Polygons[[1]]@coords
+ #    windd = windd[-nrow(windd),]
+ #    print("creating ppp with polygon")
+ #    pointData <- ppp(plot.data[,x.index], plot.data[,y.index],poly=list(x=rev(windd[,1]),y=rev(windd[,2])),marks=Tree.ID)
+ #  }
+ #  
+ #  if(class(poly)=="character"){
+ #    #pointData <- ppp(plot.data[,x.index], plot.data[,y.index],xrange=c(x.min, x.max), yrange=c(y.min, y.max),marks=Tree.ID)
+ #  }
   
 pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = 60, centre = c(0,0)), 
                       marks = as.numeric(rownames(plot.data) ))
@@ -130,23 +131,30 @@ pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = 60, centre = c
   # leaving out crown for now...
 treeData <- data.frame(dbh=plot.data$dbh, spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)),Clump.ID=as.numeric(rownames(plot.data)) )
 treeData2 <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)),Clump.ID=as.numeric(rownames(plot.data)) )  
-  
-  # These possibility lists could probably be expanded
-  metric <- c("cm", "centimeters", "metric")
-  customary <- c("in", "inches", "inch","standard","English", "customary", "imperial", "sae")
-  if(tolower(dbh.units) %in% customary)
-    treeData$dbh <- cm(treeData$dbh)
-  else if(!(tolower(dbh.units) %in% metric))
-    stop("dbh.units must be one of: cm, in")
-  
-#  plot.ha = round(((x.max - x.min) * (y.max - x.min))/10000,2)
-plot.ha = round((pi*57.4^2)/10000,2)  
-  
-  out <- list(pointData=PVKpointData, treeData=PVKtreeData,plot.ha = plot.ha )
-  class(out) <- c(class(out), "summary.input")
-  return(out)
-}
+# I think we needed treeData2 for later issues with plotting function...???
+treeData3 <- treeData2 <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data))) 
+# try without Clump.ID
 
+
+#   # These possibility lists could probably be expanded
+#   metric <- c("cm", "centimeters", "metric")
+#   customary <- c("in", "inches", "inch","standard","English", "customary", "imperial", "sae")
+#   if(tolower(dbh.units) %in% customary)
+#     treeData$dbh <- cm(treeData$dbh)
+#   else if(!(tolower(dbh.units) %in% metric))
+#     stop("dbh.units must be one of: cm, in")
+#   
+# #  plot.ha = round(((x.max - x.min) * (y.max - x.min))/10000,2)
+# plot.ha = round((pi*57.4^2)/10000,2)  
+#   
+#   out <- list(pointData=PVKpointData, treeData=PVKtreeData,plot.ha = plot.ha )
+#   class(out) <- c(class(out), "summary.input")
+#   return(out)
+# }
+
+plot.ha = round((pi*57.4^2)/10000,2)  
+out <- list(pointData, treeData, plot.ha)
+class(out) <- c(class(out), "summary.input")
 
 #
 # Inputs:
@@ -182,8 +190,9 @@ plot.ha = round((pi*57.4^2)/10000,2)
 
 
 	
-summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin=-1,edge.cut = c(0,0,0,0), Quickmap=F,plot.name="Name"){
-  
+#summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin=-1,edge.cut = c(0,0,0,0), Quickmap=F,plot.name="Name"){ # trying with distThreshold=6
+summarizeClusters.ppp <- function(pointData, treeData, distThreshold=6, max.bin=-1,edge.cut = c(0,0,0,0), Quickmap=F,plot.name="Name"){
+  # can edge.cut be changed for a circular window???
 	if ("crown" %in% colnames(treeData)) (treeData=treeData) else (treeData = Crw.rad.pred(treeData))
 	
 	if(Quickmap == T) (cluster.list = Quickmap.list(treeData[,"Clump.ID"])) else (cluster.list <- clusterByCrown(pointData, treeData, distThreshold))
@@ -210,8 +219,11 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
       
 	### Eliminate edge trees from tree list if a cut distances are provided
 	noedge.trees= trees
-	 x.low = pointData$window$xrange[1] + edge.cut[1] ; x.high = pointData$window$xrange[2]- edge.cut[2]
-	 y.low = pointData$window$yrange[1] + edge.cut[3] ; y.high = pointData$window$yrange[2] - edge.cut[4]
+# SQUARE WINDOW but I don't think this will show up because edge.cut is not specified? Trying with -60,60
+	 x.low = -60 #pointData$window$xrange[1] + edge.cut[1] ; 
+	 x.high = 60 #pointData$window$xrange[2]- edge.cut[2]
+	 y.low = -60 #pointData$window$yrange[1] + edge.cut[3] ; 
+	 y.high = 60 #pointData$window$yrange[2] - edge.cut[4]
    
 	 ## only adjusts trees if any trees are actually out
 	 cut.index = which(trees$y<y.low | trees$x<x.low | trees$x> x.high | trees$y> y.high)
@@ -240,7 +252,12 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
    trees$x = trees$x -  min(trees$x)
    trees$y = trees$y - min(trees$y)
    if(nrow(trees) > 0) {
-   pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(min(trees$x),max(trees$x),min(trees$y),max(trees$y)))
+  # pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(min(trees$x),max(trees$x),min(trees$y),max(trees$y))) 
+     pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(-Inf, Inf, -Inf, Inf))
+     #trying with -60,60???
+   # pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(-60,60,-60,60))
+   # trying with circular window ???
+ #  pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=disc(radius = 60, centre = c(0,0)))
    } else {
    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(-Inf, Inf, -Inf, Inf))
    }
@@ -251,8 +268,9 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
   n.bins <- max.bin
   mean.clust.size <- sum(cluster.size^2) / n.pts
   norm.mean.clust.size <- mean.clust.size / n.pts
-  hectares <- diff(pointData$window$xrange) * diff(pointData$window$yrange) / 10000
-
+  hectares <- round((pi*57.4^2)/10000,2)
+    # hectares <- diff(pointData$window$xrange) * diff(pointData$window$yrange) / 10000
+    # changing line above due to circular window ???
 	
   # Per-cluster variables
   cluster.ba  <- rep(0, n.clusts)
@@ -371,8 +389,8 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
               clusters=clusters, maxbin=maxbin,clump.bins =clump.bins, edge.cut = edge.cut))
 }
 
-summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "IS1")
-tree.data_out <- summarizeClusters.ppp(pointData, treeData2, -1, -1, c(0,0,0,0), F, "IS1")
+summarizeClusters.ppp(pointData, treeData, 6, -1, c(0,0,0,0), F, "IS1")
+tree.data_out <- summarizeClusters.ppp(pointData, treeData3, -1, 6, c(0,0,0,0), F, "IS1")
 
 ###########################################
 ##  Functions used by main user functions
