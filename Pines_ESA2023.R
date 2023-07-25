@@ -254,7 +254,7 @@ IS_logs <- IS_logs %>%
 names(IS_livetrees)
 names(IS_snags)
 names(IS_logs) 
-IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c(1:9,16,17)])
+IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c(1:9,11,12)])
 
 #______________________________________________________________________________#
 # Size in 1941 = (1941 - estab. year) * size coefficient
