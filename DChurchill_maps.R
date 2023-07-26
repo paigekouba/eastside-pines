@@ -160,7 +160,9 @@ Plot.pp.cluster = function(point.data,tree.data,species.color="Eastside",radi =3
 # trying with -60, 60
 #    if(newPlot == T) plot(point.data$x,point.data$y,cex=.1,pch=1,xlab="",ylab="",xaxt#=axes,yaxt=axes,ylim=c(-60,60),xlim=c(-60,60)) 
   
-  for (i in 1:n.pts) draw.circle2(point.data$x[i],point.data$y[i],radius=radi, nv=1000,col=clust.color[i],lty=0,lwd=1,density=NULL,angle=NULL)
+# ERROR col= too short list
+  #  for (i in 1:n.pts) draw.circle2(point.data$x[i],point.data$y[i],radius=radi, nv=1000,col=clust.color[i],lty=0,lwd=1,density=NULL,angle=NULL)
+  for (i in 1:n.pts) draw.circle2(point.data$x[i],point.data$y[i],radius=radi, nv=1000,col="green",lty=0,lwd=1,density=NULL,angle=NULL)
   
   # Add scaled points by species for tree boles
   if (cm != "Y")  (dbh = dbh*2.54) 
