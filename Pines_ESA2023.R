@@ -66,120 +66,120 @@ IS_correction <- IS_correction %>%
 #  0.591 * (HT+1)^0.665 + GR15^-0.497) %>% # Fraver equation
 
 #MESSING AROUND WITH STATISTICAL MAGIC
-library(ggplot2)
-
-#plot the data
-ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-  
-  #add Points with different shapes depending on factor z
-  geom_point()+
-  stat_smooth(method="lm",formula = y~x,se=F,color="blue")#+
-  #stat_smooth(method="loess")
-  
-  #Add line using non-linear regression
-  #  stat_smooth(method="nls",formula =  y~poly(x,2),method.args=list(start=c(a=2,b=2)),se=F,color="red")+
- # stat_smooth(method="gam",formula =  y~s(x),color="red")
-
-#add line using linear regression; messing around
-#stat_smooth(method="lm",formula =  y~exp(-x),se=F,color="blue")
-
-## 5.2 New model and model comparison based on polynomials
-IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
-IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
-IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
-IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
-IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
-summary(IS_lm)
-summary(IS_lm3)
-AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
-
-# IS_lm3 performs the best with an AIC of 980.7556, but as shown below its behavior at low and high dbh makes no sense :(
-# visualize the model!
-ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-  geom_point() +
-  stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
-
-# poly 2 is less over-fitted; bascially a straight line
-ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-  geom_point() +
-  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
-
-# try fitting a line for a power law fit
-ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-  geom_point() +
-    geom_smooth(data = IS_correction,
-      method = "nls",
-      method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
-      se=FALSE)
-# it looks almost indistinguishable from a straight line model
+# library(ggplot2)
+# 
+# #plot the data
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   
+#   #add Points with different shapes depending on factor z
+#   geom_point()+
+#   stat_smooth(method="lm",formula = y~x,se=F,color="blue")#+
+#   #stat_smooth(method="loess")
+#   
+#   #Add line using non-linear regression
+#   #  stat_smooth(method="nls",formula =  y~poly(x,2),method.args=list(start=c(a=2,b=2)),se=F,color="red")+
+#  # stat_smooth(method="gam",formula =  y~s(x),color="red")
+# 
+# #add line using linear regression; messing around
+# #stat_smooth(method="lm",formula =  y~exp(-x),se=F,color="blue")
+# 
+# ## 5.2 New model and model comparison based on polynomials
+# IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
+# IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
+# IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
+# IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
+# IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
+# summary(IS_lm)
+# summary(IS_lm3)
+# AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
+# 
+# # IS_lm3 performs the best with an AIC of 980.7556, but as shown below its behavior at low and high dbh makes no sense :(
+# # visualize the model!
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point() +
+#   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
+# 
+# # poly 2 is less over-fitted; bascially a straight line
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point() +
+#   stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
+# 
+# # try fitting a line for a power law fit
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point() +
+#     geom_smooth(data = IS_correction,
+#       method = "nls",
+#       method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
+#       se=FALSE)
+# # it looks almost indistinguishable from a straight line model
 IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
-summary(IS_exp) # a = 3.2088, b = 0.9783
+#summary(IS_exp) # a = 3.2088, b = 0.9783
 # plotting IS_exp and the 2-degree polynomial
-ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-  geom_point() +
-  geom_smooth(data = IS_correction,
-              method = "nls",
-              method.args=list(formula = y ~ a*(x^b)+ c, start = list(a=1, b=2, c=5)),
-              se=FALSE, color="red")#+
-  #stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
-
-# add an intercept to IS_exp
-IS_expc <- nls(corrected_age ~ a*(dbh^b) + c, data = IS_correction, start = list(a=1, b=2, c=5))
-summary(IS_expc)
-AIC(IS_exp, IS_expc)
-
-# more messing around
-IS_exp_inv <- nls(dbh ~ a*corrected_age^b, data = IS_correction, start = list(a=1, b=.1))
-#summary(IS_exp_inv)
-#IS_exponential <- nls(corrected_age ~ a*exp(dbh*b), data = IS_correction, start = list(a=1, b=0.1))
-#summary(IS_exponential)
-
-# Test AICs
-AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5, IS_exp_inv, IS_exp)
-# the inverse model has almost 200 points lower AIC does this matter?? No
-# plotting it 
-ggplot(data=IS_correction,aes(y=dbh,x=corrected_age))+
-  geom_point() +
-  geom_smooth(data = IS_correction,
-              method = "nls",
-              method.args=list(formula = y ~ a*(x^b), start = list(a=1, b=2)),
-              se=FALSE) 
-
-# Cross-validation
-# 1. split data into training and testing sets
-# 2. fit model to training data
-# 3. using fitted model, predict testing data predict()
-# 4. calculate error or predictive skill metric
-
-# use 90% of the data set as training set and 10% as test set
-sample <- sample(c(TRUE, FALSE), nrow(IS_correction), replace = TRUE, prob=c(0.9, 0.1))
-train <- IS_correction[sample ,]
-test <- IS_correction[!sample ,]
-
-IS_lm2.1 <- lm(corrected_age ~ dbh + I(dbh^2), data = train)
-summary(IS_lm2)
-summary(IS_lm2.1)
-
-IS_lm3.1 <- lm(corrected_age ~ dbh + I(dbh^2), data = train)
-predict(IS_lm3.1, newdata = test)
-test[,22]
-
-# predict testing data using IS_lm2.1
-predict(IS_lm2.1, newdata = test)
-#    IS120     IS129      IS19    IS237B     IS251   IS31016     IS375     IS378 
-#280.39474 392.98486 109.07211  46.27213 213.61213 276.89902  69.54169  78.94808 
-
-# How do the predicted ages above compare to the observed ages for this set of trees? NB these will change each time
-# you run the code bc the random draw of train/test changes.
-test[,1]
-#"IS120"   "IS129"   "IS19"    "IS237B"  "IS251"   "IS31016" "IS375"   "IS378"  
-test[,22]
-#266.71765 269.23951  86.24924  83.93438 244.09579 260.47968  70.43932  96.90547
-
-# Questions: How do I compare test dataset with predictions for a given model? 
-# How do I compare that metric between different models?
-
-# For now I will proceed using IS_exp, which has the form age = 3.2088(x^0.9783)
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point() +
+#   geom_smooth(data = IS_correction,
+#               method = "nls",
+#               method.args=list(formula = y ~ a*(x^b)+ c, start = list(a=1, b=2, c=5)),
+#               se=FALSE, color="red")#+
+#   #stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
+# 
+# # add an intercept to IS_exp
+# IS_expc <- nls(corrected_age ~ a*(dbh^b) + c, data = IS_correction, start = list(a=1, b=2, c=5))
+# summary(IS_expc)
+# AIC(IS_exp, IS_expc)
+# 
+# # more messing around
+# IS_exp_inv <- nls(dbh ~ a*corrected_age^b, data = IS_correction, start = list(a=1, b=.1))
+# #summary(IS_exp_inv)
+# #IS_exponential <- nls(corrected_age ~ a*exp(dbh*b), data = IS_correction, start = list(a=1, b=0.1))
+# #summary(IS_exponential)
+# 
+# # Test AICs
+# AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5, IS_exp_inv, IS_exp)
+# # the inverse model has almost 200 points lower AIC does this matter?? No
+# # plotting it 
+# ggplot(data=IS_correction,aes(y=dbh,x=corrected_age))+
+#   geom_point() +
+#   geom_smooth(data = IS_correction,
+#               method = "nls",
+#               method.args=list(formula = y ~ a*(x^b), start = list(a=1, b=2)),
+#               se=FALSE) 
+# 
+# # Cross-validation
+# # 1. split data into training and testing sets
+# # 2. fit model to training data
+# # 3. using fitted model, predict testing data predict()
+# # 4. calculate error or predictive skill metric
+# 
+# # use 90% of the data set as training set and 10% as test set
+# sample <- sample(c(TRUE, FALSE), nrow(IS_correction), replace = TRUE, prob=c(0.9, 0.1))
+# train <- IS_correction[sample ,]
+# test <- IS_correction[!sample ,]
+# 
+# IS_lm2.1 <- lm(corrected_age ~ dbh + I(dbh^2), data = train)
+# summary(IS_lm2)
+# summary(IS_lm2.1)
+# 
+# IS_lm3.1 <- lm(corrected_age ~ dbh + I(dbh^2), data = train)
+# predict(IS_lm3.1, newdata = test)
+# test[,22]
+# 
+# # predict testing data using IS_lm2.1
+# predict(IS_lm2.1, newdata = test)
+# #    IS120     IS129      IS19    IS237B     IS251   IS31016     IS375     IS378 
+# #280.39474 392.98486 109.07211  46.27213 213.61213 276.89902  69.54169  78.94808 
+# 
+# # How do the predicted ages above compare to the observed ages for this set of trees? NB these will change each time
+# # you run the code bc the random draw of train/test changes.
+# test[,1]
+# #"IS120"   "IS129"   "IS19"    "IS237B"  "IS251"   "IS31016" "IS375"   "IS378"  
+# test[,22]
+# #266.71765 269.23951  86.24924  83.93438 244.09579 260.47968  70.43932  96.90547
+# 
+# # Questions: How do I compare test dataset with predictions for a given model? 
+# # How do I compare that metric between different models?
+# 
+# # For now I will proceed using IS_exp, which has the form age = 3.2088(x^0.9783)
 
 #______________________________________________________________________________#
 # 
