@@ -17,28 +17,8 @@ dataGPT <- as.data.frame(tree.data_out[9])
 
 # Create the ggplot map
 ggplot(dataGPT, aes(x = trees.x, y = trees.y)) +
-  # Stems as black circles with width corresponding to stem diameter
-  geom_point(aes(shape = "Stem", size = trees.dbh, color =factor(trees.bin))) +
   # Crowns as green circles with width corresponding to crown diameter
-  geom_point(aes(shape = "Crown", size = trees.crown ),color= "burlywood4", fill="burlywood4") +
-  # Set the size range for stems and crowns separately
- # scale_size_continuous(range = c(2, 10)) +
-  # Set the shape for stems and crowns separately
-  scale_shape_manual(values = c(21, 16)) +
-  # Set the color palette for cluster sizes
-  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-  # Customize the plot appearance
-  labs(title = "Schematic Map of Trees",
-       x = "X Coordinate",
-       y = "Y Coordinate",
-       size = "DBH",
-       shape = "") +
-  theme_classic()
-
-# Create the ggplot map
-ggplot(dataGPT, aes(x = trees.x, y = trees.y)) +
-  # Crowns as green circles with width corresponding to crown diameter
-  geom_point(aes(shape = "Crown", size = trees.crown, color = factor(trees.bin))) +
+  geom_point(aes(shape = "Crown", size = trees.crown, color = factor(trees.bin), alpha=0.75)) +
   # Set the size range for stems and crowns separately
   geom_point(aes(shape = "Stem", size = .5), color = "burlywood4") +
     scale_size_continuous(range = c(2,10)) +
@@ -54,8 +34,7 @@ ggplot(dataGPT, aes(x = trees.x, y = trees.y)) +
        size = "Diameter",
        shape = "",
        color = "black") +
-  theme_minimal()
-
-# geom_point(aes(shape = "Stem", size= trees.dbh/1200), color = "blue") +
+  theme_classic()
 
 # next things to try: heatmap for dist-to-tree (spatstat?), superimpose on topo map??
+# why are x and y coords in 0-100 range (should be -60-60)
