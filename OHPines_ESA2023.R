@@ -7,9 +7,9 @@ library(tidyverse)
 # Replacing IS instances with OH
 
 #1 Started by making the final .rwl collection for Indiana Summit, IS_2022 (in Images and POS Files > Indiana Summit).
-# add all .pos files to a rwl, excluding original core if a duplicate was made (e.g. for IS140 and IS140B, keep only IS140B). N = 91
-# Read in the files. Need rwl collection from IS, and core height data.
-#setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Images and POS files/Indiana_Summit")
+# add all .pos files to a rwl, excluding original core if a duplicate was made 
+# Read in the files. Need rwl collection from OH, and core height data.
+
 OH_data = read.rwl("OH_2022.rwl")
 
 #setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Spreadsheets")
@@ -53,9 +53,18 @@ ggplot(OH_trees, aes(x=dbh, fill=Spec))+
   geom_histogram() + ggtitle("Species at OHarrell Canyon")
 # PIJE 59.6%, JUGR 19.7%, ABCO 15.3%, PICO 5.4%
 
-______________________________________________# 7/30/23
+#______________________________________________# 7/30/23
 
 ## Species-specific core height correction
+
+# ABCO: see Taylor and Halpern 1991
+
+# PICO: in NZ alpine (1350m = ~4500ft), PICO stems est. 4y to 20cm. --> 5y to 25cm (avg at OH)
+# data from Tomiolo et al. 2016
+
+# added these in spreadsheet coredata_OH2023.csv
+# NOT DONE YET 7/31
+
 GR5 = function(x){
   non_na_widths = x[which(!is.na(x))]
   first_5 = non_na_widths[1:5]
