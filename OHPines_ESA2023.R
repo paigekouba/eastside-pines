@@ -10,18 +10,27 @@ library(tidyverse)
 # add all .pos files to a rwl, excluding original core if a duplicate was made 
 # Read in the files. Need rwl collection from OH, and core height data.
 
-OH_data = read.rwl("OH_2022.rwl")
+OH_rwl = read.rwl("OH_2022.rwl")
+OH_rwl <- subset(OH_rwl, select = -c(OH115, OH11a, OH271, OH3128, OH264)) # N = 81
 
 #setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Spreadsheets")
 core_height = read.csv("coredata_PK.csv")
 
 # 3. dplR can extract establishment year and age for each core
-rwl.stats(OH_data)
+#rwl.stats(OH_rwl)
 
 # BUT these numbers don't include pith correction; created a .csv file to read in
 
-OH_pith = read.csv("OH_pith.csv")
-OH_pith <- subset(OH_pith, Core != c("OH115", "OH11a"))
+OH_pith = read.csv("OH_pith.csv") # do not know why this was so hard; trying to do them as a set caused vector length error
+# e.g. Warning message:
+#   In OH_pith$Core != c("OH115", "OH11a", "OH271", "OH3128", "OH264") :
+#   longer object length is not a multiple of shorter object length
+ OH_pith <- OH_pith[OH_pith$Core != "OH115",]
+ OH_pith <- OH_pith[OH_pith$Core != "OH11a",]
+ OH_pith <- OH_pith[OH_pith$Core != "OH271",]
+ OH_pith <- OH_pith[OH_pith$Core != "OH3128",]
+ OH_pith <- OH_pith[OH_pith$Core != "OH264",]
+ # now includes just good cores and just PIJE
 
 # Need a species-specific height correction function
 # Check spp distributions
@@ -53,157 +62,91 @@ ggplot(OH_trees, aes(x=dbh, fill=Spec))+
   geom_histogram() + ggtitle("Species at OHarrell Canyon")
 # PIJE 59.6%, JUGR 19.7%, ABCO 15.3%, PICO 5.4%
 
-#______________________________________________# 7/30/23
-
 ## Species-specific core height correction
-
-# ABCO: see Taylor and Halpern 1991
-
+# ABCO: see Taylor and Halpern 1991; reported ages at coring height due to variable growth rates
+# JUGR: see below for Landis and Bailey growth model; no pith correction
 # PICO: in NZ alpine (1350m = ~4500ft), PICO stems est. 4y to 20cm. --> 5y to 25cm (avg at OH)
 # data from Tomiolo et al. 2016
+# added this correction in spreadsheet coredata_OH2023.csv
 
-# added these in spreadsheet coredata_OH2023.csv
-# NOT DONE YET 7/31
-
-GR5 = function(x){
+# PIJE: same methods as IS, using OH data______________
+# GR5fun = function(x){
+#   non_na_widths = x[which(!is.na(x))]
+#   first_5 = non_na_widths[1:5]
+#   return(sum(first_5))
+# }
+GR15fun = function(x){
   non_na_widths = x[which(!is.na(x))]
-  first_5 = non_na_widths[1:5]
-  return(sum(first_5))
+  first_15 = non_na_widths[1:15]
+  return(mean(first_15))
 }
 
-IS_correction <- cbind(cbind(rwl.stats(IS_data), apply(IS_data,2,GR5)), IS_pith)
+#OH_correction <- cbind(cbind(rwl.stats(OH_rwl), apply(OH_rwl,2,GR15fun)), OH_pith)
+OH_correction <- cbind(cbind(rwl.stats(OH_rwl), apply(OH_rwl,2,GR15fun)), OH_pith)
 
-## 4.1 Incorporate core height. 
-IS_correction$dbh <- core_height$DBH[match(IS_correction$series, core_height$Code)]
-IS_correction$HT <- core_height$Ht[match(IS_correction$series, core_height$Code)]
-names(IS_correction)[11] <- "GR5"
 
-## 5. Age correction function. Other caveat; the function provided in Wong and Lertzman is for *years to bh* (not years to core height)
-IS_correction <- IS_correction %>% 
+## 4.1 Incorporate core height. First, fix core_height Code names to match .rwl file
+core_height$Code[core_height$Code=="OH1501"] <- "OH1_501"
+core_height$Code[core_height$Code=="OH2502"] <- "OH2_502"
+core_height$Code[core_height$Code=="OH1503"] <- "OH1_503"
+core_height$Code[core_height$Code=="OH2504"] <- "OH2_504"
+core_height$Code[core_height$Code=="OH2505"] <- "OH2_505"
+core_height$Code[core_height$Code=="OH3506"] <- "OH3_506"
+
+OH_correction$dbh <- core_height$DBH[match(OH_correction$series, core_height$Code)]
+OH_correction$Spec <- core_height$Spec[match(OH_correction$series, core_height$Code)]
+OH_correction$HT <- core_height$Ht[match(OH_correction$series, core_height$Code)]
+#names(OH_correction)[11] <- "GR5"
+names(OH_correction)[11] <- "GR15"
+
+## 5. Age correction function: PIJE from Wong and Lertzman 2001; 
+# JUGR from Landis and Bailey 2006;
+# ABCO from our O'Harrell 2023 data, no pith ht correction;
+# PICO from O'Harrell 2023 data, pith ht correction from Tomiolo 2016
+
+# Other caveat; the function provided in Wong and Lertzman is for *years to bh* (not years to core height)
+# trying Fraver years to coring ht, from P. resinosa
+
+
+# OH_correction <- OH_correction %>% 
+#   filter(!is.na(dbh)) %>% 
+#   mutate(wonglert =
+#            10.094*(GR5)^(-0.993)) %>% 
+#   mutate(corrected_age =
+#            year + wonglert + YearsToPith)
+
+OH_correction <- OH_correction %>%
   filter(!is.na(dbh)) %>% 
-  mutate(correction =
-           10.094*(GR5)^(-0.993)) %>% 
+  mutate(fraver =
+  0.591 * (HT+1)^0.665 + GR15^-0.497) %>% # Fraver equation
   mutate(corrected_age =
-           year + correction + YearsToPith)
-#  0.591 * (HT+1)^0.665 + GR15^-0.497) %>% # Fraver equation
-
+              year + fraver + YearsToPith)
 
 
 # Age-size regressions for PIJE at OH; for ABCO and PICO
-# library(ggplot2)
-# 
-# #plot the data
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   
-#   #add Points with different shapes depending on factor z
-#   geom_point()+
-#   stat_smooth(method="lm",formula = y~x,se=F,color="blue")#+
-#   #stat_smooth(method="loess")
-#   
-#   #Add line using non-linear regression
-#   #  stat_smooth(method="nls",formula =  y~poly(x,2),method.args=list(start=c(a=2,b=2)),se=F,color="red")+
-#  # stat_smooth(method="gam",formula =  y~s(x),color="red")
-# 
-# #add line using linear regression; messing around
-# #stat_smooth(method="lm",formula =  y~exp(-x),se=F,color="blue")
-# 
-# ## 5.2 New model and model comparison based on polynomials
-# IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
-# IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
-# IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
-# IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
-# IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
-# summary(IS_lm)
-# summary(IS_lm3)
-# AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
-# 
-# # IS_lm3 performs the best with an AIC of 980.7556, but as shown below its behavior at low and high dbh makes no sense :(
-# # visualize the model!
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   geom_point() +
-#   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
-# 
-# # poly 2 is less over-fitted; bascially a straight line
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   geom_point() +
-#   stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
-# 
-# # try fitting a line for a power law fit
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   geom_point() +
-#     geom_smooth(data = IS_correction,
-#       method = "nls",
-#       method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
-#       se=FALSE)
-# # it looks almost indistinguishable from a straight line model
-IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
-#summary(IS_exp) # a = 3.2088, b = 0.9783
-# plotting IS_exp and the 2-degree polynomial
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   geom_point() +
-#   geom_smooth(data = IS_correction,
-#               method = "nls",
-#               method.args=list(formula = y ~ a*(x^b)+ c, start = list(a=1, b=2, c=5)),
-#               se=FALSE, color="red")#+
-#   #stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
-# 
-# # add an intercept to IS_exp
-# IS_expc <- nls(corrected_age ~ a*(dbh^b) + c, data = IS_correction, start = list(a=1, b=2, c=5))
-# summary(IS_expc)
-# AIC(IS_exp, IS_expc)
-# 
-# # more messing around
-# IS_exp_inv <- nls(dbh ~ a*corrected_age^b, data = IS_correction, start = list(a=1, b=.1))
-# #summary(IS_exp_inv)
-# #IS_exponential <- nls(corrected_age ~ a*exp(dbh*b), data = IS_correction, start = list(a=1, b=0.1))
-# #summary(IS_exponential)
-# 
-# # Test AICs
-# AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5, IS_exp_inv, IS_exp)
-# # the inverse model has almost 200 points lower AIC does this matter?? No
-# # plotting it 
-# ggplot(data=IS_correction,aes(y=dbh,x=corrected_age))+
-#   geom_point() +
-#   geom_smooth(data = IS_correction,
-#               method = "nls",
-#               method.args=list(formula = y ~ a*(x^b), start = list(a=1, b=2)),
-#               se=FALSE) 
-# 
-# # Cross-validation
-# # 1. split data into training and testing sets
-# # 2. fit model to training data
-# # 3. using fitted model, predict testing data predict()
-# # 4. calculate error or predictive skill metric
-# 
-# # use 90% of the data set as training set and 10% as test set
-# sample <- sample(c(TRUE, FALSE), nrow(IS_correction), replace = TRUE, prob=c(0.9, 0.1))
-# train <- IS_correction[sample ,]
-# test <- IS_correction[!sample ,]
-# 
-# IS_lm2.1 <- lm(corrected_age ~ dbh + I(dbh^2), data = train)
-# summary(IS_lm2)
-# summary(IS_lm2.1)
-# 
-# IS_lm3.1 <- lm(corrected_age ~ dbh + I(dbh^2), data = train)
-# predict(IS_lm3.1, newdata = test)
-# test[,22]
-# 
-# # predict testing data using IS_lm2.1
-# predict(IS_lm2.1, newdata = test)
-# #    IS120     IS129      IS19    IS237B     IS251   IS31016     IS375     IS378 
-# #280.39474 392.98486 109.07211  46.27213 213.61213 276.89902  69.54169  78.94808 
-# 
-# # How do the predicted ages above compare to the observed ages for this set of trees? NB these will change each time
-# # you run the code bc the random draw of train/test changes.
-# test[,1]
-# #"IS120"   "IS129"   "IS19"    "IS237B"  "IS251"   "IS31016" "IS375"   "IS378"  
-# test[,22]
-# #266.71765 269.23951  86.24924  83.93438 244.09579 260.47968  70.43932  96.90547
-# 
-# # Questions: How do I compare test dataset with predictions for a given model? 
-# # How do I compare that metric between different models?
-# 
-# # For now I will proceed using IS_exp, which has the form age = 3.2088(x^0.9783)
+library(ggplot2)
+
+#plot the data
+ggplot(data=OH_correction,aes(x=dbh,y=corrected_age))+
+  geom_point()+
+  stat_smooth(method="lm",formula = y~x,se=F,color="blue")
+
+## 5.2 New model and model comparison based on polynomials
+OH_lm <- lm(corrected_age ~ dbh, data = OH_correction)
+OH_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = OH_correction)
+OH_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = OH_correction)
+OH_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = OH_correction)
+OH_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = OH_correction)
+OH_exp <- nls(corrected_age ~ a*dbh^b, data = OH_correction, start = list(a=1, b=2))
+AIC(OH_lm, OH_lm2, OH_lm3, OH_lm4, OH_lm5, OH_exp)
+# OH_lm is third-lowest but only by one point at 917. Pick OH_lm
+
+summary(OH_lm)
+# I will proceed using OH_lm, which has the form age = 3.4328x + 26.2246
+# Multiple R-squared:  0.646,	Adjusted R-squared:  0.6414 
+# F-statistic: 140.5 on 1 and 77 DF,  p-value: < 2.2e-16
+
+#______________________________________________________________________________#
 
 # have no data on the JUGR age-size relationship; Landis and Bailey 2006 provide an age 
 # estimate for Utah juniper (juniperus osteosperma) based on diameter at root collar. 
@@ -211,51 +154,96 @@ IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b
 # age = (39.9 * ln DRC) + 24.2
 
 #______________________________________________________________________________#
-# 
 
-## 6. Age-size regression model: 
-#IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
-# age = 3.2088(x^0.9783)
-# dbh = (age^(1/0.9783))/3.2088
+# ABCO regression from 2023 data
+# need dataframe with corrected age and dbh
+OH_2023 <- read.csv("coredata_OH2023.csv")
+OH_ABCO <- OH_2023[OH_2023$spec == "ABCO",]
+ggplot(data=OH_ABCO,aes(x=dbh,y=age_est))+
+  geom_point()+
+  stat_smooth(method="lm",formula = y~x,se=F,color="blue")
+ABCO_lm <- lm(age_est ~ dbh, data = OH_ABCO)
+summary(ABCO_lm)
+# age = 0.7771x + 65.8335
+# Multiple R-squared:  0.5136,	Adjusted R-squared:  0.4528 
+# F-statistic: 8.447 on 1 and 8 DF,  p-value: 0.0197
+
+#______________________________________________________________________________#
+
+# PICO regression from 2023 data
+OH_PICO <- OH_2023[OH_2023$spec == "PICO",]
+ggplot(data=OH_PICO,aes(x=dbh,y=age_est))+
+  geom_point()+
+  stat_smooth(method="lm",formula = y~x,se=F,color="blue")
+PICO_lm <- lm(age_est ~ dbh, data = OH_PICO)
+summary(PICO_lm)
+# age = 1.1501x + 64.0018
+# Multiple R-squared:  0.5618,	Adjusted R-squared:  0.4992 
+# F-statistic: 8.973 on 1 and 7 DF,  p-value: 0.02007
+
+#______________________________________________________________________________#
+
+## 6. Age-size regression model: with OH_lm, ABCO_lm, PICO_lm and age = (39.9 * ln DRC) + 24.2 for JUGR
+# Idea: use mutate to apply each relevant equation in turn, creating 4 age columns named by spp
+# Then, select which of the 4 based on spec
+
+# PIJE:  age = 3.4328x + 26.2246
+# dbh = (age - 26.2246)/3.4328
+
+# JUGR: age = (39.9 * ln DRC) + 24.2
+# dbh = e^((age - 24.2)/39.9)
+
+# ABCO: age = 0.7771x + 65.8335
+# dbh = (age-65.8335)/0.7771
+
+# PICO: age = 1.1501x + 64.0018
+# dbh = (age-64.0018)/1.1501
 
 # Steps:
-# Find model-estimated age for each tree in the dataset
+# Find model-estimated age for each tree in the dataset, BY SPECIES
 # Use that to find model-estimated age in 1941 (simple subtraction)
 # Use 1941 age to calculate model-estimated *size* in 1941
 # Calculate stand metrics for 1941 vs. 2019
 
-tree_data <- read.csv("Treedata_9-3_Em_DB.csv")
-# fix data entry error in row 192
-tree_data[192,7] = 36.7
-
-IS_trees <- tree_data[tree_data$Site=="IS",]
-names(IS_trees)[5] <- "dbh"
+# OH_trees is defined above
 
 # Prepare tree dataset for snag/log establishment date correction
 
 # Pull out standing snags
-IS_snags <- IS_trees[!is.na(IS_trees$Dec),]
-IS_livetrees <- IS_trees[is.na(IS_trees$Dec),] # later I will do stand metrics on just these trees!
+OH_snags <- OH_trees[!is.na(OH_trees$Dec),]
+OH_livetrees <- OH_trees[is.na(OH_trees$Dec),] # later I will do stand metrics on just these trees!
 
-# If Dec = 1, assume tree died in 2016 Clark Fire; adjusted estab is estab_est + 2
-# If Dec > 1, assume tree died 10 years ago; adjusted age is age_est - 10, and adjusted estab is estab_est + 10
+# Don't have spp-specific decay rates yet
+# Most recent fire at O'Harrell is OHAREL fire from 2007
 # 95% of PIJE have fallen by year 10; using 10 may cause underestimate of tree age, therefore bias size-age ratio up
 #NOTE! Age estimate inferred from DBH should not change for standing dead trees; the establishment date is the number that will change. 
 #Example: Tree of diameter 23.7 is still 77 years old at IS, but if decay class is 4, then establishment date = 2018-(77+10)
 # Need to add column for age estimate:
-IS_snags <- IS_snags %>%
-  mutate(age_est = predict(IS_exp, newdata = IS_snags)) %>% 
-  # mutate(age_est = DBH/0.307204)%>%  # Old method based on straight-line regression; now need to use predict
+OH_snags <- OH_snags %>%
+  mutate(PIJE_est = predict(OH_lm, newdata = OH_snags)) %>% 
+  mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
+  mutate(ABCO_est = predict(ABCO_lm, newdata = OH_snags)) %>% 
+  mutate(PICO_est = predict(PICO_lm, newdata = OH_snags)) %>% 
+  mutate(age_est = case_when(Spec=="PIJE" ~ PIJE_est,
+                             Spec=="JUGR" ~ JUGR_est,
+                             Spec=="ABCO" ~ ABCO_est,
+                             Spec=="PICO" ~ PICO_est)) %>%
   mutate(snag_correction =
            case_when(Dec == 1 ~ 2,
                      TRUE ~ 10)) %>%
   mutate(estab_est = round(2018 - (age_est+snag_correction),0))
 
-# SNAGS ARE READY AT INDIANA SUMMIT
+# SNAGS ARE READY AT O'HARRELL CANYON
 
-IS_livetrees <- IS_livetrees %>%
-  #  mutate(age_est = DBH/0.307204) %>% # Old method based on straight-line regression; now need to use predict
-  mutate(age_est = predict(IS_exp, newdata = IS_livetrees)) %>% 
+OH_livetrees <- OH_livetrees %>%
+  mutate(PIJE_est = predict(OH_lm, newdata = OH_livetrees)) %>% 
+  mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
+  mutate(ABCO_est = predict(ABCO_lm, newdata = OH_livetrees)) %>% 
+  mutate(PICO_est = predict(PICO_lm, newdata = OH_livetrees)) %>% 
+  mutate(age_est = case_when(Spec=="PIJE" ~ PIJE_est,
+                             Spec=="JUGR" ~ JUGR_est,
+                             Spec=="ABCO" ~ ABCO_est,
+                             Spec=="PICO" ~ PICO_est)) %>% 
   mutate(estab_est = round(2018 - age_est,0))
 # SO ARE LIVETREES
 
@@ -266,79 +254,82 @@ log_data <- read.csv("logdata_9-3_DB_PK.csv")
 log_data <- log_data[,c(1:9)]
 log_data <- rename(log_data, "dbh" = "LgDia")
 colnames(log_data)[1] = "Site"
-# subset to IS
-IS_logs <- log_data[log_data$Site=="IS",]
+# subset to OH
+OH_logs <- log_data[log_data$Site=="OH",]
 # 2018 - [Years since death (based on decay class) + age from DBH] = establishment year
 # I will do a *placeholder*/best guess age correction for the logs. 1 = 10y, 2-3 = 15y, 4-5 = 20y
-IS_logs$log_correction[IS_logs$Dec == 1]=10
-IS_logs$log_correction[IS_logs$Dec > 1 & IS_logs$Dec < 4]=15
-IS_logs$log_correction[IS_logs$Dec > 3 & IS_logs$Dec <=5]=20
-IS_logs <- IS_logs %>%
-  #  mutate(age_est = DBH/0.307204) %>%   # Old method based on straight-line regression; now need to use predict
-  mutate(age_est = predict(IS_exp, newdata = IS_logs)) %>% 
+OH_logs$log_correction[OH_logs$Dec == 1]=10
+OH_logs$log_correction[OH_logs$Dec > 1 & OH_logs$Dec < 4]=15
+OH_logs$log_correction[OH_logs$Dec > 3 & OH_logs$Dec <=5]=20
+OH_logs <- OH_logs %>%
+  mutate(PIJE_est = predict(OH_lm, newdata = OH_logs)) %>% 
+  mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
+  mutate(ABCO_est = predict(ABCO_lm, newdata = OH_logs)) %>% 
+  mutate(PICO_est = predict(PICO_lm, newdata = OH_logs)) %>% 
+  mutate(age_est = case_when(Spec=="PIJE" ~ PIJE_est,
+                             Spec=="JUGR" ~ JUGR_est,
+                             Spec=="ABCO" ~ ABCO_est,
+                             Spec=="PICO" ~ PICO_est)) %>%
   mutate(estab_est = round(2018 - (age_est+log_correction),0))
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
-names(IS_livetrees)
-names(IS_snags)
-names(IS_logs) 
-IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c(1:9,11,12)])
+names(OH_livetrees)
+names(OH_snags)
+names(OH_logs) 
+OH_trees <- rbind(OH_livetrees[,c(1:9,18,19)],OH_snags[,c(1:9,18,20)],OH_logs[,c(1:9,15,16)])
 
 #______________________________________________________________________________#
-# Size in 1941 = (1941 - estab. year) * size coefficient
-# simplest, works for trees snags and logs!
-# 1941 tree dataframe
-#IS_trees1941 <- IS_trees %>%
-#  mutate(dbh1941_est = (1941 - estab_est)*0.307204) %>%
-#  filter(dbh1941_est >= 5)
-# ^ I don't like this anymore; each tree should get its true dbh minus 23.7cm (estimate of average growth increment in 77y)
-# but snags and logs shouldn't be penalized for the time they spent dead; they get back x years of deadness * growth coefficient
-# NEW MODEL NEW METHOD
-# Subtract 77y from each age in 2018 = 1941 age
 # find dbh from 1941 age using dbh = (age^(1/0.9783))/3.2088
-IS_trees1941 <- IS_trees %>% 
+OH_trees1941 <- OH_trees %>% 
   mutate(age1941 = 1941 - estab_est) %>% 
-  mutate(dbh1941 =round(age1941^(1/0.9783)/3.2088)) %>% 
-  # I think this worked; need to filter out rows with trees that have NaN or <5 DBH
-  filter(!is.na(dbh1941)) %>% # this takes it from 650 to 412 trees
-  filter(dbh1941>=5) # and this goes from 412 to 326 ! #IS_livetrees has 361 observations :)
-hist(IS_trees1941$dbh1941, breaks = 10)
-hist(IS_livetrees$dbh, breaks = 10)
-# then we are ready to compare stand metrics in 1941 to 2018 using MANOVA
+  mutate(PIJE_1941 = (age1941 - 26.2246)/3.4328) %>% 
+  mutate(JUGR_1941 = exp((age1941 - 24.2)/39.9)) %>% 
+  mutate(ABCO_1941 = (age1941-65.8335)/0.7771) %>% 
+  mutate(PICO_1941 = (age1941-64.0018)/1.1501) %>% 
+  mutate(dbh1941 = case_when(Spec=="PIJE" ~ PIJE_1941,
+                             Spec=="JUGR" ~ JUGR_1941,
+                             Spec=="ABCO" ~ ABCO_1941,
+                             Spec=="PICO" ~ PICO_1941)) %>% 
+  # need to filter out rows with trees that have NaN or <5 DBH
+  filter(!is.na(dbh1941)) %>% # this takes it from 480 to 459 trees
+  filter(dbh1941>=5) # and this goes from 459 to 183 ! OH_livetrees has 344 observations ...!
+hist(OH_trees1941$dbh1941, breaks = 10)
+hist(OH_livetrees$dbh, breaks = 10)
+# then we are ready to compare stand metrics in 1941 to 2018
 #______________________________________________________________________________#
 
 # NON-SPATIAL METRICS
 
 # Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 2018:
-meanIS <- mean(IS_livetrees$dbh)
-sd(IS_livetrees$dbh) #28.5
-maxIS <- max(IS_livetrees$dbh)
-stemsIS <- nrow(IS_livetrees)/3
-BA_IS <- sum(pi*(IS_livetrees$dbh/200)^2)/3
-QMD_IS <- sqrt(sum(IS_livetrees$dbh^2)/nrow(IS_livetrees))
+meanOH <- mean(OH_livetrees$dbh)
+sd(OH_livetrees$dbh) #28.5
+maxOH <- max(OH_livetrees$dbh)
+stemsOH <- nrow(OH_livetrees)/3
+BA_OH <- sum(pi*(OH_livetrees$dbh/200)^2)/3
+QMD_OH <- sqrt(sum(OH_livetrees$dbh^2)/nrow(OH_livetrees))
 
 # Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 1941:
-meanIS1941 <- mean(IS_trees1941$dbh1941)
-maxIS1941 <- max(IS_trees1941$dbh1941)
-stemsIS1941 <- nrow(IS_trees1941)/3
-BA_IS1941 <- sum(pi*(IS_trees1941$dbh1941/200)^2)/3
-QMD_IS1941 <- sqrt(sum(IS_trees1941$dbh1941^2)/nrow(IS_trees1941))
+meanOH1941 <- mean(OH_trees1941$dbh1941)
+maxOH1941 <- max(OH_trees1941$dbh1941)
+stemsOH1941 <- nrow(OH_trees1941)/3
+BA_OH1941 <- sum(pi*(OH_trees1941$dbh1941/200)^2)/3
+QMD_OH1941 <- sqrt(sum(OH_trees1941$dbh1941^2)/nrow(OH_trees1941))
 
-IS_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QMD"), 
-                         IS2018 = c(meanIS, maxIS, stemsIS, BA_IS, QMD_IS),
-                         IS1941 = c(meanIS1941, maxIS1941, stemsIS1941, BA_IS1941, QMD_IS1941))
+OH_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QMD"), 
+                         OH2018 = c(meanOH, maxOH, stemsOH, BA_OH, QMD_OH),
+                         OH1941 = c(meanOH1941, maxOH1941, stemsOH1941, BA_OH1941, QMD_OH1941))
 
 #______________________________________________________________________________#
 # Prepping all IS sites in 2018
-IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
-IS2_2018 <- IS_livetrees[IS_livetrees$Plot == "IS2",]
-IS3_2018 <- IS_livetrees[IS_livetrees$Plot == "IS3",]
+OH1_2018 <- OH_livetrees[OH_livetrees$Plot == "OH1",]
+OH2_2018 <- OH_livetrees[OH_livetrees$Plot == "OH2",]
+OH3_2018 <- OH_livetrees[OH_livetrees$Plot == "OH3",]
 
 # Prepping all IS sites in 1941
-IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
-IS2_1941 <- IS_trees1941[IS_trees1941$Plot == "IS2",]
-IS3_1941 <- IS_trees1941[IS_trees1941$Plot == "IS3",]
+OH1_1941 <- OH_trees1941[OH_trees1941$Plot == "OH1",]
+OH2_1941 <- OH_trees1941[OH_trees1941$Plot == "OH2",]
+OH3_1941 <- OH_trees1941[OH_trees1941$Plot == "OH3",]
 
 #______________________________________________________________________________#
 
