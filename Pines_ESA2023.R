@@ -13,7 +13,7 @@ library(tidyverse)
 IS_data = read.rwl("IS_2022.rwl")
 
 # IS21003 has no pith estimate due to aberrations; remove from df. 
-IS_data <- subset(IS_data, select = -c(IS21003))
+IS_data <- subset(IS_data, select = -c(IS21003)) # N = 90
 
 #setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Spreadsheets")
 core_height = read.csv("coredata_PK.csv")
@@ -43,36 +43,49 @@ IS_pith <- subset(IS_pith, Core != "IS21003")
 
 ## Method from Wong & Lertzman (P. ponderosa):
 #4. Calculate GR5 (*cumulative* growth of the first 5 rings) UNFORTUNATE DETAIL their paper uses first 5y at BH...
-GR5 = function(x){
+# GR5fun = function(x){
+#   non_na_widths = x[which(!is.na(x))]
+#   first_5 = non_na_widths[1:5]
+#   return(sum(first_5))
+# }
+GR15fun = function(x){
   non_na_widths = x[which(!is.na(x))]
-  first_5 = non_na_widths[1:5]
-  return(sum(first_5))
+  first_15 = non_na_widths[1:15]
+  return(mean(first_15))
 }
 
-IS_correction <- cbind(cbind(rwl.stats(IS_data), apply(IS_data,2,GR5)), IS_pith)
+#IS_correction <- cbind(cbind(rwl.stats(IS_data), apply(IS_data,2,GR5fun)), IS_pith)
+IS_correction <- cbind(cbind(rwl.stats(IS_data), apply(IS_data,2,GR15fun)), IS_pith)
 
 ## 4.1 Incorporate core height. 
 IS_correction$dbh <- core_height$DBH[match(IS_correction$series, core_height$Code)]
 IS_correction$HT <- core_height$Ht[match(IS_correction$series, core_height$Code)]
-names(IS_correction)[11] <- "GR5"
+#names(IS_correction)[11] <- "GR5"
+names(IS_correction)[11] <- "GR15"
 
 ## 5. Age correction function. Other caveat; the function provided in Wong and Lertzman is for *years to bh* (not years to core height)
-IS_correction <- IS_correction %>% 
+# IS_correction <- IS_correction %>% 
+#   filter(!is.na(dbh)) %>% 
+#   mutate(correction =
+#            10.094*(GR5)^(-0.993)) %>% 
+#   mutate(corrected_age =
+#            year + correction + YearsToPith)
+
+IS_correction <- IS_correction %>%
   filter(!is.na(dbh)) %>% 
-  mutate(correction =
-           10.094*(GR5)^(-0.993)) %>% 
+  mutate(fraver =
+           0.591 * (HT+1)^0.665 + GR15^-0.497) %>% # Fraver equation
   mutate(corrected_age =
-           year + correction + YearsToPith)
-#  0.591 * (HT+1)^0.665 + GR15^-0.497) %>% # Fraver equation
+           year + fraver + YearsToPith)
 
 #MESSING AROUND WITH STATISTICAL MAGIC
 # library(ggplot2)
 # 
 # #plot the data
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   
-#   #add Points with different shapes depending on factor z
-#   geom_point()+
+#ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+
+  #add Points with different shapes depending on factor z
+#  geom_point()+
 #   stat_smooth(method="lm",formula = y~x,se=F,color="blue")#+
 #   #stat_smooth(method="loess")
 #   
@@ -83,45 +96,45 @@ IS_correction <- IS_correction %>%
 # #add line using linear regression; messing around
 # #stat_smooth(method="lm",formula =  y~exp(-x),se=F,color="blue")
 # 
-# ## 5.2 New model and model comparison based on polynomials
-# IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
-# IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
-# IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
-# IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
-# IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
-# summary(IS_lm)
-# summary(IS_lm3)
-# AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
+## 5.2 New model and model comparison based on polynomials
+IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
+IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
+IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
+IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
+IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
+summary(IS_lm)
+summary(IS_lm3)
+AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
 # 
 # # IS_lm3 performs the best with an AIC of 980.7556, but as shown below its behavior at low and high dbh makes no sense :(
 # # visualize the model!
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   geom_point() +
-#   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
-# 
-# # poly 2 is less over-fitted; bascially a straight line
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   geom_point() +
-#   stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
+ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+  geom_point() +
+  stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
+
+# poly 2 is less over-fitted; bascially a straight line
+ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+  geom_point() +
+  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
 # 
 # # try fitting a line for a power law fit
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   geom_point() +
-#     geom_smooth(data = IS_correction,
-#       method = "nls",
-#       method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
-#       se=FALSE)
-# # it looks almost indistinguishable from a straight line model
+ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+  geom_point() +
+    geom_smooth(data = IS_correction,
+      method = "nls",
+      method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
+      se=FALSE)
+# it looks almost indistinguishable from a straight line model
 IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
-#summary(IS_exp) # a = 3.2088, b = 0.9783
+summary(IS_exp) # a = 3.61166, b = 0.95850
 # plotting IS_exp and the 2-degree polynomial
 # ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
 #   geom_point() +
-#   geom_smooth(data = IS_correction,
-#               method = "nls",
-#               method.args=list(formula = y ~ a*(x^b)+ c, start = list(a=1, b=2, c=5)),
-#               se=FALSE, color="red")#+
-#   #stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
+#   #geom_smooth(data = IS_correction,
+#             #  method = "nls",
+#            #   method.args=list(formula = y ~ a*(x^b)+ c, start = list(a=1, b=2, c=5)),
+#             #  se=FALSE, color="red")#+
+#   stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
 # 
 # # add an intercept to IS_exp
 # IS_expc <- nls(corrected_age ~ a*(dbh^b) + c, data = IS_correction, start = list(a=1, b=2, c=5))
@@ -179,7 +192,7 @@ IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b
 # # Questions: How do I compare test dataset with predictions for a given model? 
 # # How do I compare that metric between different models?
 # 
-# # For now I will proceed using IS_exp, which has the form age = 3.2088(x^0.9783)
+# # For now I will proceed using IS_exp, which has the form age = 3.61166 (x^0.95850)
 
 #______________________________________________________________________________#
 # 
@@ -201,6 +214,16 @@ tree_data[192,7] = 36.7
 
 IS_trees <- tree_data[tree_data$Site=="IS",]
 names(IS_trees)[5] <- "dbh"
+unique(IS_trees$Spec)
+# [1] "PIJE"  "PICO"
+IS_count <- IS_trees %>% 
+  group_by(Spec) %>% 
+  summarize(abundance = sum(!is.na(dbh)))
+ggplot(data=IS_count)+
+  geom_bar(stat="identity", mapping = aes(x=Spec, y=abundance))
+ggplot(IS_trees, aes(x=dbh, fill=Spec))+
+  geom_histogram() + ggtitle("Species at Indiana Summit")
+# 546 PIJE, 4 PICO
 
 # Prepare tree dataset for snag/log establishment date correction
 
@@ -267,10 +290,10 @@ IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c
 # but snags and logs shouldn't be penalized for the time they spent dead; they get back x years of deadness * growth coefficient
 # NEW MODEL NEW METHOD
 # Subtract 77y from each age in 2018 = 1941 age
-# find dbh from 1941 age using dbh = (age^(1/0.9783))/3.2088
+# find dbh from 1941 age using dbh = (age^(1/0.95850))/0.95850
 IS_trees1941 <- IS_trees %>% 
   mutate(age1941 = 1941 - estab_est) %>% 
-  mutate(dbh1941 =round(age1941^(1/0.9783)/3.2088)) %>% 
+  mutate(dbh1941 =round(age1941^(1/0.95850)/0.95850)) %>% 
     # I think this worked; need to filter out rows with trees that have NaN or <5 DBH
   filter(!is.na(dbh1941)) %>% # this takes it from 650 to 412 trees
   filter(dbh1941>=5) # and this goes from 412 to 326 ! #IS_livetrees has 361 observations :)
@@ -299,6 +322,17 @@ QMD_IS1941 <- sqrt(sum(IS_trees1941$dbh1941^2)/nrow(IS_trees1941))
 IS_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QMD"), 
                          IS2018 = c(meanIS, maxIS, stemsIS, BA_IS, QMD_IS),
                          IS1941 = c(meanIS1941, maxIS1941, stemsIS1941, BA_IS1941, QMD_IS1941))
+
+#______________________________________________________________________________#
+# Prepping all IS sites in 2018
+IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
+IS2_2018 <- IS_livetrees[IS_livetrees$Plot == "IS2",]
+IS3_2018 <- IS_livetrees[IS_livetrees$Plot == "IS3",]
+
+# Prepping all IS sites in 1941
+IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
+IS2_1941 <- IS_trees1941[IS_trees1941$Plot == "IS2",]
+IS3_1941 <- IS_trees1941[IS_trees1941$Plot == "IS3",]
 
 #______________________________________________________________________________#
 
