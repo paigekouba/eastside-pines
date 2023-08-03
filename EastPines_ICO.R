@@ -4,13 +4,13 @@
 # Want to end up with a for loop that runs below functions for all 12 plots:
 # IS1_2018, IS2_2018, IS3_2018; IS1_1941, IS2_1941, IS3_1941; 
 # OH1_2018, OH2_2018, OH3_2018; OH1_1941, OH2_1941, OH3_1941
-plot.data <- IS1_2018 # for testing code
+plot.data <- OH2_1941 # for testing code
 # data.frame or matrix with column headers x, y, spp, dbh in any order
 #               Can also have crown radius, tree tag, but not essential 
 #               +  clump Id (Quickmap plots)
 #              Any additional columns will be ignored, but passed on
 
-pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = sqrt(10000/pi)+0.65, centre = c(0,0)), 
+pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = sqrt(10000/pi)+0.69, centre = c(0,0)), 
                  marks = as.numeric(rownames(plot.data) ))
 # IS1_2018 gets a warning: 1 point was rejected as lying outside the specified window, even after filtering tree_data at start
 # But I can't find any x or y coord that lies outside of the window with radius = sqrt(10000/pi)
@@ -352,8 +352,18 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
 
 summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "Name")
 
-IS1_2018_out <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "IS1 2018")
+ICO_out <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "OH2 1941")
 
 # for loop to prep all 12 plots for mapping and figures
+plots <- list(IS1_2018, IS1_1941, IS2_2018, IS2_1941, IS3_2018, IS3_1941, 
+           OH1_2018, OH1_1941, OH2_2018, OH2_1941, OH3_2018, OH3_1941)
+names <- c("IS1 in 2018", "IS1 in 1941", "IS2 in 2018", "IS2 in 1941", "IS3 in 2018", "IS3 in 1941", 
+              "OH1 in 2018", "OH1 in 1941", "OH2 in 2018", "OH2 in 1941", "OH3 in 2018", "OH3 in 1941")
+plots_out <- vector(mode='list',length=length(plots))
 
+for(i in 1:length(plots)){
+  pointData <- ppp(plots[[i]]$X, plots[[i]]$Y, window = disc(radius = sqrt(10000/pi)+0.69, centre = c(0,0)), 
+                   marks = as.numeric(rownames(plots[[i]])))
+  treeData <- data.frame(dbh=plots[[i]][,"dbh"], spp=plots[[i]]$Spec, Tree.ID=as.numeric(rownames(plots[[i]]))) 
+  plots_out[[i]] <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, names[i])}
 
