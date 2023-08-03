@@ -4,7 +4,7 @@
 library(dplR)
 library(tidyverse)
 
-# I am taking code from Eastside_Analyses.R, cutting out OH portions, adding an ANOVA
+# I am taking code from Eastside_Analyses.R, cutting out OH portions
 
 #1 Started by making the final .rwl collection for Indiana Summit, IS_2022 (in Images and POS Files > Indiana Summit).
 # add all .pos files to a rwl, excluding original core if a duplicate was made (e.g. for IS140 and IS140B, keep only IS140B). N = 91
@@ -35,11 +35,11 @@ IS_pith <- subset(IS_pith, Core != "IS21003")
 
 ## Method from Fraver et al. (P. resinosa):
 #4. Calculate GR15 (average annual growth rate of first 15 rings)
-#GR15 = function(x){
-#  non_na_widths = x[which(!is.na(x))]
-#  first_15 = non_na_widths[1:15]
-#  return(mean(first_15))
-#}
+GR15fun = function(x){
+  non_na_widths = x[which(!is.na(x))]
+  first_15 = non_na_widths[1:15]
+  return(mean(first_15))
+}
 
 ## Method from Wong & Lertzman (P. ponderosa):
 #4. Calculate GR5 (*cumulative* growth of the first 5 rings) UNFORTUNATE DETAIL their paper uses first 5y at BH...
@@ -48,11 +48,7 @@ IS_pith <- subset(IS_pith, Core != "IS21003")
 #   first_5 = non_na_widths[1:5]
 #   return(sum(first_5))
 # }
-GR15fun = function(x){
-  non_na_widths = x[which(!is.na(x))]
-  first_15 = non_na_widths[1:15]
-  return(mean(first_15))
-}
+
 
 #IS_correction <- cbind(cbind(rwl.stats(IS_data), apply(IS_data,2,GR5fun)), IS_pith)
 IS_correction <- cbind(cbind(rwl.stats(IS_data), apply(IS_data,2,GR15fun)), IS_pith)
@@ -199,8 +195,8 @@ summary(IS_exp) # a = 3.61166, b = 0.95850
 
 ## 6. Age-size regression model: 
 #IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
-# age = 3.2088(x^0.9783)
-# dbh = (age^(1/0.9783))/3.2088
+# age = 3.61166 (x^0.95850)
+# dbh = (age^(1/0.95850))/3.61166
 
 # Steps:
 # Find model-estimated age for each tree in the dataset
@@ -211,6 +207,9 @@ summary(IS_exp) # a = 3.61166, b = 0.95850
 tree_data <- read.csv("Treedata_9-3_Em_DB.csv")
 # fix data entry error in row 192
 tree_data[192,7] = 36.7
+tree_data <- tree_data %>% 
+  filter(X>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi)) %>% 
+  filter(Y>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi))
 
 IS_trees <- tree_data[tree_data$Site=="IS",]
 names(IS_trees)[5] <- "dbh"
@@ -248,7 +247,6 @@ IS_snags <- IS_snags %>%
 # SNAGS ARE READY AT INDIANA SUMMIT
 
 IS_livetrees <- IS_livetrees %>%
-#  mutate(age_est = DBH/0.307204) %>% # Old method based on straight-line regression; now need to use predict
   mutate(age_est = predict(IS_exp, newdata = IS_livetrees)) %>% 
   mutate(estab_est = round(2018 - age_est,0))
 # SO ARE LIVETREES
@@ -268,7 +266,6 @@ IS_logs$log_correction[IS_logs$Dec == 1]=10
 IS_logs$log_correction[IS_logs$Dec > 1 & IS_logs$Dec < 4]=15
 IS_logs$log_correction[IS_logs$Dec > 3 & IS_logs$Dec <=5]=20
 IS_logs <- IS_logs %>%
-#  mutate(age_est = DBH/0.307204) %>%   # Old method based on straight-line regression; now need to use predict
   mutate(age_est = predict(IS_exp, newdata = IS_logs)) %>% 
   mutate(estab_est = round(2018 - (age_est+log_correction),0))
 
@@ -290,10 +287,10 @@ IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c
 # but snags and logs shouldn't be penalized for the time they spent dead; they get back x years of deadness * growth coefficient
 # NEW MODEL NEW METHOD
 # Subtract 77y from each age in 2018 = 1941 age
-# find dbh from 1941 age using dbh = (age^(1/0.95850))/0.95850
+# find dbh from 1941 age using dbh = (age^(1/0.95850))/3.61166
 IS_trees1941 <- IS_trees %>% 
   mutate(age1941 = 1941 - estab_est) %>% 
-  mutate(dbh1941 =round(age1941^(1/0.95850)/0.95850)) %>% 
+  mutate(dbh1941 =round(age1941^(1/0.95850)/3.61166)) %>% 
     # I think this worked; need to filter out rows with trees that have NaN or <5 DBH
   filter(!is.na(dbh1941)) %>% # this takes it from 650 to 412 trees
   filter(dbh1941>=5) # and this goes from 412 to 326 ! #IS_livetrees has 361 observations :)
