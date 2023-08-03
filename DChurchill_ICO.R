@@ -40,7 +40,9 @@ require(sp)
 # dbh.units="cm" or "in"
 # Species.correct, sets all species codes to 4 letter codes. May not have your species, add as needed. 
 
+IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
 plot.data <- IS1_2018 # comes from Pines_ESA2023
+#plot.data <- IS1_1941
 
 #______Found a workaround for the function below, bc it requires square window______
 #formatSummaryInput <- function(plot.data, corner.0 = F, x.min=-60, x.max=60, y.min=-60, y.max=60, poly="NA",dbh.units="cm",Species.correct=F)
@@ -129,10 +131,10 @@ pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = 60, centre = c
   #                        Tree.ID=Tree.ID,Clump.ID=plot.data[,clumpid.index])
   
   # leaving out crown for now...
-treeData <- data.frame(dbh=plot.data$dbh, spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)),Clump.ID=as.numeric(rownames(plot.data)) )
-treeData2 <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)),Clump.ID=as.numeric(rownames(plot.data)) )  
+#treeData <- data.frame(dbh=plot.data$dbh, spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)),Clump.ID=as.numeric(rownames(plot.data)) )
+#treeData2 <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data)),Clump.ID=as.numeric(rownames(plot.data)) )  
 # I think we needed treeData2 for later issues with plotting function...???
-treeData3 <- treeData2 <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data))) 
+treeData <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data))) 
 # try without Clump.ID
 
 
@@ -152,9 +154,10 @@ treeData3 <- treeData2 <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, 
 #   return(out)
 # }
 
-plot.ha = round((pi*57.4^2)/10000,2)  
-out <- list(pointData, treeData, plot.ha)
-class(out) <- c(class(out), "summary.input")
+# tried this but don't think we need it
+# plot.ha = round((pi*57.4^2)/10000,2)  
+# out <- list(pointData, treeData, plot.ha)
+# class(out) <- c(class(out), "summary.input")
 
 #
 # Inputs:
@@ -191,7 +194,7 @@ class(out) <- c(class(out), "summary.input")
 
 	
 #summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin=-1,edge.cut = c(0,0,0,0), Quickmap=F,plot.name="Name"){ # trying with distThreshold=6
-summarizeClusters.ppp <- function(pointData, treeData, distThreshold=6, max.bin=-1,edge.cut = c(0,0,0,0), Quickmap=F,plot.name="Name"){
+summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin=-1,edge.cut = c(0,0,0,0), Quickmap=F,plot.name="Name"){
   # can edge.cut be changed for a circular window???
 	if ("crown" %in% colnames(treeData)) (treeData=treeData) else (treeData = Crw.rad.pred(treeData))
 	
@@ -268,7 +271,7 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=6, max.bin=
   n.bins <- max.bin
   mean.clust.size <- sum(cluster.size^2) / n.pts
   norm.mean.clust.size <- mean.clust.size / n.pts
-  hectares <- round((pi*57.4^2)/10000,2)
+  hectares <- 1
     # hectares <- diff(pointData$window$xrange) * diff(pointData$window$yrange) / 10000
     # changing line above due to circular window ???
 	
@@ -389,8 +392,8 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=6, max.bin=
               clusters=clusters, maxbin=maxbin,clump.bins =clump.bins, edge.cut = edge.cut))
 }
 
-summarizeClusters.ppp(pointData, treeData, 6, -1, c(0,0,0,0), F, "IS1")
-tree.data_out <- summarizeClusters.ppp(pointData, treeData3, -1, 6, c(0,0,0,0), F, "IS1")
+summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "IS1")
+tree.data_out <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "IS1")
 
 ###########################################
 ##  Functions used by main user functions
