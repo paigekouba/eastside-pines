@@ -37,6 +37,9 @@ OH_pith = read.csv("OH_pith.csv") # do not know why this was so hard; trying to 
 tree_data <- read.csv("Treedata_9-3_Em_DB.csv")
 # fix data entry error in row 192
 tree_data[192,7] = 36.7
+tree_data <- tree_data %>% 
+  filter(X>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi)) %>% 
+  filter(Y>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi))
 
 # How many of each species are there? ____________________
 OH_trees <- tree_data[tree_data$Site=="OH",]
