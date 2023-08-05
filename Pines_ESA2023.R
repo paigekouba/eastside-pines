@@ -214,7 +214,11 @@ tree_data <- tree_data %>%
 IS_trees <- tree_data[tree_data$Site=="IS",]
 names(IS_trees)[5] <- "dbh"
 unique(IS_trees$Spec)
-# [1] "PIJE"  "PICO"
+# [1] "PIJE"  "PICO" "PIJE*"
+IS_trees$Spec[IS_trees$Spec=="PIJE*"] <- "PIJE"
+unique(IS_trees$Spec)
+# [1] "PIJE" "PICO"
+
 IS_count <- IS_trees %>% 
   group_by(Spec) %>% 
   summarize(abundance = sum(!is.na(dbh)))
@@ -275,6 +279,11 @@ names(IS_livetrees)
 names(IS_snags)
 names(IS_logs) 
 IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c(1:9,11,12)])
+unique(IS_trees$Spec)
+# [1] "PIJE"  "PICO" "PIJE*"
+IS_trees$Spec[IS_trees$Spec=="PIJE*"] <- "PIJE"
+unique(IS_trees$Spec)
+
 
 #______________________________________________________________________________#
 # Size in 1941 = (1941 - estab. year) * size coefficient
