@@ -367,3 +367,104 @@ for(i in 1:length(plots)){
   treeData <- data.frame(dbh=plots[[i]][,"dbh"], spp=plots[[i]]$Spec, Tree.ID=as.numeric(rownames(plots[[i]]))) 
   plots_out[[i]] <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, names[i])}
 
+
+# Stacked histograms showing stems per cluster size; couldn't manage different fills to show spp
+#install.packages("ggpattern")
+
+library(ggpattern)
+ggplot(plots_out[[6]]$trees, aes(x=bin))+
+#  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
+ stat_count(aes(color=bin)) +
+ scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+ # scale_pattern_manual(values = c(Nerd = "stripe", NotNerd = "none"))+
+#  geom_bar_pattern(color="black",
+#                   pattern_fill="black",
+#    aes(pattern=spp)) + 
+  ggtitle("Cluster Distribution at ? in ?")
+
+histo <- plots_out[[9]]
+colnames(histo$trees)
+histo$trees$pattern <- as.numeric(as.factor(histo$trees$spp))
+
+# try it the simpler way without spp 
+ggplot(histo$trees, aes(x=bin, color = bin, fill=as.factor(bin)))+
+  stat_count() +
+  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+  ggtitle("Cluster Distribution at ? in ?")
+
+# i accidentally got this to have the fill and the patterns; ABCO and JUGR still are the same
+ggplot(histo$trees, aes(x=bin, color=bin, fill=bin, size=0.001))+
+  #  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
+  #stat_count(aes(bin))+
+  scale_colour_brewer(palette = "YlGn", name = "") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_bar_pattern(aes(pattern=spp))+
+  ggtitle("Cluster Distribution at ? in ?")
+
+# this one gets colors by bin, pattern by spp (only I don't know enough different pattern names yet)
+ggplot(histo$trees, aes(x=bin, color=bin, fill=bin))+
+  scale_colour_brewer(palette = "YlGn", name = "") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_bar_pattern(color="black",
+                   pattern_fill="black",
+                   pattern_angle=45,
+                   pattern_density=0.1,
+                   pattern_spacing=0.025,
+                   pattern_key_scale_factor=0.6,
+                   aes(pattern=spp))+
+  scale_pattern_manual(values=c(ABCO="stripe", JUGR="pch",PICO="none",PIJE="pch"))+
+  ggtitle("Cluster Distribution at ? in ?")
+
+# this one is the best so far!! IT IS PERFECT
+ggplot(histo$trees, aes(x=bin, color=bin, fill=bin))+
+  scale_colour_brewer(palette = "YlGn", name = "") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_bar_pattern(color="black",
+                   pattern_fill="black",
+                   pattern_angle=45,
+                   pattern_density=0.1,
+                   pattern_spacing=0.05,
+                   pattern_key_scale_factor=0.6,
+                   aes(pattern=spp))+
+  scale_pattern_manual(values=c(ABCO="wave", JUGR="none",PICO="stripe",PIJE="pch"), name = "Species")+
+  labs(title = "Cluster Distribution at ? in ?")+
+  guides(pattern = guide_legend(override.aes = list(fill = "white")),
+         fill = guide_legend(override.aes = list(pattern = "none")))+
+  theme_classic()
+
+
+# works but ABCO and JUGR have same pattern, and there's no fill
+ggplot(plots_out[[9]]$trees, aes(x=bin, color=bin))+
+    #  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
+    #stat_count(aes(bin))+
+  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+    geom_bar_pattern(aes(pattern=spp))+
+    ggtitle("Cluster Distribution at ? in ?")
+
+
+# Use this one to build for loop
+ggplot(plots_out[[6]]$trees, aes(x=bin, color=bin, fill=bin))+
+  scale_colour_brewer(palette = "YlGn", name = "") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_bar_pattern(color="black",
+                   pattern_fill="black",
+                   pattern_angle=45,
+                   pattern_density=0.1,
+                   pattern_spacing=0.05,
+                   pattern_key_scale_factor=0.6,
+                   aes(pattern=spp))+
+  scale_pattern_manual(values=c(ABCO="wave", JUGR="none",PICO="stripe",PIJE="pch"), name = "Species")+
+  labs(title = "Cluster Distribution at ? in ?",
+       x="Cluste Size Cateogory",
+       y= "Number of Trees")+
+  guides(pattern = guide_legend(override.aes = list(fill = "white")),
+         fill = guide_legend(override.aes = list(pattern = "none")))+
+  theme_classic()
+
+# number 6, IS3 in 1941, gets an error: Error in `geom_bar_pattern()`:
+#! Problem while converting geom to grob.
+#ℹ Error occurred in the 1st layer.
+#Caused by error in `if (pat == "regular_polygon" && is.numeric(params$pattern_shape)) ...`:
+ # ! missing value where TRUE/FALSE needed
+#> unique(plots_out[[6]]$trees$spp)
+#[1] "PIJE"  "PIJE*"
