@@ -7,14 +7,14 @@
 library(ggplot2)
 # requires a data set that contains columns for x, y, stem_diameter, crown_diameter, 
 # and categorical cluster size
-head(treeData3) # dbh, spp, Tree.ID
-head(plot.data)
-#    Site Plot   Date Spec   dbh Dec     X     Y    Z CrHt SrchHt Core. Comments  age_est estab_est
-
-ICO_out[9]
-#       x    y   dbh  spp Tree.ID    crown         ba        sdi clust.sz cluster.membership   bin
-#dataGPT <- as.data.frame(tree.data_out[9])
-dataGPT <- as.data.frame(ICO_out[9])
+# head(treeData3) # dbh, spp, Tree.ID
+# head(plot.data)
+# #    Site Plot   Date Spec   dbh Dec     X     Y    Z CrHt SrchHt Core. Comments  age_est estab_est
+# 
+# ICO_out[9]
+# #       x    y   dbh  spp Tree.ID    crown         ba        sdi clust.sz cluster.membership   bin
+# #dataGPT <- as.data.frame(tree.data_out[9])
+# dataGPT <- as.data.frame(ICO_out[9])
 
 # # Create the ggplot map
 # ggplot(dataGPT, aes(x = trees.x, y = trees.y)) +
@@ -38,6 +38,7 @@ dataGPT <- as.data.frame(ICO_out[9])
 #   theme_classic()
 
 for (i in 1:length(plots_out)){
+  jpeg(paste("ICO_Map",names[i]),700,630)
   print(ggplot(as.data.frame(plots_out[[i]][9]), aes(x = trees.x, y = trees.y)) +
     # Crowns as green circles with width corresponding to crown diameter
     geom_point(aes(size = trees.crown, color = factor(trees.bin)), alpha=0.75) +
@@ -49,12 +50,22 @@ for (i in 1:length(plots_out)){
     # Set the color palette for cluster sizes
     scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
     # Customize the plot appearance
-    labs(title = paste("Living Trees at ", names[i]),
-         x = "",
+      theme_classic(base_size=22) +
+      theme(plot.title=element_text(hjust=0.5)) +
+      labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
+         x = "Distance in m",
          y = "",
          size = "Crown (m)") +
-    guides(size = guide_legend(override.aes = list(color ="#addd8e"))))
-    theme_classic() }
+    guides(size = guide_legend(override.aes = list(color ="#addd8e")))) 
+    dev.off() 
+    }
+
+ggplot(OH_livetrees, aes(x=estab_est, fill=Spec))+
+  geom_histogram() + ggtitle("Establishment Dates at O'Harrell Canyon")
+
+ggplot(IS_livetrees, aes(x=estab_est, fill=Spec))+
+  geom_histogram() + ggtitle("Establishment Dates at Indiana Summit")
+
 
 # ggplot(dataGPT, aes(x = trees.x, y = trees.y)) +
 #   theme(plot.title = element_text(vjust=0.5))+
