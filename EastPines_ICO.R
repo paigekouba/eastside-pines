@@ -4,14 +4,17 @@
 # Want to end up with a for loop that runs below functions for all 12 plots:
 # IS1_2018, IS2_2018, IS3_2018; IS1_1941, IS2_1941, IS3_1941; 
 # OH1_2018, OH2_2018, OH3_2018; OH1_1941, OH2_1941, OH3_1941
-plot.data <- OH2_1941 # for testing code
+
+#plot.data <- OH2_1941 # for testing code
+
 # data.frame or matrix with column headers x, y, spp, dbh in any order
 #               Can also have crown radius, tree tag, but not essential 
 #               +  clump Id (Quickmap plots)
 #              Any additional columns will be ignored, but passed on
 
-pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = sqrt(10000/pi)+0.69, centre = c(0,0)), 
-                 marks = as.numeric(rownames(plot.data) ))
+#pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = sqrt(10000/pi)+0.69, centre = c(0,0)), 
+#                 marks = as.numeric(rownames(plot.data) ))
+
 # IS1_2018 gets a warning: 1 point was rejected as lying outside the specified window, even after filtering tree_data at start
 # But I can't find any x or y coord that lies outside of the window with radius = sqrt(10000/pi)
 # Happens for IS1_2018 (1 pt), OH2_2018 (1 pt), and OH3_2018 gets THREE rejected
@@ -20,7 +23,7 @@ pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = sqrt(10000/pi)
 # My best guess is the circular window is an approximation, and points close to the edge are cut out by the polygon
 # adding 0.65 to the radius seems to keep all points.
 
-treeData <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data))) 
+#treeData <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data))) 
 
 # Inputs:
 #   
@@ -350,9 +353,9 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
               clusters=clusters, maxbin=maxbin,clump.bins =clump.bins, edge.cut = edge.cut))
 }
 
-summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "Name")
+#summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "Name")
 
-ICO_out <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "OH2 1941")
+#ICO_out <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "OH2 1941")
 
 # for loop to prep all 12 plots for mapping and figures
 plots <- list(IS1_2018, IS1_1941, IS2_2018, IS2_1941, IS3_2018, IS3_1941, 
@@ -367,24 +370,8 @@ for(i in 1:length(plots)){
   treeData <- data.frame(dbh=plots[[i]][,"dbh"], spp=plots[[i]]$Spec, Tree.ID=as.numeric(rownames(plots[[i]]))) 
   plots_out[[i]] <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, names[i])}
 
-
-# Stacked histograms showing stems per cluster size; couldn't manage different fills to show spp
-#install.packages("ggpattern")
-
+# Stacked histograms showing stems per cluster size
 library(ggpattern)
-ggplot(plots_out[[6]]$trees, aes(x=bin))+
-#  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
- stat_count(aes(color=bin)) +
- scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
- # scale_pattern_manual(values = c(Nerd = "stripe", NotNerd = "none"))+
-#  geom_bar_pattern(color="black",
-#                   pattern_fill="black",
-#    aes(pattern=spp)) + 
-  ggtitle("Cluster Distribution at ? in ?")
-
-histo <- plots_out[[9]]
-colnames(histo$trees)
-histo$trees$pattern <- as.numeric(as.factor(histo$trees$spp))
 
 # try it the simpler way without spp 
 ggplot(histo$trees, aes(x=bin, color = bin, fill=as.factor(bin)))+
@@ -416,7 +403,7 @@ ggplot(histo$trees, aes(x=bin, color=bin, fill=bin))+
   ggtitle("Cluster Distribution at ? in ?")
 
 # this one is the best so far!! IT IS PERFECT
-ggplot(histo$trees, aes(x=bin, color=bin, fill=bin))+
+ggplot(plots_out[[12]]$trees, aes(x=bin, color=bin, fill=bin))+
   scale_colour_brewer(palette = "YlGn", name = "") +
   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
   geom_bar_pattern(color="black",
@@ -427,10 +414,13 @@ ggplot(histo$trees, aes(x=bin, color=bin, fill=bin))+
                    pattern_key_scale_factor=0.6,
                    aes(pattern=spp))+
   scale_pattern_manual(values=c(ABCO="wave", JUGR="none",PICO="stripe",PIJE="pch"), name = "Species")+
+  ylim(0,60)+
+  xlim(c("1", "2-4", "5-9", "10-15", "16-29"))+
   labs(title = "Cluster Distribution at ? in ?")+
   guides(pattern = guide_legend(override.aes = list(fill = "white")),
          fill = guide_legend(override.aes = list(pattern = "none")))+
-  theme_classic()
+  #theme(axis.title.x = element_text(size = rel(1.8), angle = 00))+
+  theme_classic(base_size=22)
 
 
 # works but ABCO and JUGR have same pattern, and there's no fill
@@ -443,7 +433,10 @@ ggplot(plots_out[[9]]$trees, aes(x=bin, color=bin))+
 
 
 # Use this one to build for loop
-ggplot(plots_out[[6]]$trees, aes(x=bin, color=bin, fill=bin))+
+
+for(i in 1:length(plots_out)){
+  jpeg(paste("ClustHist",names[i]),650)
+print(ggplot(plots_out[[i]]$trees, aes(x=bin, color=bin, fill=bin))+
   scale_colour_brewer(palette = "YlGn", name = "") +
   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
   geom_bar_pattern(color="black",
@@ -452,14 +445,18 @@ ggplot(plots_out[[6]]$trees, aes(x=bin, color=bin, fill=bin))+
                    pattern_density=0.1,
                    pattern_spacing=0.05,
                    pattern_key_scale_factor=0.6,
-                   aes(pattern=spp))+
-  scale_pattern_manual(values=c(ABCO="wave", JUGR="none",PICO="stripe",PIJE="pch"), name = "Species")+
-  labs(title = "Cluster Distribution at ? in ?",
-       x="Cluste Size Cateogory",
-       y= "Number of Trees")+
-  guides(pattern = guide_legend(override.aes = list(fill = "white")),
-         fill = guide_legend(override.aes = list(pattern = "none")))+
-  theme_classic()
+                   aes(pattern=spp)) +
+  scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
+  scale_y_continuous(limits=(c(0,60)), expand = expansion(mult = c(0, 0))) +
+    xlim(c("1", "2-4", "5-9", "10-15", "16-29"))+
+    labs(title = paste("Cluster Distribution at ", names[i]),
+       x="Cluster Size Category",
+       y= "Number of Trees") +
+  guides(pattern = guide_legend(override.aes = list(fill = "#f7fcb9")),
+         fill = guide_legend(override.aes = list(pattern = "none"))) +
+  theme_classic(base_size=22)) 
+dev.off()}
+
 
 # number 6, IS3 in 1941, gets an error: Error in `geom_bar_pattern()`:
 #! Problem while converting geom to grob.
@@ -468,3 +465,120 @@ ggplot(plots_out[[6]]$trees, aes(x=bin, color=bin, fill=bin))+
  # ! missing value where TRUE/FALSE needed
 #> unique(plots_out[[6]]$trees$spp)
 #[1] "PIJE"  "PIJE*"
+
+# Basal area, mean dbh, etc. in point-whisker plots comparing change over time
+library(stringr)
+library(dplyr)
+plotcodes <- sapply(plots_out,"[[",1)
+summaryall <- sapply(plots_out,"[[",5)
+summaries <- cbind(plotcodes,data.frame(t(summaryall)))
+
+colnames(summaries) <- c("plotcode",colnames(plots_out[[1]]$summary))
+#summaries <- rbind(c("Plotcode",colnames(plots_out[[1]]$summary)),summaries)
+
+#head(summaries)
+summaries <- summaries[,c(1:7)]
+summaries <- separate(summaries[,c(1:7)], col=plotcode, into=c("Site","in", "Year"), sep = " ") 
+summaries <- summaries[,c(1,3:7)]
+
+#summaries <- summaries %>% 
+#  mutate(Plot = Site, Site = str_remove(Site, "\\d+"))
+
+# summaries_IS <- summaries %>% 
+#      group_by(Site, Year) %>% 
+#      filter(Site == "IS") %>% 
+#      summarize(meanBA = mean(BAH), meanTPH = mean(TPH), meanDBH=mean(Mean.dbh), meanQMD=mean(QMD)) %>% 
+#      mutate(Site = paste(Site,Year)) %>% 
+#      select(Site, meanBA, meanTPH, meanDBH, meanQMD) 
+
+# df<-data.frame(t(summaries_IS))
+# df<-df[2:5,]
+# 
+# # works but needs % change, better labels, weirdly many points on mean BA?
+# ggplot(df) +
+#   geom_segment(aes(x = df[,1], xend = df[,2],
+#                    y = c('meanBA','meanTPH','meanDBH','meanQMD'), 
+#                    yend = c('meanBA','meanTPH','meanDBH','meanQMD'))) +
+#   geom_point(aes(x = df[,1], y = 'meanBA','meanTPH','meanDBH','meanQMD'), size = 3) +
+#   geom_point(aes(x = df[,2], y = 'meanBA','meanTPH','meanDBH','meanQMD'), size = 3)
+
+# _____
+
+#df$label <- factor(df$label, levels=rev(df$label))
+
+# plotcodes <- sapply(plots_out,"[[",1)
+# summaryall <- sapply(plots_out,"[[",5)
+# summaries <- cbind(plotcodes,data.frame(t(summaryall)))
+
+ISmetrics <- read.csv("ISmetrics.csv")
+
+# ggplot(data=ISmetrics, aes(x=Metric, y=IS1941mean, ymin=IS1941low, ymax=IS1941hi)) +
+#    geom_pointrange() + 
+# #   geom_hline(yintercept=1, lty=2) +  # add a dotted line at x=1 after flip
+#    coord_flip() +  # flip coordinates (puts labels on y axis)
+#    xlab("Metric") + ylab("Absolute Change") +
+#    theme_bw()  # use a white background
+# # print(fp)
+
+# ISpcts <- ISmetrics %>% 
+#   mutate(IS41meanN = (IS1941mean - IS1941mean)/IS1941mean) %>% 
+#   mutate(IS41loN = (IS1941low - IS1941mean)/IS1941mean) %>% 
+#   mutate(IS41hiN = (IS1941hi - IS1941mean)/IS1941mean) %>% 
+#   mutate(IS18meanN = (IS2018mean - IS1941mean)/IS1941mean) %>% 
+#   mutate(IS18loN = (IS2018low - IS1941mean)/IS1941mean) %>% 
+#   mutate(IS18hiN = (IS2018hi - IS1941mean)/IS1941mean)
+# 
+# ggplot(data=ISpcts, aes(x=Metric, y=IS41meanN, ymin=IS41loN, ymax=IS41hiN)) +
+#   geom_pointrange() +
+#   coord_flip() +  # flip coordinates (puts labels on y axis)
+#   xlab("Metric") + ylab("Percent Change") +
+#   theme_bw()
+
+# ggplot() +
+#   geom_pointrange(data = ISpcts, aes(x=Metric, y=IS41meanN, ymin=IS41loN, ymax=IS41hiN), shape = 16, color="red") + 
+#   geom_pointrange(data = ISpcts, aes(x=Metric, y=IS18meanN, ymin=IS18loN, ymax=IS18hiN), shape = 1)+
+#   geom_jitter() +
+#   coord_flip() +  # flip coordinates (puts labels on y axis)
+#   xlab("Metric") + ylab("Percent Change") +
+#   theme_bw()
+
+#_________ try again with group_by
+
+summaries_meanSE <- summaries %>% 
+  group_by(Site, Year) %>% 
+  summarize(BAH = mean_se(BAH), TPH = mean_se(TPH), meanDBH=mean_se(Mean.dbh), QMD=mean_se(QMD))
+
+metrics_meanSE <- read.csv("Metrics_meanSE.csv")
+metrics_meanSE <- metrics_meanSE[1:4,1:13]
+
+ISnorm <- metrics_meanSE %>% 
+  mutate(IS41meanN = 100*(IS41mean - IS41mean)/IS41mean, na.rm=TRUE) %>% 
+  mutate(IS41loN = 100*(IS41lo - IS41mean)/IS41mean, na.rm=TRUE) %>% 
+  mutate(IS41hiN = 100*(IS41hi - IS41mean)/IS41mean, na.rm=TRUE) %>% 
+  mutate(IS18meanN = 100*(IS18mean - IS41mean)/IS41mean, na.rm=TRUE) %>% 
+  mutate(IS18loN = 100*(IS18lo - IS41mean)/IS41mean,na.rm=TRUE) %>% 
+  mutate(IS18hiN = 100*(IS18hi - IS41mean)/IS41mean, na.rm=TRUE)
+
+OHnorm <- metrics_meanSE %>% 
+  mutate(OH41meanN = 100*(OH41mean - OH41mean)/OH41mean, na.rm=TRUE) %>% 
+  mutate(OH41loN = 100*(OH41lo - OH41mean)/OH41mean, na.rm=TRUE) %>% 
+  mutate(OH41hiN = 100*(OH41hi - OH41mean)/OH41mean, na.rm=TRUE) %>% 
+  mutate(OH18meanN = 100*(OH18mean - OH41mean)/OH41mean, na.rm=TRUE) %>% 
+  mutate(OH18loN = 100*(OH18lo - OH41mean)/OH41mean,na.rm=TRUE) %>% 
+  mutate(OH18hiN = 100*(OH18hi - OH41mean)/OH41mean, na.rm=TRUE)
+
+ggplot() +
+  geom_pointrange(data = ISnorm, aes(x=Metric, y=IS41meanN, ymin=IS41loN, ymax=IS41hiN), shape = 16, color="red") + 
+  geom_pointrange(data = ISnorm, aes(x=Metric, y=IS18meanN, ymin=IS18loN, ymax=IS18hiN), shape = 1)+
+  coord_flip() +  # flip coordinates (puts labels on y axis)
+  labs(title= "Change in Nonspatial Forest Metrics \n at Indiana Summit") +
+  xlab("Metric") + ylab("Percent Change") +
+  theme_classic()
+  #theme_bw()
+
+ggplot() +
+  geom_pointrange(data = OHnorm, aes(x=Metric, y=OH41meanN, ymin=OH41loN, ymax=OH41hiN), shape = 16, color="red") + 
+  geom_pointrange(data = OHnorm, aes(x=Metric, y=OH18meanN, ymin=OH18loN, ymax=OH18hiN), shape = 1)+
+  coord_flip() +  # flip coordinates (puts labels on y axis)
+  xlab("Metric") + ylab("Percent Change") +
+  theme_bw()
