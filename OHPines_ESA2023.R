@@ -132,7 +132,10 @@ library(ggplot2)
 #plot the data
 ggplot(data=OH_correction,aes(x=dbh,y=corrected_age))+
   geom_point()+
-  stat_smooth(method="lm",formula = y~x,se=F,color="blue")
+  stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
+  labs(x="Diameter at Breast Height (cm)", y="Age") +
+  ggtitle("Age-Size Regression for Jeffrey Pine") +
+  theme_bw(base_size=22)
 
 ## 5.2 New model and model comparison based on polynomials
 OH_lm <- lm(corrected_age ~ dbh, data = OH_correction)
@@ -164,7 +167,10 @@ OH_2023 <- read.csv("coredata_OH2023.csv")
 OH_ABCO <- OH_2023[OH_2023$spec == "ABCO",]
 ggplot(data=OH_ABCO,aes(x=dbh,y=age_est))+
   geom_point()+
-  stat_smooth(method="lm",formula = y~x,se=F,color="blue")
+  stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
+  labs(x="Diameter at Breast Height (cm)", y="Age") +
+  ggtitle("Age-Size Regression for White Fir") +
+  theme_bw(base_size=22)
 ABCO_lm <- lm(age_est ~ dbh, data = OH_ABCO)
 summary(ABCO_lm)
 # age = 0.7771x + 65.8335
@@ -177,7 +183,10 @@ summary(ABCO_lm)
 OH_PICO <- OH_2023[OH_2023$spec == "PICO",]
 ggplot(data=OH_PICO,aes(x=dbh,y=age_est))+
   geom_point()+
-  stat_smooth(method="lm",formula = y~x,se=F,color="blue")
+  stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
+  labs(x="Diameter at Breast Height (cm)", y="Age") +
+  ggtitle("Age-Size Regression for Lodgepole Pine") +
+  theme_bw(base_size=22)
 PICO_lm <- lm(age_est ~ dbh, data = OH_PICO)
 summary(PICO_lm)
 # age = 1.1501x + 64.0018
@@ -324,12 +333,12 @@ OH_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QM
                          OH1941 = c(meanOH1941, maxOH1941, stemsOH1941, BA_OH1941, QMD_OH1941))
 
 #______________________________________________________________________________#
-# Prepping all IS sites in 2018
+# Prepping all OH sites in 2018
 OH1_2018 <- OH_livetrees[OH_livetrees$Plot == "OH1",]
 OH2_2018 <- OH_livetrees[OH_livetrees$Plot == "OH2",]
 OH3_2018 <- OH_livetrees[OH_livetrees$Plot == "OH3",]
 
-# Prepping all IS sites in 1941
+# Prepping all OH sites in 1941
 OH1_1941 <- OH_trees1941[OH_trees1941$Plot == "OH1",]
 OH2_1941 <- OH_trees1941[OH_trees1941$Plot == "OH2",]
 OH3_1941 <- OH_trees1941[OH_trees1941$Plot == "OH3",]

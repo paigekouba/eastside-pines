@@ -119,7 +119,11 @@ ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
     geom_smooth(data = IS_correction,
       method = "nls",
       method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
-      se=FALSE)
+      se=FALSE) +
+  labs(x="Diameter at Breast Height (cm)", y="Age") +
+  ggtitle("Age-Size Regression for Jeffrey Pine") +
+  theme_bw(base_size=22)
+
 # it looks almost indistinguishable from a straight line model
 IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
 summary(IS_exp) # a = 3.61166, b = 0.95850
