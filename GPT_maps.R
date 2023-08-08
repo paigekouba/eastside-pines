@@ -60,11 +60,39 @@ for (i in 1:length(plots_out)){
     dev.off() 
     }
 
-ggplot(OH_livetrees, aes(x=estab_est, fill=Spec))+
-  geom_histogram() + ggtitle("Establishment Dates at O'Harrell Canyon")
+ggplot(OH_livetrees, aes(x=estab_est))+
+  geom_bar_pattern( fill="#addd8e",
+                   binwidth = 20,
+                   color="black",
+                   pattern_fill="black",
+                   pattern_angle=45,
+                   pattern_density=0.1,
+                   pattern_spacing=0.05,
+                   pattern_key_scale_factor=0.6,
+                   aes(pattern=Spec)) +
+  scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
+  scale_y_continuous(limits=(c(0,80)), expand = expansion(mult = c(0, 0))) +
+  geom_vline(xintercept=1941, size = 2, linetype="dashed",color="red4") +
+  labs(x="Establishment Year") +
+  ggtitle("Tree Age Distribution at O'Harrell Canyon") +
+  theme_bw(base_size=22)
 
-ggplot(IS_livetrees, aes(x=estab_est, fill=Spec))+
-  geom_histogram() + ggtitle("Establishment Dates at Indiana Summit")
+ggplot(IS_livetrees, aes(x=estab_est))+
+  geom_bar_pattern( fill="#addd8e",
+                    binwidth = 20,
+                    color="black",
+                    pattern_fill="black",
+                    pattern_angle=45,
+                    pattern_density=0.1,
+                    pattern_spacing=0.05,
+                    pattern_key_scale_factor=0.6,
+                    aes(pattern=Spec)) +
+  scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
+  scale_y_continuous(limits=(c(0,80)), expand = expansion(mult = c(0, 0))) +
+  geom_vline(xintercept=1941, size = 2, linetype="dashed",color="red4") +
+  labs(x="Establishment Year") +
+  ggtitle("Tree Age Distribution at Indiana Summit") +
+  theme_bw(base_size=22)
 
 
 # ggplot(dataGPT, aes(x = trees.x, y = trees.y)) +
