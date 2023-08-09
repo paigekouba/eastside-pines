@@ -374,33 +374,33 @@ for(i in 1:length(plots)){
 library(ggpattern)
 
 # try it the simpler way without spp 
-ggplot(histo$trees, aes(x=bin, color = bin, fill=as.factor(bin)))+
-  stat_count() +
-  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-  ggtitle("Cluster Distribution at ? in ?")
-
-# i accidentally got this to have the fill and the patterns; ABCO and JUGR still are the same
-ggplot(histo$trees, aes(x=bin, color=bin, fill=bin, size=0.001))+
-  #  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
-  #stat_count(aes(bin))+
-  scale_colour_brewer(palette = "YlGn", name = "") +
-  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-  geom_bar_pattern(aes(pattern=spp))+
-  ggtitle("Cluster Distribution at ? in ?")
-
-# this one gets colors by bin, pattern by spp (only I don't know enough different pattern names yet)
-ggplot(histo$trees, aes(x=bin, color=bin, fill=bin))+
-  scale_colour_brewer(palette = "YlGn", name = "") +
-  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-  geom_bar_pattern(color="black",
-                   pattern_fill="black",
-                   pattern_angle=45,
-                   pattern_density=0.1,
-                   pattern_spacing=0.025,
-                   pattern_key_scale_factor=0.6,
-                   aes(pattern=spp))+
-  scale_pattern_manual(values=c(ABCO="stripe", JUGR="pch",PICO="none",PIJE="pch"))+
-  ggtitle("Cluster Distribution at ? in ?")
+# ggplot(histo$trees, aes(x=bin, color = bin, fill=as.factor(bin)))+
+#   stat_count() +
+#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+#   ggtitle("Cluster Distribution at ? in ?")
+# 
+# # i accidentally got this to have the fill and the patterns; ABCO and JUGR still are the same
+# ggplot(histo$trees, aes(x=bin, color=bin, fill=bin, size=0.001))+
+#   #  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
+#   #stat_count(aes(bin))+
+#   scale_colour_brewer(palette = "YlGn", name = "") +
+#   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+#   geom_bar_pattern(aes(pattern=spp))+
+#   ggtitle("Cluster Distribution at ? in ?")
+# 
+# # this one gets colors by bin, pattern by spp (only I don't know enough different pattern names yet)
+# ggplot(histo$trees, aes(x=bin, color=bin, fill=bin))+
+#   scale_colour_brewer(palette = "YlGn", name = "") +
+#   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+#   geom_bar_pattern(color="black",
+#                    pattern_fill="black",
+#                    pattern_angle=45,
+#                    pattern_density=0.1,
+#                    pattern_spacing=0.025,
+#                    pattern_key_scale_factor=0.6,
+#                    aes(pattern=spp))+
+#   scale_pattern_manual(values=c(ABCO="stripe", JUGR="pch",PICO="none",PIJE="pch"))+
+#   ggtitle("Cluster Distribution at ? in ?")
 
 # this one is the best so far!! IT IS PERFECT
 ggplot(plots_out[[12]]$trees, aes(x=bin, color=bin, fill=bin))+
@@ -424,12 +424,12 @@ ggplot(plots_out[[12]]$trees, aes(x=bin, color=bin, fill=bin))+
 
 
 # works but ABCO and JUGR have same pattern, and there's no fill
-ggplot(plots_out[[9]]$trees, aes(x=bin, color=bin))+
-    #  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
-    #stat_count(aes(bin))+
-  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-    geom_bar_pattern(aes(pattern=spp))+
-    ggtitle("Cluster Distribution at ? in ?")
+# ggplot(plots_out[[9]]$trees, aes(x=bin, color=bin))+
+#     #  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
+#     #stat_count(aes(bin))+
+#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+#     geom_bar_pattern(aes(pattern=spp))+
+#     ggtitle("Cluster Distribution at ? in ?")
 
 
 # Use this one to build for loop
@@ -456,6 +456,89 @@ print(ggplot(plots_out[[i]]$trees, aes(x=bin, color=bin, fill=bin))+
          fill = guide_legend(override.aes = list(pattern = "none"))) +
   theme_classic(base_size=22)) 
 dev.off()}
+
+# all 12 histos was not that helpful; what about just 4
+
+IS2018_out <- rbind(plots_out[[1]]$trees,plots_out[[3]]$trees, plots_out[[5]]$trees)
+IS1941_out <- rbind(plots_out[[2]]$trees,plots_out[[4]]$trees, plots_out[[6]]$trees)
+OH2018_out <- rbind(plots_out[[7]]$trees,plots_out[[9]]$trees, plots_out[[11]]$trees)
+OH1941_out <- rbind(plots_out[[8]]$trees,plots_out[[10]]$trees, plots_out[[12]]$trees)
+
+all4 <- list(IS2018_out,IS1941_out, OH2018_out, OH1941_out)
+names4 <- c("Indiana Summit in 2018", "Indiana Summit in 1941", "O'Harrell Canyon in 2018", "O'Harrell Canyon in 1941")
+
+ggplot(IS2018_out, aes(x=bin)) + geom_bar()
+
+ggplot(IS2018_out, aes(x=bin)) +
+  scale_colour_brewer(palette = "YlGn", name = "") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_bar() +
+  geom_bar_pattern(color="black",
+                   pattern_fill="black",
+                   pattern_angle=45,
+                   pattern_density=0.1,
+                   pattern_spacing=0.05,
+                   pattern_key_scale_factor=0.6,
+                   aes(pattern=spp)) +
+  scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
+# scale_y_continuous(limits=(c(0,60)), expand = expansion(mult = c(0, 0))) +
+  xlim(c("1", "2-4", "5-9", "10-15", "16-29"))+
+  labs(title = paste("Cluster Distribution at \n", names4[i]),
+       x="Cluster Size Category",
+       y= "Number of Trees") +
+  guides(pattern = guide_legend(override.aes = list(fill = "#f7fcb9")),
+         fill = guide_legend(override.aes = list(pattern = "none"))) +
+  theme_classic(base_size=22)
+
+# cluster histogram across all plots: IS and OH in each timestep
+for(i in 1:length(all4)){
+  jpeg(paste("ClustHist",names4[i]),650)
+  print(ggplot(all4[[i]], aes(x=bin, color=bin, fill=bin))+
+          scale_colour_brewer(palette = "YlGn", name = "") +
+          scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+          geom_bar() +
+         geom_bar_pattern(color="black",
+                          pattern_fill="black",
+                          pattern_angle=45,
+                          pattern_density=0.1,
+                          pattern_spacing=0.05,
+                          pattern_key_scale_factor=0.6,
+                          aes(pattern=spp)) +
+         scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
+         ylim(0,175) +#, expand = expansion(mult = c(0, 0))) +
+          xlim(c("1", "2-4", "5-9", "10-15", "16-29"))+
+          labs(title = paste("Cluster Distribution at \n", names4[i]),
+               x="Cluster Size Category",
+               y= "Number of Trees") +
+          guides(pattern = guide_legend(override.aes = list(fill = "#f7fcb9")),
+                 fill = guide_legend(override.aes = list(pattern = "none"))) +
+          theme_classic(base_size=22)) 
+  dev.off()}
+
+for(i in 1:length(all4)){
+ jpeg(paste("SizeHist_lite",names4[i]),650)
+  print(ggplot(all4[[i]], aes(x=dbh))+
+        #  scale_colour_brewer(palette = "YlGn", name = "") +
+        #  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+          geom_histogram(bins=3, fill="#addd8e", color="black") +
+        #  geom_bar_pattern(color="black",
+                           # pattern_fill="black",
+                           # pattern_angle=45,
+                           # pattern_density=0.1,
+                           # pattern_spacing=0.05,
+                           # pattern_key_scale_factor=0.6,
+                           # aes(pattern=spp)) +
+      #    scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
+          scale_y_continuous(limits = (ylim = c(0,275)),expand = expansion(mult = c(0, 0)))+
+          scale_x_continuous(breaks=c(0,30,60))+
+          labs(title = paste("Size Distribution at \n", names4[i]),
+               x="DBH Class",
+               y= "Number of Trees") +
+         # guides(pattern = guide_legend(override.aes = list(fill = "#f7fcb9")),
+         #        fill = guide_legend(override.aes = list(pattern = "none"))) +
+          theme_classic(base_size=22)) 
+  dev.off()
+  }
 
 
 # number 6, IS3 in 1941, gets an error: Error in `geom_bar_pattern()`:
@@ -510,7 +593,7 @@ summaries <- summaries[,c(1,3:7)]
 # summaryall <- sapply(plots_out,"[[",5)
 # summaries <- cbind(plotcodes,data.frame(t(summaryall)))
 
-ISmetrics <- read.csv("ISmetrics.csv")
+#ISmetrics <- read.csv("ISmetrics.csv")
 
 # ggplot(data=ISmetrics, aes(x=Metric, y=IS1941mean, ymin=IS1941low, ymax=IS1941hi)) +
 #    geom_pointrange() + 
@@ -568,17 +651,30 @@ OHnorm <- metrics_meanSE %>%
   mutate(OH18hiN = 100*(OH18hi - OH41mean)/OH41mean, na.rm=TRUE)
 
 ggplot() +
-  geom_pointrange(data = ISnorm, aes(x=Metric, y=IS41meanN, ymin=IS41loN, ymax=IS41hiN), shape = 16, color="red") + 
-  geom_pointrange(data = ISnorm, aes(x=Metric, y=IS18meanN, ymin=IS18loN, ymax=IS18hiN), shape = 1)+
+  geom_pointrange(data = ISnorm, aes(x=Metric, y=IS41meanN, ymin=IS41loN, ymax=IS41hiN), shape = 1, color="red", size=1) + 
+  geom_pointrange(data = ISnorm, aes(x=Metric, y=IS18meanN, ymin=IS18loN, ymax=IS18hiN), shape = 16, size=1)+
   coord_flip() +  # flip coordinates (puts labels on y axis)
-  labs(title= "Change in Nonspatial Forest Metrics \n at Indiana Summit") +
+  ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
   xlab("Metric") + ylab("Percent Change") +
-  theme_classic()
-  #theme_bw()
+  theme_classic(base_size=22) +
+  theme(plot.title=element_text(hjust=0.5))
 
 ggplot() +
-  geom_pointrange(data = OHnorm, aes(x=Metric, y=OH41meanN, ymin=OH41loN, ymax=OH41hiN), shape = 16, color="red") + 
-  geom_pointrange(data = OHnorm, aes(x=Metric, y=OH18meanN, ymin=OH18loN, ymax=OH18hiN), shape = 1)+
+  geom_pointrange(data = OHnorm, aes(x=Metric, y=OH41meanN, ymin=OH41loN, ymax=OH41hiN), shape = 1, color="red", size=1) + 
+  geom_pointrange(data = OHnorm, aes(x=Metric, y=OH18meanN, ymin=OH18loN, ymax=OH18hiN), shape = 16, size=1)+
   coord_flip() +  # flip coordinates (puts labels on y axis)
+  ggtitle("Change in Nonspatial Forest Metrics \nat O'Harrell Canyon") +
   xlab("Metric") + ylab("Percent Change") +
-  theme_bw()
+  theme_classic(base_size=22) +
+  theme(plot.title=element_text(hjust=0.5))
+
+
+# _______ % open for each plot
+# pct_open <- vector(mode="list", length=length(plots_out))
+# pctopen <- function(x){(10000-(sum(pi*(x)^2)))*.01}
+# 
+# for(i in length(plots_out)){
+# pct_open[[i]] <- pctopen(plots_out[[i]]$trees$crown)}
+  
+(10000-(sum(pi*(plots_out[[1]]$trees$crown)^2)))*.01
+  
