@@ -38,7 +38,7 @@ library(ggplot2)
 #   theme_classic()
 
 for (i in 1:length(plots_out)){
-  jpeg(paste("ICO_Map",names[i]),700,630)
+  #jpeg(paste("ICO_Map",names[i]),700,630)
   print(ggplot(as.data.frame(plots_out[[i]][9]), aes(x = trees.x, y = trees.y)) +
     # Crowns as green circles with width corresponding to crown diameter
     geom_point(aes(size = trees.crown, color = factor(trees.bin)), alpha=0.75) +
@@ -57,8 +57,44 @@ for (i in 1:length(plots_out)){
          y = "",
          size = "Crown (m)") +
     guides(size = guide_legend(override.aes = list(color ="#addd8e")))) 
-    dev.off() 
-    }
+  #  dev.off() 
+}
+
+# try to make same map with crown projections at same scale as x axis (in m, i.e.)
+#install.packages("ggforce")
+library(ggforce)
+df <- as.data.frame(plots_out[[9]][9])
+ggplot(df, aes(x0 = trees.x, y0 = trees.y, r = trees.crown)) +
+  ggforce::geom_circle(n = 20) + #5-7x faster than default
+  coord_fixed()
+
+ggplot(df, aes(x0 = trees.x, y0 = trees.y, r = trees.crown)) +
+  geom_circle(n = 20) + #5-7x faster than default
+  coord_fixed()
+# this seems to give true-to-size crowns; incorporate into color-coded plots
+
+ggplot(df, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y)) +
+  # Crowns as green circles with width corresponding to crown diameter
+  geom_circle(n=20, aes(fill=factor(trees.bin), color=factor(trees.bin), alpha=0.85)) +
+  coord_fixed() +
+  # stems as brown circles with width corresponding to dbh (in m)
+  geom_circle(n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", fill="burlywood4") +
+  coord_fixed() +
+  # Set the color palette for cluster sizes
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+  # Customize the plot appearance
+  theme_classic(base_size=22) +
+  theme(plot.title=element_text(hjust=0.5)) +
+  labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
+       x = "Distance in m",
+       y = "") +
+  guides(size = guide_legend(override.aes = list(color ="burlywood4"))) 
+
+
+
+
+
 # age hist with pattern
 ggplot(OH_livetrees, aes(x=estab_est))+
   geom_bar_pattern( fill="#addd8e",
