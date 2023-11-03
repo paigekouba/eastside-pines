@@ -207,4 +207,4 @@ ggplot(IS_trees1941, aes(x=estab_est))+
 
 
 # next things to try: heatmap for dist-to-tree (spatstat?), superimpose on topo map??
-# why are x and y coords in 0-100 range (should be -60-60)
+# why are x and y coords in 0-100 range (should be -60-60) 
