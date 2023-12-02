@@ -1,4 +1,7 @@
+
+
 ggplot(df, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y)) +
+#  geom_sf(data = gaps3_noedge) +
   # Crowns as green circles with width corresponding to crown diameter
   geom_circle(n=20, aes(fill=factor(trees.bin), color=factor(trees.bin), alpha=0.85)) +
   coord_fixed() +
@@ -9,6 +12,24 @@ ggplot(df, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y))
   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) 
+
+ggplot() +
+  geom_sf(data=bound) +
+  geom_circle(data = df, n=20, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
+                                   fill=factor(trees.bin), color=factor(trees.bin), alpha=0.85)) +
+  #coord_fixed() +
+  geom_circle(data = df, n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", fill="burlywood4") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_sf(data=gaps3_noedge, fill= "pink") +
+  guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
+  theme_classic()
+
+ggplot() +
+  geom_point(data=df, aes(x=trees.x, y=trees.y)) +
+  geom_sf(data=gaps3_noedge)
+  
+
 plot(pts)
 
 plot(IS1_2018ppp)
@@ -78,36 +99,47 @@ install.packages("sf")
 library(sf)
 # test plot: OH2 in 2018
 # new df to convert to sf format
-sf_df <- data.frame(X = OH2_2018$X, Y=OH2_2018$Y, dbh=OH2_2018$dbh)
+#sf_df <- data.frame(X = OH2_2018$X, Y=OH2_2018$Y, dbh=OH2_2018$dbh)
+sf_df <- data.frame(X=plots_out[[9]]$trees$x, Y=plots_out[[9]]$trees$y, crown=plots_out[[9]]$trees$crown)
 # for iterable version, change to plots_out[[9]]$trees$... (x, y, and crown)
 head(sf_df)
 
 ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
 bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle
 stems <- st_as_sf(sf_df, coords = c("X", "Y")) # points for each tree w/dbh attribute
-crowns = st_buffer(stems, dist = stems$dbh/20) |> st_union() # PLACEHOLDER change to dist = cr.rad 
+#crowns = st_buffer(stems, dist = stems$dbh/20) |> st_union() # PLACEHOLDER change to dist = cr.rad 
+crowns = st_buffer(stems, dist = stems$crown) |> st_union() 
 crowns_buffer = st_buffer(crowns, 5) # 5m buffer around each crown boundary
 gaps2 = st_difference(bound, crowns_buffer) # total area in gaps w/ gap threshold from crowns_buffer
-plot(gaps2, col="blue")
+plot(gaps2, col="blue", add=TRUE)
 gaps3 = st_buffer(gaps2, 5) # a 5m buffer around the area at least 5m from a crown edge—gap boundary
 # this works bc it leaves out the areas that weren't big enough to be >5m away from a crown
 # gaps3 started out as 1 observation containing all points
 gaps3 = st_cast(gaps3, "POLYGON") # this makes it 12 observations
 
-plot(crowns, col="green")
+plot(crowns, col="black", add=TRUE)
 plot(gaps3, col="red", add=TRUE) # overestimates gaps; likely are unobserved trees over plot boundary
 
 bound_noedge = st_buffer(bound, -5) # since the edge effect overestimates the gaps at the boundary, take off 5m from the edge of the plot to find gaps
 
 gaps3_noedge = st_intersection(gaps3, bound_noedge) # limits gaps3 to just areas ≥5m from plot edge
 
-plot(bound)
+plot(crowns, col="green")
+plot(bound, add=TRUE)
 plot(gaps3, col="red", add=TRUE) 
 plot(gaps3_noedge, col="yellow", add=TRUE)
 plot(crowns, col="green", add=TRUE)
+
+ggplot(gaps3_noedge) +
+  geom_sf()
 
 st_area(bound_noedge) # modified plot area: 1ha - 5m strip buffer around the boundary
 sum(st_area(gaps3_noedge)) # gap area within edge buffer
 
 (sum(st_area(gaps3_noedge))/st_area(bound_noedge))*st_area(bound_noedge)/10000
-# fraction of gap/area corrected to apply to full 1ha plot: 0.40
+# fraction of gap/area corrected to apply to full 1ha plot: 0.32
+
+# weird thing: some trees appear outside boundary line drawn at sqrt(10000/pi)(=r) and center r,r
+sf_df_check <- sf_df %>% 
+  mutate(inside = sqrt(((X-sqrt(10000/pi))^2)+(Y-sqrt(10000/pi))^2)<sqrt(10000/pi))
+
