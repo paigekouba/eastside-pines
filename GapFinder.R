@@ -73,54 +73,41 @@ points(dbh_vec)
 
 
 
-# sf Approach
+# sf Approach with Derek
 install.packages("sf")
 library(sf)
-
-# getting tree data for plot OH2 in 2018:
-# planar point pattern, for spatstat
-# OH2_2018ppp <- ppp(OH2_2018$X, OH2_2018$Y, c(-60, 60), c(-60,60))
-# marks(OH2_2018ppp) <- OH2_2018[,5]
-
-OH2_2018ppp[[3]] # = x values
-OH2_2018ppp[[4]] # = y values
-OH2_2018ppp[[6]] # = dbh values
-str(OH2_2018ppp)
-
-
+# test plot: OH2 in 2018
 # new df to convert to sf format
 sf_df <- data.frame(X = OH2_2018$X, Y=OH2_2018$Y, dbh=OH2_2018$dbh)
+# for iterable version, change to plots_out[[9]]$trees$... (x, y, and crown)
 head(sf_df)
 
-ctr = data.frame(X = 0, Y = 0)
-
-bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(56.4)
-
-stems <- st_as_sf(sf_df, coords = c("X", "Y"))
-
-crowns = st_buffer(stems, dist = stems$dbh/20) |> st_union()
-
-crowns_buffer = st_buffer(crowns, 5)
-
-# gaps = st_convex_hull(stems_buffer |> st_union()) |> st_buffer(10)
-
-gaps2 = st_difference(bound, crowns_buffer)
-
-
+ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
+bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle
+stems <- st_as_sf(sf_df, coords = c("X", "Y")) # points for each tree w/dbh attribute
+crowns = st_buffer(stems, dist = stems$dbh/20) |> st_union() # PLACEHOLDER change to dist = cr.rad 
+crowns_buffer = st_buffer(crowns, 5) # 5m buffer around each crown boundary
+gaps2 = st_difference(bound, crowns_buffer) # total area in gaps w/ gap threshold from crowns_buffer
 plot(gaps2, col="blue")
-
-gaps3 = st_buffer(gaps2, 5)
-gaps3 = st_cast(gaps3, "POLYGON")
+gaps3 = st_buffer(gaps2, 5) # a 5m buffer around the area at least 5m from a crown edge—gap boundary
+# this works bc it leaves out the areas that weren't big enough to be >5m away from a crown
+# gaps3 started out as 1 observation containing all points
+gaps3 = st_cast(gaps3, "POLYGON") # this makes it 12 observations
 
 plot(crowns, col="green")
-plot(gaps3, add=TRUE)
+plot(gaps3, col="red", add=TRUE) # overestimates gaps; likely are unobserved trees over plot boundary
 
-bound_noedge = st_buffer(bound, -5)
+bound_noedge = st_buffer(bound, -5) # since the edge effect overestimates the gaps at the boundary, take off 5m from the edge of the plot to find gaps
 
-gaps3_noedge = st_intersection(gaps3, bound_noedge)
+gaps3_noedge = st_intersection(gaps3, bound_noedge) # limits gaps3 to just areas ≥5m from plot edge
 
-plot(gaps3_noedge)
+plot(bound)
+plot(gaps3, col="red", add=TRUE) 
+plot(gaps3_noedge, col="yellow", add=TRUE)
+plot(crowns, col="green", add=TRUE)
 
-st_area(bound_noedge)
-st_area(gaps3_noedge)
+st_area(bound_noedge) # modified plot area: 1ha - 5m strip buffer around the boundary
+sum(st_area(gaps3_noedge)) # gap area within edge buffer
 
+(sum(st_area(gaps3_noedge))/st_area(bound_noedge))*st_area(bound_noedge)/10000
+# fraction of gap/area corrected to apply to full 1ha plot: 0.40
