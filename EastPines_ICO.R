@@ -193,7 +193,7 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
   cut.index = which(trees$y<y.low | trees$x<x.low | trees$x> x.high | trees$y> y.high)
   
   if(length(cut.index)>0) {
-    trees=  trees [-cut.index,] }
+    trees=  trees [-cut.index,] } 
   
   
   ## reset these vectors for calcs later on
@@ -213,8 +213,8 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
   
   ### Adjust x.max & y.max & reset coords
   pointData.orig = 	pointData
-  trees$x = trees$x -  min(trees$x)
-  trees$y = trees$y - min(trees$y)
+#  trees$x = trees$x -  min(trees$x) # ATTEMPTING TO PREVENT SHIFTING PLOT COORDINATES
+#  trees$y = trees$y - min(trees$y)
   if(nrow(trees) > 0) {
     # pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(min(trees$x),max(trees$x),min(trees$y),max(trees$y))) 
     pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(-Inf, Inf, -Inf, Inf))
