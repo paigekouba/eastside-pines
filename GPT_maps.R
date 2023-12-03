@@ -91,8 +91,47 @@ ggplot(df, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y))
        y = "") +
   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) 
 
+# add gap polygons
+    # function to create gap polygons -- GapFinder.R
+    # for loop to create gap polygons
+
+# loop of ggplot with map of true-to-scale crown radius, dbh, and gaps
+  # good map w/ gaps
+ggplot() +
+  geom_sf(data=bound, fill="black") +
+  geom_circle(data = df, n=20, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
+                                   fill=factor(trees.bin), color=factor(trees.bin), alpha=0.75)) +
+  geom_circle(data = df, n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", 
+              fill="burlywood4") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_sf(data=gaps3_noedge, col="white", fill= "purple", alpha=0.3) +
+  guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
+  theme_light()
 
 
+  # edited for loop: map of true-to-scale crown radius, dbh, and gaps
+# GOOD FOR AFE 2023
+for (i in 1:length(plots_out)){
+  print(ggplot() +
+          geom_sf(data=bound, fill="black") +
+          geom_circle(data = as.data.frame(plots_out[[i]][9]), n=20, 
+                      aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
+                                           fill=factor(trees.bin), color=factor(trees.bin), alpha=0.75)) +
+          geom_circle(data = as.data.frame(plots_out[[i]][9]), n=20, 
+                      aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", fill="burlywood4") +
+          scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+          scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+          geom_sf(data=results[[i]], col="white", fill= "purple", alpha=0.3) +
+          guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
+          labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
+               x = "Distance in m",
+               y = "",
+               size = "Crown (m)") +
+          guides(size = guide_legend(override.aes = list(color ="#addd8e"))) +
+          theme_light() )
+  }
+    
 
 
 # age hist with pattern
