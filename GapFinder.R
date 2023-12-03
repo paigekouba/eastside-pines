@@ -1,99 +1,4 @@
 
-
-ggplot(df, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y)) +
-#  geom_sf(data = gaps3_noedge) +
-  # Crowns as green circles with width corresponding to crown diameter
-  geom_circle(n=20, aes(fill=factor(trees.bin), color=factor(trees.bin), alpha=0.85)) +
-  coord_fixed() +
-  # stems as brown circles with width corresponding to dbh (in m)
-  geom_circle(n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", fill="burlywood4") +
-  coord_fixed() +
-  # Set the color palette for cluster sizes
-  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-  guides(size = guide_legend(override.aes = list(color ="burlywood4"))) 
-
-ggplot() +
-  geom_sf(data=bound) +
-  geom_circle(data = df, n=20, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
-                                   fill=factor(trees.bin), color=factor(trees.bin), alpha=0.85)) +
-  #coord_fixed() +
-  geom_circle(data = df, n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", fill="burlywood4") +
-  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-  geom_sf(data=gaps3_noedge, fill= "pink") +
-  guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
-  theme_classic()
-
-ggplot() +
-  geom_point(data=df, aes(x=trees.x, y=trees.y)) +
-  geom_sf(data=gaps3_noedge)
-  
-
-plot(pts)
-
-plot(IS1_2018ppp)
-str(IS1_2018ppp)
-# List of 6
-# $ window    :List of 4
-# ..$ type  : chr "rectangle"
-# ..$ xrange: num [1:2] -60 60
-# ..$ yrange: num [1:2] -60 60
-# ..$ units :List of 3
-# .. ..$ singular  : chr "unit"
-# .. ..$ plural    : chr "units"
-# .. ..$ multiplier: num 1
-# .. ..- attr(*, "class")= chr "unitname"
-# ..- attr(*, "class")= chr "owin"
-# $ n         : int 111
-# $ x         : num [1:111] -50.8 -49.8 -42 -40.7 -40.4 -39.5 -34.2 -33.7 -33.5 -32.5 ...
-# $ y         : num [1:111] 3.9 -8.8 19.9 38.8 -15.9 8.5 -19.5 -16.4 -16.8 -10.2 ...
-# $ markformat: chr "vector"
-# $ marks     : num [1:111] 128.5 119 72 36.6 53 ...
-# - attr(*, "class")= chr "ppp"
-IS1_2018ppp[[3]] # = x values
-IS1_2018ppp[[4]] # = y values
-IS1_2018ppp[[6]] # = dbh values
-
-# make this into a SpatVector?
-
-install.packages("terra")
-library(terra)
-# IS1_2018ppp <- ppp(IS1_2018$X, IS1_2018$Y, c(-60,60), c(-60,60)) where the ppp came from
-# new ppp for OH2 2018
-OH2_2018ppp <- ppp(OH2_2018$X, OH2_2018$Y, c(-60, 60), c(-60,60))
-marks(OH2_2018ppp) <- OH2_2018[,5]
-terra_pts <- cbind(OH2_2018ppp[[3]], OH2_2018ppp[[4]])
-pts <- vect(terra_pts)
-# add attributes to SpatVector object; need data.frame with same nrows
-
-# marks(IS1_2018ppp) <- IS1_2018[,5] this is how I added dbh to the ppp
-# **will need to change this to cr.rad later**
-ptv <- vect(terra_pts, atts=data.frame(ID=1:nrow(terra_pts),dbh=OH2_2018[,5]))
-ptv
-
-# now try with polygons
-# terra_pts <- cbind(id=1, part=1, OH2_2018ppp[[3]], OH2_2018ppp[[4]])
-# pols <- vect(terra_pts, type="polygons")
-# lns <- vect(terra_pts, type="lines")
-# plot(pts)
-
-plot(buffer(ptv, width=ptv$dbh/100))
-#dbh_vec <- buffer(ptv, width=ptv$dbh/100)
-dbh_vec <- vect(buffer(ptv, width=ptv$dbh/100))
-plot(gaps(dbh_vec))
-points(dbh_vec)
-
-# pausing here, trying a new tack
-
-
-
-
-
-
-
-
-
 # sf Approach with Derek
 install.packages("sf")
 library(sf)
@@ -133,13 +38,81 @@ plot(crowns, col="green", add=TRUE)
 ggplot(gaps3_noedge) +
   geom_sf()
 
-st_area(bound_noedge) # modified plot area: 1ha - 5m strip buffer around the boundary
-sum(st_area(gaps3_noedge)) # gap area within edge buffer
-
-(sum(st_area(gaps3_noedge))/st_area(bound_noedge))*st_area(bound_noedge)/10000
-# fraction of gap/area corrected to apply to full 1ha plot: 0.32
-
-# weird thing: some trees appear outside boundary line drawn at sqrt(10000/pi)(=r) and center r,r
+# weird thing: some trees appear outside boundary line drawn at sqrt(10000/pi)(=r) and center 0,0
 sf_df_check <- sf_df %>% 
-  mutate(inside = sqrt(((X-sqrt(10000/pi))^2)+(Y-sqrt(10000/pi))^2)<sqrt(10000/pi))
+  mutate(inside = sqrt((X^2)+(Y^2))<sqrt(10000/pi)) # now only one tree outside plot boundary
+
+# Prototype map of true-to-scale crown radius, dbh, and gaps
+ggplot() +
+  geom_sf(data=bound, fill="black") +
+  geom_circle(data = df, n=20, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
+                                   fill=factor(trees.bin), color=factor(trees.bin), alpha=0.75)) +
+  geom_circle(data = df, n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", 
+              fill="burlywood4") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_sf(data=gaps3_noedge, col="white", fill= "purple", alpha=0.3) +
+  guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
+  theme_light()
+
+ctr <- data.frame(X = 0, Y = 0)
+bound <- st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi))
+gap_r <- 5
+bound_noedge = st_buffer(bound, -gap_r)
+
+
+# function to find gaps in a PLOT with a gap radius of GAP_R
+gapfinder <- function(plot, gap_r){
+    df <- data.frame(X=plots_out[[plot]]$trees$x, Y=plots_out[[plot]]$trees$y, 
+                     crown=plots_out[[plot]]$trees$crown) 
+    stems <- st_as_sf(df, coords = c("X","Y"))
+    crowns = st_buffer(stems, dist = stems$crown) |> st_union() #crowns mapped
+    crowns_buffer = st_buffer(crowns, gap_r) # 5m buffer around each crown boundary
+    gaps2 = st_difference(bound, crowns_buffer) # total area in gaps w/ gap threshold from crowns_buffer
+    gaps3 = st_buffer(gaps2, gap_r) # a 5m buffer around the area at least 5m from a crown edge—gap boundary
+#  gaps3 = st_cast(gaps3, "POLYGON") # this makes it n observations instead of one 
+    bound_noedge = st_buffer(bound, -gap_r) # since the edge effect overestimates the gaps at the boundary, take off buffer of width gap_r from the edge of the plot to find gaps
+    gaps3_noedge = st_intersection(gaps3, bound_noedge)
+    return(gaps3_noedge)
+}
+#gapfinder(9,5)
+#plot(gapfinder(9,5)) # Works!!
+
+# for loop for gap area
+results <- rep(NA, length(plots_out))
+for (i in 1:length(plots_out)){
+  results[i] <- gapfinder(i, 5)
+}
+
+results
+#plot(results[[9]]) #  WORKS!!!
+
+# need to add gaps3 = st_cast(gaps3, "POLYGON") or equivalent; this makes it n observations instead of one 
+# try with gaps3_noedge output:
+# multi_obs <- st_cast(results[[9]], "POLYGON")
+# plot(multi_obs, col="pink") # works
+
+# Pie charts of area in each tree bin + area in gaps
+  # first, quantify area in gaps
+area_calcs <- rep (NA, length(results))
+for (i in 1:length(results)){
+  area_calcs[i] <- 
+    (sum(st_area(st_cast(results[[i]], "POLYGON")))/st_area(bound_noedge))*st_area(bound_noedge)/10000
+  # ( total area in gap polygons / total area not counting buffer ) * [scale up to 1ha full plot]
+}
+area_calcs
+
+  # pull area in clusters of each bin size
+    # plots_out has plots_out[[9]]$trees$bin and plots_out[[9]]$trees$crown
+    # need to calculate crown area, 
+
+  # pie chart 
+# ggplot(PlantGrowth, aes(x=factor(1), fill=group))+
+#   geom_bar(width = 1)+
+#   coord_polar("y") +
+# scale_fill_brewer("Blues") + blank_theme +
+  # theme(axis.text.x=element_blank())+
+  # geom_text(aes(y = value/3 + c(0, cumsum(value)[-length(value)]), 
+  #               label = percent(value/100)), size=5)
+
 
