@@ -94,17 +94,65 @@ results
 
 # Pie charts of area in each tree bin + area in gaps
   # first, quantify area in gaps
-area_calcs <- rep (NA, length(results))
+gap_areas <- rep (NA, length(results))
 for (i in 1:length(results)){
-  area_calcs[i] <- 
+  gap_areas[i] <- 
     (sum(st_area(st_cast(results[[i]], "POLYGON")))/st_area(bound_noedge))*st_area(bound_noedge)/10000
   # ( total area in gap polygons / total area not counting buffer ) * [scale up to 1ha full plot]
 }
-area_calcs
+gap_areas
 
   # pull area in clusters of each bin size
-    # plots_out has plots_out[[9]]$trees$bin and plots_out[[9]]$trees$crown
-    # need to calculate crown area, 
+    # not calculated in ICO code, but can back it out with sf my new best friend
+        # make a df with X, Y, crown, and bin
+clust_area_df <- data.frame(X=plots_out[[9]]$trees$x, Y=plots_out[[9]]$trees$y, crown=plots_out[[9]]$trees$crown, bin=plots_out[[9]]$trees$bin)
+        # split into bin levels
+#levels(plots_out[[9]]$trees$bin) # 6 levels
+# try this approach on cluster bin "2-4": make a polygon of just those trees, find the area of union, find intersection of that w bound
+two_four = st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "2-4",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "2-4",]$crown) |> st_union() 
+plot(two_four)
+two_four_bound <- st_intersection(bound, st_cast(two_four))
+st_area(two_four_bound)/10000
+
+
+clust_area_df <- data.frame(X=plots_out[[plot]]$trees$x, Y=plots_out[[plot]]$trees$y, crown=plots_out[[plot]]$trees$crown, bin=plots_out[[plot]]$trees$bin)
+
+# make it a nested for lop
+bin_names <- levels(plots_out[[9]]$trees$bin)
+
+clust_areas_all <- rep(list(list()),length(plots_out)) #(NA, length(plots_out))
+for (j in 1:length(plots_out)){
+  clust_area_df <- data.frame(X=plots_out[[j]]$trees$x, Y=plots_out[[j]]$trees$y, 
+                              crown=plots_out[[j]]$trees$crown, bin=plots_out[[j]]$trees$bin)
+  clust_areas <- rep(NA, length(bin_names))
+  print(plots_out[[j]]$plot.name)
+  for (i in 1:length(bin_names)){ #unique(plots_out[[j]]$trees$bin))){ 
+    print(bin_names[i])
+    tryCatch({
+      clust_areas[i] <- st_area(st_intersection(st_cast(st_union(st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == bin_names[i],], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == bin_names[i],]$crown))), bound))/10000
+      },
+      error=function(e) {
+        clust_areas[i]=0
+      })
+    }
+  clust_areas_all[[j]] <- clust_areas 
+  }
+  
+  # st_union(st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "bin",], 
+  #                             coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "bin",]$crown))
+
+  # try this approach on cluster bin "2-4": make a polygon of just those trees, find the area of union, find intersection of that w bound
+  two_four = st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "2-4",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "2-4",]$crown) |> st_union() 
+  plot(two_four)
+  two_four_bound <- st_intersection(bound, st_cast(two_four))
+  st_area(two_four_bound)/10000
+
+    # make it a loop
+
+# st_area(st_intersection(st_cast(st_union(st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "i",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "i",]$crown))), bound))/10000
+# 
+# st_area(st_intersection(st_cast(st_union(st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "2-4",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "2-4",]$crown))), bound))/10000
+      
 
   # pie chart 
 # ggplot(PlantGrowth, aes(x=factor(1), fill=group))+
