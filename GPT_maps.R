@@ -105,7 +105,7 @@ ggplot() +
               fill="burlywood4") +
   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-  geom_sf(data=gaps3_noedge, col="white", fill= "purple", alpha=0.3) +
+  geom_sf(data=gaps3_noedge, col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
   theme_light()
 
@@ -113,6 +113,7 @@ ggplot() +
   # edited for loop: map of true-to-scale crown radius, dbh, and gaps
 # GOOD FOR AFE 2023
 for (i in 1:length(plots_out)){
+  jpeg(paste("ICO_GapMap",names[i]),700,630)
   print(ggplot() +
           geom_sf(data=bound, fill="black") +
           geom_circle(data = as.data.frame(plots_out[[i]][9]), n=20, 
@@ -122,14 +123,17 @@ for (i in 1:length(plots_out)){
                       aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", fill="burlywood4") +
           scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
           scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-          geom_sf(data=results[[i]], col="white", fill= "purple", alpha=0.3) +
+          geom_sf(data=results[[i]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
           guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
+          #theme_classic(base_size=22) +
+          theme(plot.title=element_text(hjust=0.5)) +
           labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
                x = "Distance in m",
                y = "",
                size = "Crown (m)") +
           guides(size = guide_legend(override.aes = list(color ="#addd8e"))) +
-          theme_light() )
+          theme_light(base_size = 22) )
+  dev.off()
   }
     
 
