@@ -213,17 +213,17 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
   
   ### Adjust x.max & y.max & reset coords
   pointData.orig = 	pointData
-#  trees$x = trees$x -  min(trees$x) # ATTEMPTING TO PREVENT SHIFTING PLOT COORDINATES
+#  trees$x = trees$x -  min(trees$x) # ATTEMPTING TO PREVENT SHIFTING PLOT COORDINATES — successful!
 #  trees$y = trees$y - min(trees$y)
   if(nrow(trees) > 0) {
     # pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(min(trees$x),max(trees$x),min(trees$y),max(trees$y))) 
-    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(-Inf, Inf, -Inf, Inf))
+    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))), W = disc(radius = sqrt(10000/pi)+0.69))
     #trying with -60,60???
     # pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(-60,60,-60,60))
     # trying with circular window ???
     #  pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=disc(radius = 60, centre = c(0,0)))
   } else {
-    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(-Inf, Inf, -Inf, Inf))
+    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W = disc(radius = sqrt(10000/pi)+0.69))
   }
   
   # General variables
