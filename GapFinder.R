@@ -1,5 +1,5 @@
 
-# sf Approach with Derek
+###  Learning sf Approach with Derek  ###
 install.packages("sf")
 library(sf)
 # test plot: OH2 in 2018
@@ -39,6 +39,7 @@ ggplot(gaps3_noedge) +
   geom_sf()
 
 # weird thing: some trees appear outside boundary line drawn at sqrt(10000/pi)(=r) and center 0,0
+# went back to ICO code and removed line that recentered plots
 sf_df_check <- sf_df %>% 
   mutate(inside = sqrt((X^2)+(Y^2))<sqrt(10000/pi)) # now only one tree outside plot boundary
 
@@ -55,11 +56,12 @@ ggplot() +
   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
   theme_light()
 
+
+### Set up Gapfinder function ###
 ctr <- data.frame(X = 0, Y = 0)
 bound <- st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi))
 gap_r <- 5
 bound_noedge = st_buffer(bound, -gap_r)
-
 
 # function to find gaps in a PLOT with a gap radius of GAP_R
 gapfinder <- function(plot, gap_r){
@@ -78,7 +80,7 @@ gapfinder <- function(plot, gap_r){
 #gapfinder(9,5)
 #plot(gapfinder(9,5)) # Works!!
 
-# for loop for gap area
+# for loop for gap area using gapfinder function
 results <- rep(NA, length(plots_out))
 for (i in 1:length(plots_out)){
   results[i] <- gapfinder(i, 5)
@@ -93,31 +95,29 @@ results
 # plot(multi_obs, col="pink") # works
 
 # Pie charts of area in each tree bin + area in gaps
-  # first, quantify area in gaps
+  # first, quantify area in gaps, using the output of the looped gapfinder function over all 12 plots
 gap_areas <- rep (NA, length(results))
 for (i in 1:length(results)){
   gap_areas[i] <- 
     (sum(st_area(st_cast(results[[i]], "POLYGON")))/st_area(bound_noedge))*st_area(bound_noedge)/10000
   # ( total area in gap polygons / total area not counting buffer ) * [scale up to 1ha full plot]
 }
-gap_areas
+gap_areas # this is a value of type "double"; to coerce it to a vector, as.vector(gap_areas, "double")
 
   # pull area in clusters of each bin size
     # not calculated in ICO code, but can back it out with sf my new best friend
         # make a df with X, Y, crown, and bin
 clust_area_df <- data.frame(X=plots_out[[9]]$trees$x, Y=plots_out[[9]]$trees$y, crown=plots_out[[9]]$trees$crown, bin=plots_out[[9]]$trees$bin)
-        # split into bin levels
+        # split into bin levels, then calculate per-bin proportional areas
 #levels(plots_out[[9]]$trees$bin) # 6 levels
 # try this approach on cluster bin "2-4": make a polygon of just those trees, find the area of union, find intersection of that w bound
 two_four = st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "2-4",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "2-4",]$crown) |> st_union() 
 plot(two_four)
 two_four_bound <- st_intersection(bound, st_cast(two_four))
-st_area(two_four_bound)/10000
+st_area(two_four_bound)/10000 # this worked; need to do it over all bins, for all plots
 
 
-clust_area_df <- data.frame(X=plots_out[[plot]]$trees$x, Y=plots_out[[plot]]$trees$y, crown=plots_out[[plot]]$trees$crown, bin=plots_out[[plot]]$trees$bin)
-
-# make it a nested for lop
+# make it a nested for lop: the outer loop applies, across all 12 plots, the inner loop to calculate proportional cluster area (across all bins)
 bin_names <- levels(plots_out[[9]]$trees$bin)
 
 clust_areas_all <- rep(list(list()),length(plots_out)) #(NA, length(plots_out))
@@ -125,10 +125,10 @@ for (j in 1:length(plots_out)){
   clust_area_df <- data.frame(X=plots_out[[j]]$trees$x, Y=plots_out[[j]]$trees$y, 
                               crown=plots_out[[j]]$trees$crown, bin=plots_out[[j]]$trees$bin)
   clust_areas <- rep(NA, length(bin_names))
-  print(plots_out[[j]]$plot.name)
-  for (i in 1:length(bin_names)){ #unique(plots_out[[j]]$trees$bin))){ 
-    print(bin_names[i])
-    tryCatch({
+#  print(plots_out[[j]]$plot.name) # this is to see where it's stopping if you get an error
+  for (i in 1:length(bin_names)){ 
+ #   print(bin_names[i]) # this is to see where it's stopping if you get an error
+    tryCatch({ # this part overrides the error; in the case of an error, it assigns a 0 to the output in question
       clust_areas[i] <- st_area(st_intersection(st_cast(st_union(st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == bin_names[i],], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == bin_names[i],]$crown))), bound))/10000
       },
       error=function(e) {
@@ -138,21 +138,57 @@ for (j in 1:length(plots_out)){
   clust_areas_all[[j]] <- clust_areas 
   }
   
-  # st_union(st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "bin",], 
-  #                             coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "bin",]$crown))
+# Next I want to vectorize the list outputs for the plots, make them a df, add column names, and tack on the gap areas
+# I'd like each row to be a plot and each column to be a bin size cluster. So, 12 x 6 ... getting 6 x 12 so far. just t!
+# I actually think 6 x 12 might be better for plotting
+clust_gap_df <- data.frame(clust_areas_all)
+names(clust_gap_df) = 1:12 # changes column headers to plot names. OK!
+# now add a row for the gap areas
+#clust_gap_df[nrow(clust_gap_df)+1,] = gap_areas # makes gap the last row
+clust_gap_df <- rbind(gap_areas, clust_gap_df)
+clust_gap_df$bins <- c("gap",bin_names)
 
-  # try this approach on cluster bin "2-4": make a polygon of just those trees, find the area of union, find intersection of that w bound
-  two_four = st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "2-4",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "2-4",]$crown) |> st_union() 
-  plot(two_four)
-  two_four_bound <- st_intersection(bound, st_cast(two_four))
-  st_area(two_four_bound)/10000
+# ok we will try to make pie charts using clust_gap_df. Start with plot 9   
+# fix scale_fill_brewer so gaps are purple
+library(RColorBrewer)
+my.cols <- brewer.pal(6, "YlGn")
+my.cols <- c("#330066", my.cols)
 
-    # make it a loop
+library(scales)
+blank_theme <- theme_minimal()+
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.border = element_blank(),
+    panel.grid=element_blank(),
+    axis.ticks = element_blank(),
+    plot.title=element_text(size=14, face="bold")
+  )
 
-# st_area(st_intersection(st_cast(st_union(st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "i",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "i",]$crown))), bound))/10000
-# 
-# st_area(st_intersection(st_cast(st_union(st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "2-4",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "2-4",]$crown))), bound))/10000
-      
+piefn <- function(plot) {
+  ggplot(clust_gap_df, aes(x="", y=clust_gap_df[,plot], fill=factor(bins, levels=c("gap",bin_names)))) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start=0) +
+ # scale_fill_brewer(palette = "YlGn", name = "Cluster Size") 
+    scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
+  theme(axis.text.x=element_blank()) +
+    labs(title = paste("Spatial Composition, ", names[plot]))
+  }
+# piefn(9) 
+
+for (i in 1:length(plots_out)){
+  jpeg(paste("ICO_Pie_",names[i]),700,630)
+   print(piefn(i))
+dev.off()
+   }
+
+
+
+
+# add % labels
+# +
+#   geom_text(aes(y = clust_gap_df[,plot]), 
+#             label = percent(clust_gap_df[,plot]*100), size=5)
 
   # pie chart 
 # ggplot(PlantGrowth, aes(x=factor(1), fill=group))+
