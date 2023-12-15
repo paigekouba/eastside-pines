@@ -38,8 +38,10 @@ tree_data <- read.csv("Treedata_9-3_Em_DB.csv")
 # fix data entry error in row 192
 tree_data[192,7] = 36.7
 tree_data <- tree_data %>% 
-  filter(X>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi)) %>% 
-  filter(Y>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi))
+  filter(sqrt(((X)^2)+((Y)^2))<sqrt(10000/pi))
+
+#filter(X>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi)) %>% 
+#filter(Y>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi))
 
 # How many of each species are there? ____________________
 OH_trees <- tree_data[tree_data$Site=="OH",]
@@ -53,16 +55,16 @@ OH_trees <- OH_trees %>%
 OH_trees$Spec <- gsub("PIJE ", "PIJE", OH_trees$Spec)
 OH_trees$Spec <- gsub("PIFL", "PIJE", OH_trees$Spec)
 OH_trees$Spec <- gsub("JUN", "JUGR", OH_trees$Spec)
-# unique(OH_trees$Spec)
+unique(OH_trees$Spec)
 #[1] "PIJE" "JUGR" "ABCO" "PICO"
 
-OH_count <- OH_trees %>% 
-  group_by(Spec) %>% 
-  summarize(abundance = sum(!is.na(dbh)))
-ggplot(data=OH_count)+
-  geom_bar(stat="identity", mapping = aes(x=Spec, y=abundance))
-ggplot(OH_trees, aes(x=dbh, fill=Spec))+
-  geom_histogram() + ggtitle("Species at OHarrell Canyon")
+# OH_count <- OH_trees %>% 
+#   group_by(Spec) %>% 
+#   summarize(abundance = sum(!is.na(dbh)))
+# ggplot(data=OH_count)+
+#   geom_bar(stat="identity", mapping = aes(x=Spec, y=abundance))
+# ggplot(OH_trees, aes(x=dbh, fill=Spec))+
+#   geom_histogram() + ggtitle("Species at OHarrell Canyon")
 # PIJE 59.6%, JUGR 19.7%, ABCO 15.3%, PICO 5.4%
 
 ## Species-specific core height correction
@@ -130,24 +132,24 @@ OH_correction <- OH_correction %>%
 library(ggplot2)
 
 #plot the data
-ggplot(data=OH_correction,aes(x=dbh,y=corrected_age))+
-  geom_point()+
-  stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
-  labs(x="Diameter at Breast Height (cm)", y="Age") +
-  ggtitle("Age-Size Regression for Jeffrey Pine") +
-  theme_bw(base_size=22)
+# ggplot(data=OH_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point()+
+#   stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
+#   labs(x="Diameter at Breast Height (cm)", y="Age") +
+#   ggtitle("Age-Size Regression for Jeffrey Pine") +
+#   theme_bw(base_size=22)
 
 ## 5.2 New model and model comparison based on polynomials
 OH_lm <- lm(corrected_age ~ dbh, data = OH_correction)
-OH_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = OH_correction)
-OH_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = OH_correction)
-OH_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = OH_correction)
-OH_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = OH_correction)
-OH_exp <- nls(corrected_age ~ a*dbh^b, data = OH_correction, start = list(a=1, b=2))
-AIC(OH_lm, OH_lm2, OH_lm3, OH_lm4, OH_lm5, OH_exp)
-# OH_lm is third-lowest but only by one point at 917. Pick OH_lm
-
-summary(OH_lm)
+# OH_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = OH_correction)
+# OH_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = OH_correction)
+# OH_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = OH_correction)
+# OH_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = OH_correction)
+# OH_exp <- nls(corrected_age ~ a*dbh^b, data = OH_correction, start = list(a=1, b=2))
+# AIC(OH_lm, OH_lm2, OH_lm3, OH_lm4, OH_lm5, OH_exp)
+# # OH_lm is third-lowest but only by one point at 917. Pick OH_lm
+# 
+# summary(OH_lm)
 # I will proceed using OH_lm, which has the form age = 3.4328x + 26.2246
 # Multiple R-squared:  0.646,	Adjusted R-squared:  0.6414 
 # F-statistic: 140.5 on 1 and 77 DF,  p-value: < 2.2e-16
@@ -165,14 +167,14 @@ summary(OH_lm)
 # need dataframe with corrected age and dbh
 OH_2023 <- read.csv("coredata_OH2023.csv")
 OH_ABCO <- OH_2023[OH_2023$spec == "ABCO",]
-ggplot(data=OH_ABCO,aes(x=dbh,y=age_est))+
-  geom_point()+
-  stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
-  labs(x="Diameter at Breast Height (cm)", y="Age") +
-  ggtitle("Age-Size Regression for White Fir") +
-  theme_bw(base_size=22)
+# ggplot(data=OH_ABCO,aes(x=dbh,y=age_est))+
+#   geom_point()+
+#   stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
+#   labs(x="Diameter at Breast Height (cm)", y="Age") +
+#   ggtitle("Age-Size Regression for White Fir") +
+#   theme_bw(base_size=22)
 ABCO_lm <- lm(age_est ~ dbh, data = OH_ABCO)
-summary(ABCO_lm)
+#summary(ABCO_lm)
 # age = 0.7771x + 65.8335
 # Multiple R-squared:  0.5136,	Adjusted R-squared:  0.4528 
 # F-statistic: 8.447 on 1 and 8 DF,  p-value: 0.0197
@@ -181,14 +183,14 @@ summary(ABCO_lm)
 
 # PICO regression from 2023 data
 OH_PICO <- OH_2023[OH_2023$spec == "PICO",]
-ggplot(data=OH_PICO,aes(x=dbh,y=age_est))+
-  geom_point()+
-  stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
-  labs(x="Diameter at Breast Height (cm)", y="Age") +
-  ggtitle("Age-Size Regression for Lodgepole Pine") +
-  theme_bw(base_size=22)
+# ggplot(data=OH_PICO,aes(x=dbh,y=age_est))+
+#   geom_point()+
+#   stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
+#   labs(x="Diameter at Breast Height (cm)", y="Age") +
+#   ggtitle("Age-Size Regression for Lodgepole Pine") +
+#   theme_bw(base_size=22)
 PICO_lm <- lm(age_est ~ dbh, data = OH_PICO)
-summary(PICO_lm)
+#summary(PICO_lm)
 # age = 1.1501x + 64.0018
 # Multiple R-squared:  0.5618,	Adjusted R-squared:  0.4992 
 # F-statistic: 8.973 on 1 and 7 DF,  p-value: 0.02007
@@ -262,6 +264,9 @@ OH_livetrees <- OH_livetrees %>%
 #______________________________________________________________________________#
 # Add logs, based on above age-size regression and published decay rates from Raphael and Morrison
 log_data <- read.csv("logdata_9-3_DB_PK.csv")
+log_data <- log_data %>% 
+  filter(sqrt((X^2)+(Y^2))<sqrt(10000/pi)) # boundary check
+
 # Use LgDIA coordinate as base of tree, and LgDIA as original DBH.
 log_data <- log_data[,c(1:9)]
 log_data <- rename(log_data, "dbh" = "LgDia")
@@ -286,9 +291,9 @@ OH_logs <- OH_logs %>%
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
-names(OH_livetrees)
-names(OH_snags)
-names(OH_logs) 
+# names(OH_livetrees)
+# names(OH_snags)
+# names(OH_logs) 
 OH_trees <- rbind(OH_livetrees[,c(1:9,18,19)],OH_snags[,c(1:9,18,20)],OH_logs[,c(1:9,15,16)])
 
 #______________________________________________________________________________#
@@ -306,9 +311,22 @@ OH_trees1941 <- OH_trees %>%
   # need to filter out rows with trees that have NaN or <5 DBH
   filter(!is.na(dbh1941)) %>% # this takes it from 480 to 459 trees
   filter(dbh1941>=5) # and this goes from 459 to 183 ! OH_livetrees has 344 observations ...!
-hist(OH_trees1941$dbh1941, breaks = 10)
-hist(OH_livetrees$dbh, breaks = 10)
+#hist(OH_trees1941$dbh1941, breaks = 10)
+#hist(OH_livetrees$dbh, breaks = 10)
 # then we are ready to compare stand metrics in 1941 to 2018
+
+#______________________________________________________________________________#
+# Prepping all OH sites in 2018
+OH1_2018 <- OH_livetrees[OH_livetrees$Plot == "OH1",]
+OH2_2018 <- OH_livetrees[OH_livetrees$Plot == "OH2",]
+OH3_2018 <- OH_livetrees[OH_livetrees$Plot == "OH3",]
+
+# Prepping all OH sites in 1941
+OH1_1941 <- OH_trees1941[OH_trees1941$Plot == "OH1",]
+OH2_1941 <- OH_trees1941[OH_trees1941$Plot == "OH2",]
+OH3_1941 <- OH_trees1941[OH_trees1941$Plot == "OH3",]
+
+
 #______________________________________________________________________________#
 
 # NON-SPATIAL METRICS
@@ -331,19 +349,6 @@ QMD_OH1941 <- sqrt(sum(OH_trees1941$dbh1941^2)/nrow(OH_trees1941))
 OH_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QMD"), 
                          OH2018 = c(meanOH, maxOH, stemsOH, BA_OH, QMD_OH),
                          OH1941 = c(meanOH1941, maxOH1941, stemsOH1941, BA_OH1941, QMD_OH1941))
-
-#______________________________________________________________________________#
-# Prepping all OH sites in 2018
-OH1_2018 <- OH_livetrees[OH_livetrees$Plot == "OH1",]
-OH2_2018 <- OH_livetrees[OH_livetrees$Plot == "OH2",]
-OH3_2018 <- OH_livetrees[OH_livetrees$Plot == "OH3",]
-
-# Prepping all OH sites in 1941
-OH1_1941 <- OH_trees1941[OH_trees1941$Plot == "OH1",]
-OH2_1941 <- OH_trees1941[OH_trees1941$Plot == "OH2",]
-OH3_1941 <- OH_trees1941[OH_trees1941$Plot == "OH3",]
-
-#______________________________________________________________________________#
 
 # SPATIAL STUFF
 
