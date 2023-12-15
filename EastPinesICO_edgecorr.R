@@ -1,29 +1,10 @@
 # Using D Churchill's ICO code, minus extras and in runnable order
 # 8/2/23
+# 12/14/23 update, edge correction
 
 # Want to end up with a for loop that runs below functions for all 12 plots:
 # IS1_2018, IS2_2018, IS3_2018; IS1_1941, IS2_1941, IS3_1941; 
 # OH1_2018, OH2_2018, OH3_2018; OH1_1941, OH2_1941, OH3_1941
-
-#plot.data <- OH2_1941 # for testing code
-
-# data.frame or matrix with column headers x, y, spp, dbh in any order
-#               Can also have crown radius, tree tag, but not essential 
-#               +  clump Id (Quickmap plots)
-#              Any additional columns will be ignored, but passed on
-
-#pointData <- ppp(plot.data$X, plot.data$Y, window = disc(radius = sqrt(10000/pi)+0.69, centre = c(0,0)), 
-#                 marks = as.numeric(rownames(plot.data) ))
-
-# IS1_2018 gets a warning: 1 point was rejected as lying outside the specified window, even after filtering tree_data at start
-# But I can't find any x or y coord that lies outside of the window with radius = sqrt(10000/pi)
-# Happens for IS1_2018 (1 pt), OH2_2018 (1 pt), and OH3_2018 gets THREE rejected
-# For 1941 plots: IS1_1941 (1), OH1_1941 (1), OH2_1941 (1), OH3_1941 (2)
-#attr(pointData, "rejects")
-# My best guess is the circular window is an approximation, and points close to the edge are cut out by the polygon
-# adding 0.65 to the radius seems to keep all points.
-
-#treeData <- data.frame(dbh=plot.data[,"dbh"], spp=plot.data$Spec, Tree.ID=as.numeric(rownames(plot.data))) 
 
 # Inputs:
 #   
@@ -79,7 +60,7 @@ Crw.rad.pred = function(data,cr.coefs=-1){
   cr.rad[which(cr.rad==0)] = exp(cr.coefs[1,1] + cr.coefs[2,1]*log(dbh[which(cr.rad==0)]))		
   
   # Output
-  return(res=data.frame(data,crown = cr.rad))
+  return(res=data.frame(data,crown = cr.rad)) # adds crown column to df
 }
 
 ###################
@@ -124,7 +105,8 @@ clusterByCrown <- function(pointData, treeData, distThreshold=-1)
   while(length(IDs) > 1)
   {
     # Since we're removing data as we determine clumps, we want the first remaining value every time
-    vec <- which(distMat[,1] <= 0)
+    vec <- which(distMat[,1] <= 0) # this is looking for crowns that overlap ie pairwise distance values <= 0
+    # I think it's doing so for just the first tree (against every other) for now, ie column 1
     
     len1  <-1
     len2 <- 2
@@ -213,17 +195,14 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
   
   ### Adjust x.max & y.max & reset coords
   pointData.orig = 	pointData
-#  trees$x = trees$x -  min(trees$x) # ATTEMPTING TO PREVENT SHIFTING PLOT COORDINATES
+#  trees$x = trees$x -  min(trees$x) # PREVENT SHIFTING PLOT COORDINATES
 #  trees$y = trees$y - min(trees$y)
   if(nrow(trees) > 0) {
-    # pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(min(trees$x),max(trees$x),min(trees$y),max(trees$y))) 
-    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))), W = disc(radius = sqrt(10000/pi)+0.69))
-    #trying with -60,60???
-    # pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=c(-60,60,-60,60))
-    # trying with circular window ???
-    #  pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))),W=disc(radius = 60, centre = c(0,0)))
+    #pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))), W = disc(radius = sqrt(10000/pi)+0.69))
+    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))), W = disc(radius = sqrt(10000/pi)))
   } else {
-    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))), W = disc(radius = sqrt(10000/pi)+0.69))
+    #pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))), W = disc(radius = sqrt(10000/pi)+0.69))
+    pointData = as.ppp(cbind(trees$x,trees$y,as.numeric(rownames(trees))), W = disc(radius = sqrt(10000/pi)))
   }
   
   # General variables
@@ -365,10 +344,33 @@ names <- c("IS1 in 2018", "IS1 in 1941", "IS2 in 2018", "IS2 in 1941", "IS3 in 2
 plots_out <- vector(mode='list',length=length(plots))
 
 for(i in 1:length(plots)){
-  pointData <- ppp(plots[[i]]$X, plots[[i]]$Y, window = disc(radius = sqrt(10000/pi)+0.69, centre = c(0,0)), 
-                   marks = as.numeric(rownames(plots[[i]])))
+#  pointData <- ppp(plots[[i]]$X, plots[[i]]$Y, window = disc(radius = sqrt(10000/pi)+0.69, centre = c(0,0)), 
+#                   marks = as.numeric(rownames(plots[[i]]))) # try taking out 0.69
+  pointData <- ppp(plots[[i]]$X, plots[[i]]$Y, window = disc(radius = sqrt(10000/pi), centre = c(0,0)), 
+                   marks = as.numeric(rownames(plots[[i]])))  
   treeData <- data.frame(dbh=plots[[i]][,"dbh"], spp=plots[[i]]$Spec, Tree.ID=as.numeric(rownames(plots[[i]]))) 
   plots_out[[i]] <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, names[i])}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#______________________________________________________________________________#
 
 # Stacked histograms showing stems per cluster size
 library(ggpattern)
