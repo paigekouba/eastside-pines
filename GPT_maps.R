@@ -63,7 +63,7 @@ for (i in 1:length(plots_out)){
 # try to make same map with crown projections at same scale as x axis (in m, i.e.)
 #install.packages("ggforce")
 library(ggforce)
-df <- as.data.frame(plots_out[[9]][9])
+df <- as.data.frame(plots_out[[10]][11]) # try list #11 from plots_out, for trees.noedge
 ggplot(df, aes(x0 = trees.x, y0 = trees.y, r = trees.crown)) +
   ggforce::geom_circle(n = 20) + #5-7x faster than default
   coord_fixed()
@@ -109,18 +109,43 @@ ggplot() +
   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
   theme_light()
 
+ggplot() + # this one uses results vector from gapfinder script to call the purple blob geom
+  geom_sf(data=bound, fill="black") +
+  geom_circle(data = df, n=20, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
+                                   fill=factor(trees.bin), color=factor(trees.bin), alpha=0.75)) +
+  geom_circle(data = df, n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", 
+              fill="burlywood4") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_sf(data=results[[10]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
+  guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
+  theme_light()
+
+ggplot() + # for this one I am trying out the trees.noedge output from #11 of plots_out[[i]] KEEPER
+  geom_sf(data=bound, fill="black") +
+  geom_circle(data = df, n=20, aes(x0 = trees.noedge.x, y0 = trees.noedge.y, r=trees.noedge.crown, x=trees.noedge.x, y=trees.noedge.y, 
+                                   fill=factor(trees.noedge.bin), color=factor(trees.noedge.bin), alpha=0.75)) +
+  geom_circle(data = df, n=20, aes(x0=trees.noedge.x, y0=trees.noedge.y, r=trees.noedge.dbh/200), color="burlywood4", 
+              fill="burlywood4") +
+  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+  geom_sf(data=results[[10]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
+  guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
+  theme_light()
+
 
   # edited for loop: map of true-to-scale crown radius, dbh, and gaps
+  # 12/15 update, using trees.noedge for mapping purposes
 # GOOD FOR AFE 2023
 for (i in 1:length(plots_out)){
-  jpeg(paste("ICO_GapMap",names[i]),700,630)
+  #jpeg(paste("ICO_GapMap",names[i]),700,630)
   print(ggplot() +
           geom_sf(data=bound, fill="black") +
-          geom_circle(data = as.data.frame(plots_out[[i]][9]), n=20, 
-                      aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
-                                           fill=factor(trees.bin), color=factor(trees.bin), alpha=0.75)) +
-          geom_circle(data = as.data.frame(plots_out[[i]][9]), n=20, 
-                      aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", fill="burlywood4") +
+          geom_circle(data = as.data.frame(plots_out[[i]][11]), n=20, # #9 is trees; try 11 for trees.noedge
+                      aes(x0 = trees.noedge.x, y0 = trees.noedge.y, r=trees.noedge.crown, x=trees.noedge.x, y=trees.noedge.y, 
+                                           fill=factor(trees.noedge.bin), color=factor(trees.noedge.bin), alpha=0.75)) +
+          geom_circle(data = as.data.frame(plots_out[[i]][11]), n=20, 
+                      aes(x0=trees.noedge.x, y0=trees.noedge.y, r=trees.noedge.dbh/200), color="burlywood4", fill="burlywood4") +
           scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
           scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
           geom_sf(data=results[[i]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
@@ -132,8 +157,8 @@ for (i in 1:length(plots_out)){
                y = "",
                size = "Crown (m)") +
           guides(size = guide_legend(override.aes = list(color ="#addd8e"))) +
-          theme_light(base_size = 22) )
-  dev.off()
+          theme_light())#base_size = 22) )
+ # dev.off()
   }
     
 
