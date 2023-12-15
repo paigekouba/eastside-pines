@@ -63,10 +63,10 @@ bound <- st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi))
 gap_r <- 5
 bound_noedge = st_buffer(bound, -gap_r)
 
-# function to find gaps in a PLOT with a gap radius of GAP_R
+# function to find gaps in a PLOT with a gap radius of GAP_R; using trees.noedge to draw most accurate gaps
 gapfinder <- function(plot, gap_r){
-    df <- data.frame(X=plots_out[[plot]]$trees$x, Y=plots_out[[plot]]$trees$y, 
-                     crown=plots_out[[plot]]$trees$crown) 
+    df <- data.frame(X=plots_out[[plot]]$trees.noedge$x, Y=plots_out[[plot]]$trees.noedge$y, 
+                     crown=plots_out[[plot]]$trees.noedge$crown) 
     stems <- st_as_sf(df, coords = c("X","Y"))
     crowns = st_buffer(stems, dist = stems$crown) |> st_union() #crowns mapped
     crowns_buffer = st_buffer(crowns, gap_r) # 5m buffer around each crown boundary
@@ -122,8 +122,8 @@ bin_names <- levels(plots_out[[9]]$trees$bin)
 
 clust_areas_all <- rep(list(list()),length(plots_out)) #(NA, length(plots_out))
 for (j in 1:length(plots_out)){
-  clust_area_df <- data.frame(X=plots_out[[j]]$trees$x, Y=plots_out[[j]]$trees$y, 
-                              crown=plots_out[[j]]$trees$crown, bin=plots_out[[j]]$trees$bin)
+  clust_area_df <- data.frame(X=plots_out[[j]]$trees.noedge$x, Y=plots_out[[j]]$trees.noedge$y, 
+                              crown=plots_out[[j]]$trees.noedge$crown, bin=plots_out[[j]]$trees.noedge$bin)
   clust_areas <- rep(NA, length(bin_names))
 #  print(plots_out[[j]]$plot.name) # this is to see where it's stopping if you get an error
   for (i in 1:length(bin_names)){ 
@@ -177,9 +177,9 @@ piefn <- function(plot) {
 # piefn(9) 
 
 for (i in 1:length(plots_out)){
-  jpeg(paste("ICO_Pie_",names[i]),700,630)
+  #jpeg(paste("ICO_Pie_",names[i]),700,630)
    print(piefn(i))
-dev.off()
+#dev.off()
    }
 
 
