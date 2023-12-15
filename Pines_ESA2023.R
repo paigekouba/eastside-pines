@@ -19,7 +19,7 @@ IS_data <- subset(IS_data, select = -c(IS21003)) # N = 90
 core_height = read.csv("coredata_PK.csv")
 
 # 3. dplR can extract establishment year and age for each core
-rwl.stats(IS_data)
+#rwl.stats(IS_data)
 
 # STOP: checking against Eastside Cores Aging spreadsheet, these numbers don't include pith correction
 # Try again with .rwl including comments (OH_2022comments)
@@ -93,40 +93,40 @@ IS_correction <- IS_correction %>%
 # #stat_smooth(method="lm",formula =  y~exp(-x),se=F,color="blue")
 # 
 ## 5.2 New model and model comparison based on polynomials
-IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
-IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
-IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
-IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
-IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
-summary(IS_lm)
-summary(IS_lm3)
-AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
+# IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
+# IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
+# IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
+# IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
+# IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
+# summary(IS_lm)
+# summary(IS_lm3)
+# AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
+# # 
+# # # IS_lm3 performs the best with an AIC of 980.7556, but as shown below its behavior at low and high dbh makes no sense :(
+# # # visualize the model!
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point() +
+#   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
 # 
-# # IS_lm3 performs the best with an AIC of 980.7556, but as shown below its behavior at low and high dbh makes no sense :(
-# # visualize the model!
-ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-  geom_point() +
-  stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
-
-# poly 2 is less over-fitted; bascially a straight line
-ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-  geom_point() +
-  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
-# 
-# # try fitting a line for a power law fit
-ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-  geom_point() +
-    geom_smooth(data = IS_correction,
-      method = "nls",
-      method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
-      se=FALSE) +
-  labs(x="Diameter at Breast Height (cm)", y="Age") +
-  ggtitle("Age-Size Regression for Jeffrey Pine") +
-  theme_bw(base_size=22)
+# # poly 2 is less over-fitted; bascially a straight line
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point() +
+#   stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
+# # 
+# # # try fitting a line for a power law fit
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point() +
+#     geom_smooth(data = IS_correction,
+#       method = "nls",
+#       method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
+#       se=FALSE) +
+#   labs(x="Diameter at Breast Height (cm)", y="Age") +
+#   ggtitle("Age-Size Regression for Jeffrey Pine") +
+#   theme_bw(base_size=22)
 
 # it looks almost indistinguishable from a straight line model
 IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
-summary(IS_exp) # a = 3.61166, b = 0.95850
+#summary(IS_exp) # a = 3.61166, b = 0.95850
 # plotting IS_exp and the 2-degree polynomial
 # ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
 #   geom_point() +
@@ -212,8 +212,10 @@ tree_data <- read.csv("Treedata_9-3_Em_DB.csv")
 # fix data entry error in row 192
 tree_data[192,7] = 36.7
 tree_data <- tree_data %>% 
-  filter(X>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi)) %>% 
-  filter(Y>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi))
+  filter(sqrt((X^2)+(Y^2))<sqrt(10000/pi))
+  
+  #filter(X>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi)) %>% 
+  #filter(Y>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi))
 
 IS_trees <- tree_data[tree_data$Site=="IS",]
 names(IS_trees)[5] <- "dbh"
@@ -223,14 +225,14 @@ IS_trees$Spec[IS_trees$Spec=="PIJE*"] <- "PIJE"
 unique(IS_trees$Spec)
 # [1] "PIJE" "PICO"
 
-IS_count <- IS_trees %>% 
-  group_by(Spec) %>% 
-  summarize(abundance = sum(!is.na(dbh)))
-ggplot(data=IS_count)+
-  geom_bar(stat="identity", mapping = aes(x=Spec, y=abundance))
-ggplot(IS_trees, aes(x=dbh, fill=Spec))+
-  geom_histogram() + ggtitle("Species at Indiana Summit")
-# 546 PIJE, 4 PICO
+# IS_count <- IS_trees %>% 
+#   group_by(Spec) %>% 
+#   summarize(abundance = sum(!is.na(dbh)))
+# ggplot(data=IS_count)+
+#   geom_bar(stat="identity", mapping = aes(x=Spec, y=abundance))
+# ggplot(IS_trees, aes(x=dbh, fill=Spec))+
+#   geom_histogram() + ggtitle("Species at Indiana Summit")
+# # 546 PIJE, 4 PICO
 
 # Prepare tree dataset for snag/log establishment date correction
 
@@ -262,6 +264,9 @@ IS_livetrees <- IS_livetrees %>%
 #______________________________________________________________________________#
 # Add logs, based on above age-size regression and published decay rates from Raphael and Morrison
 log_data <- read.csv("logdata_9-3_DB_PK.csv")
+log_data <- log_data %>% 
+  filter(sqrt((X^2)+(Y^2))<sqrt(10000/pi)) # boundary check
+
 # Use LgDIA coordinate as base of tree, and LgDIA as original DBH.
 log_data <- log_data[,c(1:9)]
 log_data <- rename(log_data, "dbh" = "LgDia")
@@ -279,9 +284,9 @@ IS_logs <- IS_logs %>%
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
-names(IS_livetrees)
-names(IS_snags)
-names(IS_logs) 
+# names(IS_livetrees)
+# names(IS_snags)
+# names(IS_logs) 
 IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c(1:9,11,12)])
 unique(IS_trees$Spec)
 # [1] "PIJE"  "PICO" "PIJE*"
@@ -307,10 +312,23 @@ IS_trees1941 <- IS_trees %>%
     # I think this worked; need to filter out rows with trees that have NaN or <5 DBH
   filter(!is.na(dbh1941)) %>% # this takes it from 650 to 412 trees
   filter(dbh1941>=5) # and this goes from 412 to 326 ! #IS_livetrees has 361 observations :)
-hist(IS_trees1941$dbh1941, breaks = 10)
-hist(IS_livetrees$dbh, breaks = 10)
+# hist(IS_trees1941$dbh1941, breaks = 10)
+# hist(IS_livetrees$dbh, breaks = 10)
 # then we are ready to compare stand metrics in 1941 to 2018 using MANOVA
 #______________________________________________________________________________#
+# Prepping all IS sites in 2018
+IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
+IS2_2018 <- IS_livetrees[IS_livetrees$Plot == "IS2",]
+IS3_2018 <- IS_livetrees[IS_livetrees$Plot == "IS3",]
+
+# Prepping all IS sites in 1941
+IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
+IS2_1941 <- IS_trees1941[IS_trees1941$Plot == "IS2",]
+IS3_1941 <- IS_trees1941[IS_trees1941$Plot == "IS3",]
+
+#______________________________________________________________________________#
+
+
 
 # NON-SPATIAL METRICS
 
@@ -332,17 +350,6 @@ QMD_IS1941 <- sqrt(sum(IS_trees1941$dbh1941^2)/nrow(IS_trees1941))
 IS_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QMD"), 
                          IS2018 = c(meanIS, maxIS, stemsIS, BA_IS, QMD_IS),
                          IS1941 = c(meanIS1941, maxIS1941, stemsIS1941, BA_IS1941, QMD_IS1941))
-
-#______________________________________________________________________________#
-# Prepping all IS sites in 2018
-IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
-IS2_2018 <- IS_livetrees[IS_livetrees$Plot == "IS2",]
-IS3_2018 <- IS_livetrees[IS_livetrees$Plot == "IS3",]
-
-# Prepping all IS sites in 1941
-IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
-IS2_1941 <- IS_trees1941[IS_trees1941$Plot == "IS2",]
-IS3_1941 <- IS_trees1941[IS_trees1941$Plot == "IS3",]
 
 #______________________________________________________________________________#
 
