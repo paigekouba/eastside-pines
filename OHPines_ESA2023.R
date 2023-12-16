@@ -325,7 +325,10 @@ OH3_2018 <- OH_livetrees[OH_livetrees$Plot == "OH3",]
 OH1_1941 <- OH_trees1941[OH_trees1941$Plot == "OH1",]
 OH2_1941 <- OH_trees1941[OH_trees1941$Plot == "OH2",]
 OH3_1941 <- OH_trees1941[OH_trees1941$Plot == "OH3",]
-
+# Need to reassign dbh to 1941 value
+OH1_1941 <- rename(OH1_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
+OH2_1941 <- rename(OH2_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
+OH3_1941 <- rename(OH3_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 
 #______________________________________________________________________________#
 

@@ -325,6 +325,10 @@ IS3_2018 <- IS_livetrees[IS_livetrees$Plot == "IS3",]
 IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
 IS2_1941 <- IS_trees1941[IS_trees1941$Plot == "IS2",]
 IS3_1941 <- IS_trees1941[IS_trees1941$Plot == "IS3",]
+# Need to reassign dbh to 1941 value
+IS1_1941 <- rename(IS1_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
+IS2_1941 <- rename(IS2_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
+IS3_1941 <- rename(IS3_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 
 #______________________________________________________________________________#
 
