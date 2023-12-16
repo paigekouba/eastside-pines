@@ -3,8 +3,8 @@
 # 12/14/23 update, edge correction
 
 # Want to end up with a for loop that runs below functions for all 12 plots:
-# IS1_2018, IS2_2018, IS3_2018; IS1_1941, IS2_1941, IS3_1941; 
-# OH1_2018, OH2_2018, OH3_2018; OH1_1941, OH2_1941, OH3_1941
+# (IS1_2018, IS1_1941, IS2_2018, IS2_1941, IS3_2018, IS3_1941, 
+#   OH1_2018, OH1_1941, OH2_2018, OH2_1941, OH3_2018, OH3_1941)
 
 # Inputs:
 #   
@@ -166,14 +166,25 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
   ### Eliminate edge trees from tree list if a cut distances are provided
   noedge.trees= trees
   # SQUARE WINDOW but I don't think this will show up because edge.cut is not specified? Trying with -60,60
-  x.low = -60 #pointData$window$xrange[1] + edge.cut[1] ; 
-  x.high = 60 #pointData$window$xrange[2]- edge.cut[2]
-  y.low = -60 #pointData$window$yrange[1] + edge.cut[3] ; 
-  y.high = 60 #pointData$window$yrange[2] - edge.cut[4]
+  # x.low = -60 #pointData$window$xrange[1] + edge.cut[1] ; 
+  # x.high = 60 #pointData$window$xrange[2]- edge.cut[2]
+  # y.low = -60 #pointData$window$yrange[1] + edge.cut[3] ; 
+  # y.high = 60 #pointData$window$yrange[2] - edge.cut[4]
   
   ## only adjusts trees if any trees are actually out
-  cut.index = which(trees$y<y.low | trees$x<x.low | trees$x> x.high | trees$y> y.high)
+#  cut.index = which(trees$y<y.low | trees$x<x.low | trees$x> x.high | trees$y> y.high)
+# cut.index <- trees %>% 
+#   filter((sqrt(((trees$x)^2)+((trees$y)^2))>(sqrt(10000/pi)-5))) %>% # GREATER THAN FOR TESTING PURPOSE
+#   rownames()
+# # filter doesn't work for this on its own because it reassigns row names 1-n; wrap with %in% condition
+# testfilter <- trees %>% 
+#   filter((sqrt(((trees$x)^2)+((trees$y)^2))>(sqrt(10000/pi)-5)))
+
+edgefilter <- trees %>% 
+     filter((sqrt(((trees$x)^2)+((trees$y)^2))>(sqrt(10000/pi)-5)))
+cut.index <- which(trees$x %in% edgefilter$x & trees$y %in% edgefilter$y)
   
+    
   if(length(cut.index)>0) {
     trees=  trees [-cut.index,] } 
   
@@ -355,201 +366,7 @@ for(i in 1:length(plots)){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #______________________________________________________________________________#
-
-# Stacked histograms showing stems per cluster size
-library(ggpattern)
-
-# try it the simpler way without spp 
-# ggplot(histo$trees, aes(x=bin, color = bin, fill=as.factor(bin)))+
-#   stat_count() +
-#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-#   ggtitle("Cluster Distribution at ? in ?")
-# 
-# # i accidentally got this to have the fill and the patterns; ABCO and JUGR still are the same
-# ggplot(histo$trees, aes(x=bin, color=bin, fill=bin, size=0.001))+
-#   #  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
-#   #stat_count(aes(bin))+
-#   scale_colour_brewer(palette = "YlGn", name = "") +
-#   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-#   geom_bar_pattern(aes(pattern=spp))+
-#   ggtitle("Cluster Distribution at ? in ?")
-# 
-# # this one gets colors by bin, pattern by spp (only I don't know enough different pattern names yet)
-# ggplot(histo$trees, aes(x=bin, color=bin, fill=bin))+
-#   scale_colour_brewer(palette = "YlGn", name = "") +
-#   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-#   geom_bar_pattern(color="black",
-#                    pattern_fill="black",
-#                    pattern_angle=45,
-#                    pattern_density=0.1,
-#                    pattern_spacing=0.025,
-#                    pattern_key_scale_factor=0.6,
-#                    aes(pattern=spp))+
-#   scale_pattern_manual(values=c(ABCO="stripe", JUGR="pch",PICO="none",PIJE="pch"))+
-#   ggtitle("Cluster Distribution at ? in ?")
-
-# this one is the best so far!! IT IS PERFECT
-ggplot(plots_out[[12]]$trees, aes(x=bin, color=bin, fill=bin))+
-  scale_colour_brewer(palette = "YlGn", name = "") +
-  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-  geom_bar_pattern(color="black",
-                   pattern_fill="black",
-                   pattern_angle=45,
-                   pattern_density=0.1,
-                   pattern_spacing=0.05,
-                   pattern_key_scale_factor=0.6,
-                   aes(pattern=spp))+
-  scale_pattern_manual(values=c(ABCO="wave", JUGR="none",PICO="stripe",PIJE="pch"), name = "Species")+
-  ylim(0,60)+
-  xlim(c("1", "2-4", "5-9", "10-15", "16-29"))+
-  labs(title = "Cluster Distribution at ? in ?")+
-  guides(pattern = guide_legend(override.aes = list(fill = "white")),
-         fill = guide_legend(override.aes = list(pattern = "none")))+
-  #theme(axis.title.x = element_text(size = rel(1.8), angle = 00))+
-  theme_classic(base_size=22)
-
-
-# works but ABCO and JUGR have same pattern, and there's no fill
-# ggplot(plots_out[[9]]$trees, aes(x=bin, color=bin))+
-#     #  scale_fill_manual(values = colorRampPalette(c("#0066CC","#FFFFFF","#FF8C00"))(4)) +
-#     #stat_count(aes(bin))+
-#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-#     geom_bar_pattern(aes(pattern=spp))+
-#     ggtitle("Cluster Distribution at ? in ?")
-
-
-# Use this one to build for loop
-
-for(i in 1:length(plots_out)){
-  jpeg(paste("ClustHist",names[i]),650)
-print(ggplot(plots_out[[i]]$trees, aes(x=bin, color=bin, fill=bin))+
-  scale_colour_brewer(palette = "YlGn", name = "") +
-  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-  geom_bar_pattern(color="black",
-                   pattern_fill="black",
-                   pattern_angle=45,
-                   pattern_density=0.1,
-                   pattern_spacing=0.05,
-                   pattern_key_scale_factor=0.6,
-                   aes(pattern=spp)) +
-  scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
-  scale_y_continuous(limits=(c(0,60)), expand = expansion(mult = c(0, 0))) +
-    xlim(c("1", "2-4", "5-9", "10-15", "16-29"))+
-    labs(title = paste("Cluster Distribution at ", names[i]),
-       x="Cluster Size Category",
-       y= "Number of Trees") +
-  guides(pattern = guide_legend(override.aes = list(fill = "#f7fcb9")),
-         fill = guide_legend(override.aes = list(pattern = "none"))) +
-  theme_classic(base_size=22)) 
-dev.off()}
-
-# all 12 histos was not that helpful; what about just 4
-
-IS2018_out <- rbind(plots_out[[1]]$trees,plots_out[[3]]$trees, plots_out[[5]]$trees)
-IS1941_out <- rbind(plots_out[[2]]$trees,plots_out[[4]]$trees, plots_out[[6]]$trees)
-OH2018_out <- rbind(plots_out[[7]]$trees,plots_out[[9]]$trees, plots_out[[11]]$trees)
-OH1941_out <- rbind(plots_out[[8]]$trees,plots_out[[10]]$trees, plots_out[[12]]$trees)
-
-all4 <- list(IS2018_out,IS1941_out, OH2018_out, OH1941_out)
-names4 <- c("Indiana Summit in 2018", "Indiana Summit in 1941", "O'Harrell Canyon in 2018", "O'Harrell Canyon in 1941")
-
-ggplot(IS2018_out, aes(x=bin)) + geom_bar()
-
-ggplot(IS2018_out, aes(x=bin)) +
-  scale_colour_brewer(palette = "YlGn", name = "") +
-  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-  geom_bar() +
-  geom_bar_pattern(color="black",
-                   pattern_fill="black",
-                   pattern_angle=45,
-                   pattern_density=0.1,
-                   pattern_spacing=0.05,
-                   pattern_key_scale_factor=0.6,
-                   aes(pattern=spp)) +
-  scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
-# scale_y_continuous(limits=(c(0,60)), expand = expansion(mult = c(0, 0))) +
-  xlim(c("1", "2-4", "5-9", "10-15", "16-29"))+
-  labs(title = paste("Cluster Distribution at \n", names4[i]),
-       x="Cluster Size Category",
-       y= "Number of Trees") +
-  guides(pattern = guide_legend(override.aes = list(fill = "#f7fcb9")),
-         fill = guide_legend(override.aes = list(pattern = "none"))) +
-  theme_classic(base_size=22)
-
-# cluster histogram across all plots: IS and OH in each timestep
-for(i in 1:length(all4)){
-  jpeg(paste("ClustHist",names4[i]),650)
-  print(ggplot(all4[[i]], aes(x=bin, color=bin, fill=bin))+
-          scale_colour_brewer(palette = "YlGn", name = "") +
-          scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-          geom_bar() +
-         geom_bar_pattern(color="black",
-                          pattern_fill="black",
-                          pattern_angle=45,
-                          pattern_density=0.1,
-                          pattern_spacing=0.05,
-                          pattern_key_scale_factor=0.6,
-                          aes(pattern=spp)) +
-         scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
-         ylim(0,175) +#, expand = expansion(mult = c(0, 0))) +
-          xlim(c("1", "2-4", "5-9", "10-15", "16-29"))+
-          labs(title = paste("Cluster Distribution at \n", names4[i]),
-               x="Cluster Size Category",
-               y= "Number of Trees") +
-          guides(pattern = guide_legend(override.aes = list(fill = "#f7fcb9")),
-                 fill = guide_legend(override.aes = list(pattern = "none"))) +
-          theme_classic(base_size=22)) 
-  dev.off()}
-
-for(i in 1:length(all4)){
- jpeg(paste("SizeHist_lite",names4[i]),650)
-  print(ggplot(all4[[i]], aes(x=dbh))+
-        #  scale_colour_brewer(palette = "YlGn", name = "") +
-        #  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-          geom_histogram(bins=3, fill="#addd8e", color="black") +
-        #  geom_bar_pattern(color="black",
-                           # pattern_fill="black",
-                           # pattern_angle=45,
-                           # pattern_density=0.1,
-                           # pattern_spacing=0.05,
-                           # pattern_key_scale_factor=0.6,
-                           # aes(pattern=spp)) +
-      #    scale_pattern_manual(values=c(ABCO="wave", JUGR="pch",PICO="stripe",PIJE="none"), name = "Species") +
-          scale_y_continuous(limits = (ylim = c(0,275)),expand = expansion(mult = c(0, 0)))+
-          scale_x_continuous(breaks=c(0,30,60))+
-          labs(title = paste("Size Distribution at \n", names4[i]),
-               x="DBH Class",
-               y= "Number of Trees") +
-         # guides(pattern = guide_legend(override.aes = list(fill = "#f7fcb9")),
-         #        fill = guide_legend(override.aes = list(pattern = "none"))) +
-          theme_classic(base_size=22)) 
-  dev.off()
-  }
-
-
-# number 6, IS3 in 1941, gets an error: Error in `geom_bar_pattern()`:
-#! Problem while converting geom to grob.
-#ℹ Error occurred in the 1st layer.
-#Caused by error in `if (pat == "regular_polygon" && is.numeric(params$pattern_shape)) ...`:
- # ! missing value where TRUE/FALSE needed
-#> unique(plots_out[[6]]$trees$spp)
-#[1] "PIJE"  "PIJE*"
 
 # Basal area, mean dbh, etc. in point-whisker plots comparing change over time
 library(stringr)
@@ -671,12 +488,4 @@ ggplot() +
   theme(plot.title=element_text(hjust=0.5))
 
 
-# _______ % open for each plot
-# pct_open <- vector(mode="list", length=length(plots_out))
-# pctopen <- function(x){(10000-(sum(pi*(x)^2)))*.01}
-# 
-# for(i in length(plots_out)){
-# pct_open[[i]] <- pctopen(plots_out[[i]]$trees$crown)}
-  
-(10000-(sum(pi*(plots_out[[1]]$trees$crown)^2)))*.01
   
