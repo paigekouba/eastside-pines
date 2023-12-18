@@ -381,10 +381,12 @@ colnames(summaries) <- c("plotcode",colnames(plots_out[[1]]$summary))
 #head(summaries)
 summaries <- summaries[,c(1:7)]
 summaries <- separate(summaries[,c(1:7)], col=plotcode, into=c("Site","in", "Year"), sep = " ") 
-summaries <- summaries[,c(1,3:7)]
+#summaries <- summaries[,c(1,3:7)]
+summaries <- summaries[,-2]
 
-#summaries <- summaries %>% 
-#  mutate(Plot = Site, Site = str_remove(Site, "\\d+"))
+
+summaries <- summaries %>% 
+  mutate(Plot = Site, Site = str_remove(Site, "\\d+"))
 
 # summaries_IS <- summaries %>% 
 #      group_by(Site, Year) %>% 
@@ -448,7 +450,72 @@ summaries <- summaries[,c(1,3:7)]
 
 summaries_meanSE <- summaries %>% 
   group_by(Site, Year) %>% 
-  summarize(BAH = mean_se(BAH), TPH = mean_se(TPH), meanDBH=mean_se(Mean.dbh), QMD=mean_se(QMD))
+  summarize(BAH = mean_se(BAH), TPH = mean_se(TPH), meanDBH=mean_se(Mean.dbh), QMD=mean_se(QMD), SDI=mean_se(SDI))
+
+# summaries_grouped <- summaries %>% 
+#   mutate(BAH_s = scale(BAH), TPH_s = scale(TPH), Mean.dbh_s=scale(Mean.dbh), QMD_s =scale(QMD), SDI_s =scale(SDI)) %>% 
+#   group_by(Site, Year)
+
+summaries_IS <- filter(summaries, Site =="IS")
+dotplots_IS <- cbind(filter(summaries_IS, Year == 1941), filter(summaries_IS, Year == 2018))
+dotplots_ISn <- dotplots_IS[,c(3:7,12:16)]
+#dpISn <- apply(dotplots_ISn,2,mean_se)
+dpISn <- as.data.frame(t(sapply(dotplots_ISn,mean_se)))
+dpISn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18'))
+#dpISn_df <- as.data.frame(dpISn)
+
+dpISn2 <- cbind(dpISn[1:5,],dpISn[6:10,1:3])
+dpISn2$Metrics <- c("BAH","TPH","meanDBH","QMD","SDI")
+colnames(dpISn2) <- c("y",       "ymin",    "ymax",    "Metrics", "y.1",       "ymin.1",    "ymax.1")
+
+
+colnames(dotplots_IS) <- c("Site","Year",'BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41',"hectares","Plot", "Site18","Year18", 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', "hectares18","Plot18")
+dotplots_IS <- dotplots_IS %>% mutate_at(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41',"hectares", 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', "hectares"), as.numeric)
+
+
+dpIS_s <- t(as.data.frame(scale(dotplots_IS[,c(3:7, 12:16)])))
+dpIS_s2 <- as.data.frame(cbind(dpIS_s, t(apply(dpIS_s, 1, sort, decreasing = FALSE))))
+colnames(dpIS_s2) <- c("IS1","IS2","IS3", "min","med","max")
+dpIS_s2$Metrics <- rownames(dpIS_s2)
+
+ggplot() +
+  geom_pointrange(data = dpIS_s2[1:5,], aes(x=Metrics[1:5], 
+          y=med, ymin=min, ymax=max), shape = 1, color="red", size=1) + 
+  geom_pointrange(data = dpIS_s2[6:10,], aes(x=Metrics[1:5], 
+                                      y=med, ymin=min, ymax=max), shape = 16, size=1)+
+  coord_flip() +  # flip coordinates (puts labels on y axis)
+  ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
+  xlab("Metric") + ylab("Percent Change") +
+  theme_classic(base_size=22) +
+  theme(plot.title=element_text(hjust=0.5))
+
+ggplot() +
+  geom_pointrange(data = dpISn, aes(x=Metrics, 
+                y=y, ymin=ymin, ymax=ymax), shape = 1, color="red", size=1) + 
+  #geom_pointrange(data = as.data.frame(dpISn[6:10,]), aes(x=rownames(dpISn[1:5,]), 
+                                             #y=y, ymin=ymin, ymax=ymax), shape = 16, size=1)+
+  coord_flip() +  # flip coordinates (puts labels on y axis)
+  ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
+  xlab("Metric") + ylab("Percent Change") +
+  theme_classic(base_size=22) +
+  theme(plot.title=element_text(hjust=0.5))
+
+ggplot() +
+  geom_pointrange(data = dpISn[1:5,], aes(x=Metrics[1:5], 
+    y=as.numeric(dpISn[1:5,]$y), ymin=as.numeric(dpISn[1:5,]$ymin), ymax=as.numeric(dpISn[1:5,]$ymax)), shape = 1, color="red", size=1) + 
+  geom_pointrange(data = dpISn[6:10,], aes(x=as.factor(c( 'BAH18','TPH18','Mean.dbh18', 'QMD18', 'SDI18')), 
+                         y=as.numeric(dpISn[6:10,]$y), ymin=as.numeric(dpISn[6:10,]$ymin), ymax=as.numeric(dpISn[6:10,]$ymax)), shape = 16, size=1) + 
+  coord_flip()
+
+ggplot() +
+  geom_pointrange(data = dpISn2, aes(x=Metrics, 
+y=as.numeric(dpISn2$y), ymin=as.numeric(dpISn2$ymin), ymax=as.numeric(dpISn2$ymax)), shape = 1, color="red", size=1) + 
+  geom_pointrange(data = dpISn2, aes(x=Metrics, 
+y=as.numeric(dpISn2$y.1), ymin=as.numeric(dpISn2$ymin.1), ymax=as.numeric(dpISn2$ymax.1)), shape = 16, size=1) + 
+  coord_flip()
+# tomorrow, standardize these and compare to ESA versions
+# 
+
 
 metrics_meanSE <- read.csv("Metrics_meanSE.csv")
 metrics_meanSE <- metrics_meanSE[1:4,1:13]
