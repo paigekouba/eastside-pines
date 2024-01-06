@@ -87,16 +87,16 @@ for (w in 1:n.plots)  {
 # 1m = 3.28084ft  
   
   # ##  Run F test & openings
-  # F.hold = open.DistM.calc(plots_out[[w]]$points.noedge,Plot.name = Plot.names[w] ,eps = .5,f.break=9)
-  # F.bins[w,] = F.hold$F.bin[,2] 
-  # F.curve[w,] = c(F.hold$F.cml[,2],rep(0,1000-length(F.hold$F.cml[,2])))
-  # F.breaks[w]= F.hold$f.break
+   F.hold = open.DistM.calc(plots_out[[w]]$points.noedge,Plot.name = Plot.names[w] ,eps = .5,f.break=9)
+   F.bins[w,] = F.hold$F.bin[,2]
+   F.curve[w,] = c(F.hold$F.cml[,2],rep(0,1000-length(F.hold$F.cml[,2])))
+   F.breaks[w]= F.hold$f.break
 # missing open.DistM.calc custom function. Try without
-  
-  #Run openings
-  #gap.hold[[w]] =gap.quant(plots_out[[w]]$points.noedge,name=Plot.names[w],edge.buf=6,gap.thresh = 9, open.breaks=c(0.04, 0.08, 0.2, 0.4, 0.8, 1.6, 100))
-  #prop.open[w]= gap.hold[[w]][[5]]$Prop.open
-  #gap.size[w,] = gap.hold[[w]][[2]]
+
+  # Run openings
+  # gap.hold[[w]] =gap.quant(plots_out[[w]]$points.noedge,name=Plot.names[w],edge.buf=6,gap.thresh = 9, open.breaks=c(0.04, 0.08, 0.2, 0.4, 0.8, 1.6, 100))
+  # prop.open[w]= gap.hold[[w]][[5]]$Prop.open
+  # gap.size[w,] = gap.hold[[w]][[2]]
 }
 # Error in open.DistM.calc(plots_out[[w]]$points.noedge, Plot.name = Plot.names[w],  : 
 #                            could not find function "open.DistM.calc"
@@ -113,7 +113,7 @@ colnames(summary.mets)=colnames(plots_out[[w]]$summary)
 # rownames(gap.size)=Plot.names
 
 #
-Pattern.df = data.frame(Plot.names,TPA=summary.mets[,"TPA"],Mean.clust,9)#F.breaks)
+Pattern.df = data.frame(Plot.names,TPA=summary.mets[,"TPA"],Mean.clust,F.breaks)
 rownames(summary.mets)=Plot.names
 rownames(ICO.tr.pct)=Plot.names
 rownames(ICO.ba.pct)=Plot.names
@@ -133,8 +133,8 @@ colnames(Clump.bins) = rep(rownames(plots_out[[w]]$clump.bins),3)
 place.name = "EastSide"
 #setwd("C:/Users/Derek/Dropbox/ICO/Reference_sites/aaReference summary data/Blues_envelopes")
 
-# write.csv(F.curve,paste(place.name,"_FCurves.csv",sep=""))
-# write.csv(F.bins,paste(place.name,"_FBins.csv",sep=""))
+write.csv(F.curve,paste(place.name,"_FCurves.csv",sep=""))
+write.csv(F.bins,paste(place.name,"_FBins.csv",sep=""))
 write.csv(summary.mets,paste(place.name,"_summary_metrics.csv",sep=""))
 write.csv(ICO.tr.pct,paste(place.name,"_Cluster_tpa_GT15_6m.csv",sep=""))
 write.csv(ICO.ba.pct,paste(place.name,"_Cluster_ba_GT15_6m.csv",sep=""))
