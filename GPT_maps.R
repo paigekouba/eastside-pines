@@ -160,7 +160,36 @@ for (i in 1:length(plots_out)){
           theme_light())#base_size = 22) )
  # dev.off()
   }
-    
+
+# try saving each ggplot object produced, for easier comparison
+ICO_maps <- list()
+for (i in 1:length(plots_out)){
+  #jpeg(paste("ICO_GapMap",names[i]),700,630)
+ p <- ggplot() +
+          geom_sf(data=bound, fill="black") +
+          geom_circle(data = as.data.frame(plots_out[[i]][11]), n=20, # #9 is trees; try 11 for trees.noedge
+                      aes(x0 = trees.noedge.x, y0 = trees.noedge.y, r=trees.noedge.crown, x=trees.noedge.x, y=trees.noedge.y, 
+                          fill=factor(trees.noedge.bin), color=factor(trees.noedge.bin), alpha=0.75)) +
+          geom_circle(data = as.data.frame(plots_out[[i]][11]), n=20, 
+                      aes(x0=trees.noedge.x, y0=trees.noedge.y, r=trees.noedge.dbh/200), color="burlywood4", fill="burlywood4") +
+          scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+          scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+          geom_sf(data=results[[i]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
+          guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
+          #theme_classic(base_size=22) +
+          theme(plot.title=element_text(hjust=0.5)) +
+          labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
+               x = "Distance in m",
+               y = "",
+               size = "Crown (m)") +
+          guides(size = guide_legend(override.aes = list(color ="#addd8e"))) +
+          theme_light()#base_size = 22) )
+  # dev.off()
+ ICO_maps[[i]] <- p
+}
+grid.arrange(ICO_maps[[1]], ICO_maps[[3]], ICO_maps[[5]], ICO_maps[[2]], ICO_maps[[4]], ICO_maps[[6]], ncol=3) 
+
+grid.arrange(ICO_maps[[7]], ICO_maps[[9]], ICO_maps[[11]], ICO_maps[[8]], ICO_maps[[10]], ICO_maps[[12]], ncol=3) 
 
 
 # age hist with pattern
