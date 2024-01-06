@@ -24,7 +24,7 @@
 #						Default is set to zero with no edge correction. Functions as if there is no edge cut. 	
 #   Quickmap = T if data are from a quickmap
 
-
+library(spatstat)
 ###################
 ##  Functions to predict crown diameter
 # returns other other columns past species and dbh # need to change
@@ -448,13 +448,7 @@ summaries <- summaries %>%
 
 #_________ try again with group_by
 
-summaries_meanSE <- summaries %>% 
-  group_by(Site, Year) %>% 
-  summarize(BAH = mean_se(BAH), TPH = mean_se(TPH), meanDBH=mean_se(Mean.dbh), QMD=mean_se(QMD), SDI=mean_se(SDI))
 
-# summaries_grouped <- summaries %>% 
-#   mutate(BAH_s = scale(BAH), TPH_s = scale(TPH), Mean.dbh_s=scale(Mean.dbh), QMD_s =scale(QMD), SDI_s =scale(SDI)) %>% 
-#   group_by(Site, Year)
 
 summaries_IS <- filter(summaries, Site =="IS")
 dotplots_IS <- cbind(filter(summaries_IS, Year == 1941), filter(summaries_IS, Year == 2018))
@@ -462,61 +456,79 @@ dotplots_ISn <- dotplots_IS[,c(3:7,12:16)]
 #dpISn <- apply(dotplots_ISn,2,mean_se)
 dpISn <- as.data.frame(t(sapply(dotplots_ISn,mean_se)))
 dpISn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18'))
-#dpISn_df <- as.data.frame(dpISn)
 
 dpISn2 <- cbind(dpISn[1:5,],dpISn[6:10,1:3])
 dpISn2$Metrics <- c("BAH","TPH","meanDBH","QMD","SDI")
 colnames(dpISn2) <- c("y",       "ymin",    "ymax",    "Metrics", "y.1",       "ymin.1",    "ymax.1")
 
+dpISn2 <- dpISn2 %>% mutate_at(c("y","ymin","ymax","y.1","ymin.1","ymax.1"), as.numeric)
 
-colnames(dotplots_IS) <- c("Site","Year",'BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41',"hectares","Plot", "Site18","Year18", 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', "hectares18","Plot18")
-dotplots_IS <- dotplots_IS %>% mutate_at(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41',"hectares", 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', "hectares"), as.numeric)
+dpISn2 <- dpISn2 %>% 
+  mutate(yN = 100*(y - y)/y) %>% 
+  mutate(yminN = 100*(ymin - y)/y) %>% 
+  mutate(ymaxN = 100*(ymax - y)/y) %>% 
+  mutate(y.1N = 100*(y.1 - y)/y) %>% 
+  mutate(ymin.1N = 100*(ymin.1 - y)/y) %>% 
+  mutate(ymax.1N = 100*(ymax.1 - y)/y)
 
-
-dpIS_s <- t(as.data.frame(scale(dotplots_IS[,c(3:7, 12:16)])))
-dpIS_s2 <- as.data.frame(cbind(dpIS_s, t(apply(dpIS_s, 1, sort, decreasing = FALSE))))
-colnames(dpIS_s2) <- c("IS1","IS2","IS3", "min","med","max")
-dpIS_s2$Metrics <- rownames(dpIS_s2)
-
-ggplot() +
-  geom_pointrange(data = dpIS_s2[1:5,], aes(x=Metrics[1:5], 
-          y=med, ymin=min, ymax=max), shape = 1, color="red", size=1) + 
-  geom_pointrange(data = dpIS_s2[6:10,], aes(x=Metrics[1:5], 
-                                      y=med, ymin=min, ymax=max), shape = 16, size=1)+
-  coord_flip() +  # flip coordinates (puts labels on y axis)
-  ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
-  xlab("Metric") + ylab("Percent Change") +
-  theme_classic(base_size=22) +
-  theme(plot.title=element_text(hjust=0.5))
-
-ggplot() +
-  geom_pointrange(data = dpISn, aes(x=Metrics, 
-                y=y, ymin=ymin, ymax=ymax), shape = 1, color="red", size=1) + 
-  #geom_pointrange(data = as.data.frame(dpISn[6:10,]), aes(x=rownames(dpISn[1:5,]), 
-                                             #y=y, ymin=ymin, ymax=ymax), shape = 16, size=1)+
-  coord_flip() +  # flip coordinates (puts labels on y axis)
-  ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
-  xlab("Metric") + ylab("Percent Change") +
-  theme_classic(base_size=22) +
-  theme(plot.title=element_text(hjust=0.5))
-
-ggplot() +
-  geom_pointrange(data = dpISn[1:5,], aes(x=Metrics[1:5], 
-    y=as.numeric(dpISn[1:5,]$y), ymin=as.numeric(dpISn[1:5,]$ymin), ymax=as.numeric(dpISn[1:5,]$ymax)), shape = 1, color="red", size=1) + 
-  geom_pointrange(data = dpISn[6:10,], aes(x=as.factor(c( 'BAH18','TPH18','Mean.dbh18', 'QMD18', 'SDI18')), 
-                         y=as.numeric(dpISn[6:10,]$y), ymin=as.numeric(dpISn[6:10,]$ymin), ymax=as.numeric(dpISn[6:10,]$ymax)), shape = 16, size=1) + 
-  coord_flip()
-
+# works for non-standardized values
 ggplot() +
   geom_pointrange(data = dpISn2, aes(x=Metrics, 
 y=as.numeric(dpISn2$y), ymin=as.numeric(dpISn2$ymin), ymax=as.numeric(dpISn2$ymax)), shape = 1, color="red", size=1) + 
   geom_pointrange(data = dpISn2, aes(x=Metrics, 
 y=as.numeric(dpISn2$y.1), ymin=as.numeric(dpISn2$ymin.1), ymax=as.numeric(dpISn2$ymax.1)), shape = 16, size=1) + 
   coord_flip()
-# tomorrow, standardize these and compare to ESA versions
-# 
+
+# here is the one with standardized values
+ggplot() +
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 1, color="red", size=1) + 
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
+  coord_flip()
 
 
+# Now O'Harrell Canyon ones
+summaries_OH <- filter(summaries, Site =="OH")
+dotplots_OH <- cbind(filter(summaries_OH, Year == 1941), filter(summaries_OH, Year == 2018))
+dotplots_OHn <- dotplots_OH[,c(3:7,12:16)]
+dpOHn <- as.data.frame(t(sapply(dotplots_OHn,mean_se)))
+dpOHn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18'))
+
+dpOHn2 <- cbind(dpOHn[1:5,],dpOHn[6:10,1:3])
+dpOHn2$Metrics <- c("BAH","TPH","meanDBH","QMD","SDI")
+colnames(dpOHn2) <- c("y",       "ymin",    "ymax",    "Metrics", "y.1",       "ymin.1",    "ymax.1")
+
+dpOHn2 <- dpOHn2 %>% mutate_at(c("y","ymin","ymax","y.1","ymin.1","ymax.1"), as.numeric)
+
+dpOHn2 <- dpOHn2 %>% 
+  mutate(yN = 100*(y - y)/y) %>% 
+  mutate(yminN = 100*(ymin - y)/y) %>% 
+  mutate(ymaxN = 100*(ymax - y)/y) %>% 
+  mutate(y.1N = 100*(y.1 - y)/y) %>% 
+  mutate(ymin.1N = 100*(ymin.1 - y)/y) %>% 
+  mutate(ymax.1N = 100*(ymax.1 - y)/y)
+
+# here is the one with standardized values
+install.packages("gridExtra")
+library(gridExtra)
+ISdots <- ggplot() +
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 1, color="red", size=1) + 
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
+  coord_flip() +
+  ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
+  xlab("Metric") + ylab("Percent Change")
+OHdots <- ggplot() +
+  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 1, color="red", size=1) + 
+  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
+  coord_flip() +
+  ggtitle("Change in Nonspatial Forest Metrics \nat O'Harrell Canyon") +
+  xlab("Metric") + ylab("Percent Change")
+grid.arrange(ISdots, OHdots, ncol=2)
+
+
+summaries_meanSE <- summaries %>% 
+  group_by(Site, Year) %>% 
+  summarize(BAH = mean_se(BAH), TPH = mean_se(TPH), meanDBH=mean_se(Mean.dbh), QMD=mean_se(QMD), SDI=mean_se(SDI))
+# I cheated and pasted the output into excel :( 
 metrics_meanSE <- read.csv("Metrics_meanSE.csv")
 metrics_meanSE <- metrics_meanSE[1:4,1:13]
 
