@@ -58,11 +58,32 @@ library(sf)
 #   theme_light()
 
 
+# what gap radius?
+avgcrwn <- rep(NA, length(plots_out))
+for(i in 1:length(plots_out)){
+  avgcrwn[i] <- mean(plots_out[[i]]$trees.noedge$crown)}
+# mean(avgcrwn) [1] 2.547888 the average crown radius across all plots was about 2.55m
+
+# "set gap threshold to the *minimum* diameter for crowns across all plots"
+# "We set ours to 3 m, as all but one tree in our plots had a crown radius > 1.5 m" -- Ng 2020
+
+mincrwn <- rep(NA, length(plots_out))
+for(i in 1:length(plots_out)){
+  mincrwn[i] <- min(plots_out[[i]]$trees.noedge$crown)}
+# min(mincrwn)*2 [1] 1.282855, if following Ng 2020
+
+# what buffer?
+maxcrwn <- rep(NA, length(plots_out))
+for(i in 1:length(plots_out)){
+  maxcrwn[i] <- max(plots_out[[i]]$trees.noedge$crown)}
+# max(maxcrwn) 5.91338
+ 
 ### Set up Gapfinder function ###
 ctr <- data.frame(X = 0, Y = 0)
 bound <- st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi))
-gap_r <- 5 # gap radius of 5
-bound_buff = st_buffer(bound, -gap_r)
+#gap_r <- 5 # gap radius of 5
+#gap_r <- 2.5 # gap radius of 2.5m
+bound_buff = st_buffer(bound, -5) # boundary buffer of 5m 
 
 # function to find gaps in a PLOT with a gap radius of GAP_R; using trees.noedge to draw most accurate gaps
 gapfinder <- function(plot, gap_r){
@@ -74,12 +95,13 @@ gapfinder <- function(plot, gap_r){
     gaps2 = st_difference(bound, crowns_buffer) # total area in gaps w/ gap threshold from crowns_buffer
     gaps3 = st_buffer(gaps2, gap_r) # a 5m buffer around the area at least 5m from a crown edge—gap boundary
 #  gaps3 = st_cast(gaps3, "POLYGON") # this makes it n observations instead of one 
-    bound_buff = st_buffer(bound, -gap_r) # since the edge effect overestimates the gaps at the boundary, take off buffer of width gap_r from the edge of the plot to find gaps
+    bound_buff = st_buffer(bound, -5) # since the edge effect overestimates the gaps at the boundary, take off buffer of width 5m from the edge of the plot to find gaps
     gaps3_buff = st_intersection(gaps3, bound_buff)
     return(gaps3_buff)
 }
 #gapfinder(9,5)
-#plot(gapfinder(9,5)) # Works!!
+plot(gapfinder(9,2.5)) # Works!!
+
 
 # for loop for gap area using gapfinder function, gap radius of 5
 results <- rep(NA, length(plots_out))
@@ -197,181 +219,146 @@ grid.arrange(ICO_pies[[7]], ICO_pies[[9]], ICO_pies[[11]], ICO_pies[[8]], ICO_pi
 # I think that I can redo the pie chart code above to get (1941 and 2018) for (IS and OH); display next to eyeballs
 
 
-# Chi-square test on cluster counts
-IS18_clusters <- c(plots_out[[1]]$clusters$bin, plots_out[[3]]$clusters$bin, plots_out[[5]]$clusters$bin)
-IS41_clusters <- c(plots_out[[2]]$clusters$bin, plots_out[[4]]$clusters$bin, plots_out[[6]]$clusters$bin)
-IS_clust_table <- data.frame("1" = c(sum(IS18_clusters=="1"),sum(IS41_clusters=="1")),
-                          "2-4" = c(sum(IS18_clusters=="2-4"),sum(IS41_clusters=="2-4")),
-                          "5-9" = c(sum(IS18_clusters=="5-9"),sum(IS41_clusters=="5-9")),
-                          "10-15" = c(sum(IS18_clusters=="10-15"),sum(IS41_clusters=="10-15")),
-                          "16-29" = c(sum(IS18_clusters=="16-29"),sum(IS41_clusters=="16-29"))) 
-colnames(IS_clust_table) <- bin_names[1:5]
-rownames(IS_clust_table) <- c("IS_2018", "IS_1941")
-fisher.test(IS_clust_table) #p-value = 7.214e-08 
-# not that helpful: want to know difference by structural category
-write.csv(IS_clust_table,"IS_clust_counts.csv") # yeet to Excel
+# Try using patchMorph algorithm to define gaps
+# need to turn tree map into a raster. suitable 1, unsuitable 0 == nontree 1, tree 0. Finding "habitat" for gaps
 
-# Same test, but cluster sizes not bins
-IS18_clusters_ub <- c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)
-IS41_clusters_ub <- c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)
-# hist(IS41_clusters_ub, col=rgb(1,0,0,1/4), breaks = 6, xlim=c(0,15), ylim=c(0,170))
-# hist(IS18_clusters_ub, col=rgb(0,0,1,1/4), breaks = 15, xlim=c(0,15), ylim=c(0,170), add=T)
+#install.packages("fasterize")
+library(fasterize)
+library(raster)
 
-# numbers 1-15, since max clust size 15; plus how many times that # shows up in either list (IS18 or IS41)
-IS_clust_ub_table <- data.frame(c(1:15))
-for (i in 1:15){
-  IS_clust_ub_table[i,2] <- sum(i == IS18_clusters_ub)
-  IS_clust_ub_table[i,3] <- sum(i == IS41_clusters_ub)
-}
-names(IS_clust_ub_table) <- c("clust.sz","IS2018","IS1941")
-ggplot(IS_clust_ub_table) +
-  geom_bar(aes(x=clust.sz, y=IS1941), fill="red", alpha=0.5, stat="identity") +
-  geom_bar(aes(x=clust.sz, y=IS2018), fill="black", alpha=0.5, stat="identity")
+sf_df <- data.frame(X=plots_out[[9]]$trees$x, Y=plots_out[[9]]$trees$y, crown=plots_out[[9]]$trees$crown)
+custom_crs <- st_crs("+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs")
+ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
+bound = st_as_sf(ctr, coords = c("X", "Y"), crs = custom_crs) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle
+stems <- st_as_sf(sf_df, coords = c("X", "Y"), crs = custom_crs) # points for each tree w/dbh attribute
+#crowns = st_buffer(stems, dist = stems$crown) #|> st_union()
+crowns = st_buffer(stems, dist = stems$crown) #|> st_union()
+#notcrowns <- st_difference(bound, crowns) # need to try this step so I can get 0s within crowns and 1s within space
+notcrowns <- st_difference(bound, st_union(crowns))
+#|> st_union()
+# crowns_buffer = st_buffer(crowns, 5) # 5m buffer around each crown boundary
+# gaps2 = st_difference(bound, crowns_buffer) # total area in gaps w/ gap threshold from crowns_buffer
+# plot(gaps2, col="blue")
+# gaps3 = st_buffer(gaps2, 5) # a 5m buffer around the area at least 5m from a crown edge—gap boundary
+# # this works bc it leaves out the areas that weren't big enough to be >5m away from a crown
+# # gaps3 started out as 1 observation containing all points
+# gaps3 = st_cast(gaps3, "POLYGON") # this makes it 12 observations
 
-fisher.test(t(IS_clust_ub_table)[2:3,], simulate.p.value=TRUE)
-# Fisher's Exact Test for Count Data with simulated p-value (based on 2000 replicates)
-# 
-# data:  t(IS_clust_ub_table)[2:3, ]
-# p-value = 0.0004998
-# alternative hypothesis: two.sided
+#st_set_crs(crowns, "local")
+extent(crowns)
+tester <- rasterize(crowns, raster(extent(crowns), res = 1))
+plot(rasterize(crowns, raster(extent(crowns), res = 1)))
+crs(tester) # Deprecated Proj.4 representation: NA 
 
-# Same test, but on OH data
-OH18_clusters_ub <- c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)
-OH41_clusters_ub <- c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)
-# hist(OH41_clusters_ub, col=rgb(1,0,0,1/4), breaks = 4, xlim=c(0,20), ylim=c(0,100))
-# hist(OH18_clusters_ub, col=rgb(0,0,1,1/4), breaks = 20, xlim=c(0,20), ylim=c(0,100), add=T)
+tester2 <- rasterize(notcrowns, raster(extent(notcrowns), res = 1))
+plot(tester2)
 
-OH_clust_ub_table <- data.frame(c(1:20))
-for (i in 1:20){
-  OH_clust_ub_table[i,2] <- sum(i == OH18_clusters_ub)
-  OH_clust_ub_table[i,3] <- sum(i == OH41_clusters_ub)
+# patchMorph code
+
+getCircleKernel <- function(radius)
+{
+  kernel_side <- 2 * as.integer(radius) + 1
+  kernel_y <- matrix(rep(radius:-radius, kernel_side), ncol=kernel_side)
+  kernel_x <- -t(kernel_y)
+  kernel   <- matrix(as.matrix(dist(cbind(as.vector(kernel_x), as.vector(kernel_y))))[as.integer((kernel_side^2) / 2) + 1,], ncol=kernel_side)
+  kernel[kernel <= radius] <- 0
+  kernel[kernel > 0]  <- 1
+  kernel <- 1 - kernel
+  return(kernel)
 }
 
-names(OH_clust_ub_table) <- c("clust.sz","OH2018","OH1941")
-ggplot(OH_clust_ub_table) +
-  geom_bar(aes(x=clust.sz, y=OH2018), fill="black", alpha=0.5, stat="identity") +
-  geom_bar(aes(x=clust.sz, y=OH1941), fill="red", alpha=0.5, stat="identity") 
-# numbers 1-20, plus how many times that # shows up in either list (OH18 or OH41)
-fisher.test(t(OH_clust_ub_table)[2:3,], simulate.p.value=FALSE)
-# Fisher's Exact Test for Count Data
-# 
-# data:  t(OH_clust_ub_table)[2:3, ]
-# p-value = 0.00798
-# alternative hypothesis: two.sided
+#' @param data_in A SpatRaster. Map of suitable/non-suitable habitat
+#' @param suitThresh A interger. A threshold value over which some organism may perceive the area as
+#' suitable habitat (resulting in a binary map of suitable and non-suitable pixels)
+#' @param gapThresh A interger. The gap diameter of non-suitable land cover within a habitat patch
+#' that should be considered part of the patch if small enough
+#' @param spurThresh A interger. The width of a section of narrow, unsuitable edge habitat extending
+#' out from a larger, wider patch that is too thin to be considered part of suitable habitat
+#' @param suitVals Integer vector. A vector of size = 3 specifying the lower suitability threshold,
+#' the upper suitability threshold, and the total number of values to be evaluated.
+#' @param gapVals Integer vector. A vector of size = 3 specifying the lower gap threshold, the upper
+#' gap threshold, and the total number of values to be evaluated.
+#' @param spurVals Integer vector. A vector of size = 3 specifying the lower spur threshold, the upper
+#' spur threshold, and the total number of values to be evaluated.
+#' @return A RasterLayer or a list of RasterLayers of the same dimensions as data_in where 1's are
+#' suitbale habitat and 0's are unsutiable habitat. In the case of PM_Hierarchy, patchMorph returns
+#' a list of RasterLayers (one per suitability-gap-spur combination) outcomes, otherwise it returns
+#' a single RasterLayer of the single resulting suitability-gap-spur outcome.
+#' @references
+#' Girvetz EH, and Greco SE. 2007. How to define a patch: a spatial model for hierarchically
+#' delineating organism-specific habitat patches. Landscape Ecology 22: 1131-1142.
+#' @examples
+#' myFile <- system.file("extdata", "mixedconifer.tif", package="patchwoRk")
+#' myRas <- rast(myFile)
+#'
+#pm.result.single <- patchMorph(data_in = tester, suitThresh = 1, gapThresh = 5, spurThresh = 10)
+pm.result.single <- patchMorph(data_in = tester2, suitThresh = 1, gapThresh = 5, spurThresh = 12)
+# 1: In .couldBeLonLat(x, warnings = warnings) :
+#CRS is NA. Assuming it is longitude/latitude
+plot(pm.result.single, main="PatchMorph Results (Gap-2 & Spur-2)")
 
-
-grid.arrange(ggplot(IS_clust_ub_table) +
-               geom_bar(aes(x=clust.sz, y=IS1941), fill="red", alpha=0.5, stat="identity") +
-               geom_bar(aes(x=clust.sz, y=IS2018), fill="black", alpha=0.5, stat="identity") +
-               labs(title="Indiana Summit", x = "Cluster Size (# of Trees)", y="Count (# of Clusters)"), 
-             ggplot(OH_clust_ub_table) +
-               geom_bar(aes(x=clust.sz, y=OH1941), fill="red", alpha=0.5, stat="identity") +
-               geom_bar(aes(x=clust.sz, y=OH2018), fill="black", alpha=0.5, stat="identity") +
-               labs(title="O'Harrell Canyon", x = "Cluster Size (# of Trees)", y="Count (# of Clusters)"), ncol=2)
-
-# trying multiple linear regression
-
-# prepare dataframe
-MLR_ICO <- vector(mode='list',length=length(plots_out))
-for(i in 1:length(plots_out)) {
-  df <- data.frame(clust.sz = plots_out[[i]]$clusters$size, Site = plots_out[[i]]$plot.name) # 'IS1 in 2018'
-  df <- df %>% 
-    separate(Site, into = c("Site","Plot","Year"), sep=c(2,7)) %>% 
-    mutate(Plot = str_remove(Plot, " in "))
-  MLR_ICO[[i]] <- df
+#'
+#' pm.layered.result <- patchMorph(data_in = myRas, suitVals = c(0, 1, 2),
+#' gapVals = c(2, 6, 3), spurVals = c(2, 6, 3))
+#' names(pm.layered.result)
+#' plot(pm.layered.result[[1]], main=names(pm.layered.result)[1])
+#'
+#' @export
+patchMorph <- function(data_in, res=-1, suitThresh=-1, gapThresh=-1, spurThresh=-1, suitVals=-1, gapVals=-1, spurVals=-1, proj4=-1,...)
+{
+  if(length(suitThresh) == 1)
+    class(data_in) <- "SpatRaster"
+  if(length(suitVals) > 1)
+    class(data_in) <- "pmMulti"
+  UseMethod("patchMorph", data_in)
 }
-library(rlist)
-MLR_df <- list.rbind(MLR_ICO)
 
-MLR_df <- MLR_df %>% 
-  group_by(Site, Plot, Year, clust.sz) %>% 
-  tally()
-MLR_41 <- MLR_df %>% 
-  filter(Year == 1941)
-MLR_18 <- MLR_df %>% 
-  filter(Year == 2018)
-
-# write the model
-library(lme4)
-model41 <- glmer(n ~ clust.sz + (1|Plot) + (1|Site), data = MLR_41, family = poisson)
-model18 <- glmer(n ~ clust.sz + (1|Plot) + (1|Site), data = MLR_18, family = poisson)
-summary(model41)
-library(jtools)
-effect_plot(model41, pred = clust.sz, interval = TRUE, plot.points = TRUE)
-effect_plot(model18, pred = clust.sz, interval = TRUE, plot.points = TRUE)
-library(broom.mixed)
-plot_summs(model41, model18)
-library(patchwork)
-effect_plot(model41, pred = clust.sz, interval = TRUE, plot.points = TRUE, colors = "red", xlim = 20) +
-  effect_plot(model18, pred = clust.sz, interval = TRUE, plot.points = TRUE)
-
-effect_plot(model18, pred = clust.sz, interval = TRUE, plot.points = TRUE)
-effect_plot(model41, pred = clust.sz, interval = TRUE, plot.points = TRUE, colors = "red", xlim = 20) 
-# can't figure out how to plot these together
-
-
-# making 2x2 contingency tables for each cluster bin, then chisq test w/ correction for multiple tests
-# same df as glmm, but with bins instead of clust.sz
-
-# prepare dataframe
-bin_tests <- vector(mode='list',length=length(plots_out))
-for(i in 1:length(plots_out)) {
-  df <- data.frame(bin = plots_out[[i]]$clusters$bin, Site = plots_out[[i]]$plot.name) # 'IS1 in 2018'
-  df <- df %>% 
-    separate(Site, into = c("Site","Plot","Year"), sep=c(2,7)) %>% 
-    mutate(Plot = str_remove(Plot, " in "))
-  bin_tests[[i]] <- df
+#' @describeIn patchMorph.SpatRaster Input is a SpatRaster, and only a single suitability, gap, and spur
+#' values is specified, for which the only that outcomes is returned
+#' @method patchMorph SpatRaster
+#' @export
+patchMorph.SpatRaster <- function(data_in, suitThresh = 1, gapThresh = 2, spurThresh = 2)
+{
+  if(!is.numeric(c(suitThresh, gapThresh, spurThresh)))
+    stop("suitThresh, gapThresh, and spurThresh must be numeric.")
+  if(gapThresh < 2 | spurThresh < 2)
+    stop("Gap/Spur threshold is too small! Must be at least twice the raster resolution.")
+  
+  ## Set up the crs, the extent, and a NA mask for the original raster
+  r.crs <- "local" #terra::crs(data_in)
+  r.e<-terra::ext(data_in)
+  e.mask<-terra::mask(data_in, data_in, maskvalue=0, updatevalue=1)
+  
+  ## Get the associated kernels
+  gapKernel  <- getCircleKernel(as.integer(gapThresh / 2))
+  spurKernel <- getCircleKernel(as.integer(spurThresh / 2))
+  
+  ## Get the euclidean distances to suitable habitat, and ensure the extent is the same as original
+  data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
+  
+  ## Apply a focal maximum
+  data_in <- terra::focal(data_in, gapKernel, fun=max, na.rm=TRUE, na.policy="omit", fillvalue=NA, expand = TRUE)
+  data_in<-terra::mask(data_in, e.mask)
+  
+  cat("Processing gap threshold diameter:", ncol(gapKernel)-1,"pixels\n")
+  ## Reclassify based on the gap threshold
+  data_in[data_in <= (ncol(gapKernel)+1)/2] <- 1
+  data_in[data_in > (ncol(gapKernel)+1)/2] <- 0
+  
+  ## Check to make sure there's still non-suitable pixels in the raster, othwewise return data_in
+  if( (sum(data_in[terra::values(data_in)==1]) + sum(is.na(terra::values(data_in))) ) == ( nrow(data_in)*ncol(data_in)) ) return(data_in)
+  
+  ## Get the euclidean distances to non-suitable habitat, and ensure the extent is the same as original
+  data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
+  
+  ## Apply a focal maximum
+  data_in <- terra::focal(data_in, spurKernel, fun=max, na.rm=TRUE, na.policy="omit", fillvalue=NA, expand = TRUE)
+  data_in <- terra::mask(data_in, e.mask)
+  
+  cat("Processing spur threshold diameter:",ncol(spurKernel)-1, "pixels\n")
+  ## Reclassify based on the spur threshold
+  data_in[data_in <= (ncol(spurKernel)+1)/2] <- 0
+  data_in[data_in > (ncol(spurKernel)+1)/2] <- 1
+  
+  return(data_in)
 }
-bin_tests_df <- list.rbind(bin_tests)
-
-bin_tests_df <- bin_tests_df %>% 
-  group_by(Year, bin) %>% 
-  tally()
-bin_tests_41 <- bin_tests_df %>% 
-  filter(Year == 1941)
-bin_tests_18 <- bin_tests_df %>% 
-  filter(Year == 2018)
-
-# what I want is a table where each row is a year (1941 OR 2018) 
-# and each column is a count of [clusters in the focal bin OR clusters NOT in the focal bin]
-# I am starting out with the bin_tests_yr dfs, which have Site Plot Year bin n
-# maybe I just need to group_by fewer categories!! yes!
-
-# singletons
-fisher.test(matrix(c(sum(bin_tests_41[1,3]), sum(bin_tests_41[-1,3]), 
-                         sum(bin_tests_18[1,3]), sum(bin_tests_18[-1,3])), byrow=TRUE, 2, 2))
-# p-value = 5.879e-07
-
-# 2-4
-fisher.test(matrix(c(sum(bin_tests_41[2,3]), sum(bin_tests_41[-2,3]), 
-                     sum(bin_tests_18[2,3]), sum(bin_tests_18[-2,3])), byrow=TRUE, 2, 2))
-# p-value = 0.03374
-
-# 5-9
-fisher.test(matrix(c(sum(bin_tests_41[3,3]), sum(bin_tests_41[-3,3]), 
-                     sum(bin_tests_18[3,3]), sum(bin_tests_18[-3,3])), byrow=TRUE, 2, 2))
-# p-value = 2.085e-07
-
-# 10-15
-fisher.test(matrix(c(0, sum(bin_tests_41[,3]), sum(bin_tests_18[4,3]), sum(bin_tests_18[-4,3])), byrow=TRUE, 2, 2))
-# p-value = 0.01944
-
-# 16-29
-fisher.test(matrix(c(0, sum(bin_tests_41[,3]), sum(bin_tests_18[5,3]), sum(bin_tests_18[-5,3])), byrow=TRUE, 2, 2))
-# p-value = 0.4566
-
-# Bonferroni correction: significance level
-# 0.05/5 = 0.01
-
-# just for fun, check out clust bin data in a plot
-ggplot(bin_tests_df, aes(x=bin, y=n)) +
-  geom_point(aes(fill= Year, color = Year)) +
-  stat_smooth(aes(group = Year, color=Year), method = "glm", method.args = list(family = "poisson")) +
-  scale_color_manual(values=c("red","black"))
-# just for EXTRA fun, do the same for clust.sz
-ggplot(MLR_df, aes(x=clust.sz, y=n, color = Year)) +
-  geom_point(aes(fill= Year, color = Year)) +
-  geom_smooth(aes(group = Year, color=Year), method = "glm", method.args = list(family = "poisson")) +
-  scale_color_manual(values=c("red","black"))
-# okay back to zero fun
-
