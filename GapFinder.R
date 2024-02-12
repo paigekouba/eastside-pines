@@ -76,7 +76,7 @@ for(i in 1:length(plots_out)){
 maxcrwn <- rep(NA, length(plots_out))
 for(i in 1:length(plots_out)){
   maxcrwn[i] <- max(plots_out[[i]]$trees.noedge$crown)}
-# max(maxcrwn) 5.91338
+# max(maxcrwn) 5.91338; max crown diameter = 2*5.91338 = 11.82676
  
 ### Set up Gapfinder function ###
 ctr <- data.frame(X = 0, Y = 0)
@@ -219,41 +219,54 @@ grid.arrange(ICO_pies[[7]], ICO_pies[[9]], ICO_pies[[11]], ICO_pies[[8]], ICO_pi
 # I think that I can redo the pie chart code above to get (1941 and 2018) for (IS and OH); display next to eyeballs
 
 
+
+# gapfinder is ok for gaps but doesn't account for spurs, so we are getting supergaps that snake around through narrow openings between trees. If we set a minimum spur threshold, as we can with PatchMorph, those will get closed off and create 2(+) separate gaps.
+
 # Try using patchMorph algorithm to define gaps
-# need to turn tree map into a raster. suitable 1, unsuitable 0 == nontree 1, tree 0. Finding "habitat" for gaps
+# need to turn tree map into a raster. suitable 1, unsuitable 0 == tree 1, nontree 0. 
+# "Our aim was to describe areas that were not directly under any projected canopy area, and were greater in diameter than most tree crowns and could therefore represent an area comparable in size to the zone of dominance of a large tree in our data." (Lydersen) if I follow their methods, gapThres = 1.28 and spurThresh = 11.8 (max; could be lower)
 
 #install.packages("fasterize")
 library(fasterize)
 library(raster)
+library(sf)
+library(sp)
+library(raster)
+library(terra)
 
-sf_df <- data.frame(X=plots_out[[9]]$trees$x, Y=plots_out[[9]]$trees$y, crown=plots_out[[9]]$trees$crown)
+# prepare data: one plot (plot 9, OH2 in 2018) for testing
+pm_df <- data.frame(X=plots_out[[9]]$trees.noedge$x, Y=plots_out[[9]]$trees.noedge$y, crown=plots_out[[9]]$trees.noedge$crown)
+# I want to use trees.noedge starting out because the buffer is built into PatchMorph
+
 custom_crs <- st_crs("+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs")
 ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
 bound = st_as_sf(ctr, coords = c("X", "Y"), crs = custom_crs) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle
-stems <- st_as_sf(sf_df, coords = c("X", "Y"), crs = custom_crs) # points for each tree w/dbh attribute
-#crowns = st_buffer(stems, dist = stems$crown) #|> st_union()
+stems <- st_as_sf(pm_df, coords = c("X", "Y"), crs = custom_crs) # points for each tree w/dbh attribute
 crowns = st_buffer(stems, dist = stems$crown) #|> st_union()
-#notcrowns <- st_difference(bound, crowns) # need to try this step so I can get 0s within crowns and 1s within space
-notcrowns <- st_difference(bound, st_union(crowns))
-#|> st_union()
-# crowns_buffer = st_buffer(crowns, 5) # 5m buffer around each crown boundary
-# gaps2 = st_difference(bound, crowns_buffer) # total area in gaps w/ gap threshold from crowns_buffer
-# plot(gaps2, col="blue")
-# gaps3 = st_buffer(gaps2, 5) # a 5m buffer around the area at least 5m from a crown edge—gap boundary
-# # this works bc it leaves out the areas that weren't big enough to be >5m away from a crown
-# # gaps3 started out as 1 observation containing all points
-# gaps3 = st_cast(gaps3, "POLYGON") # this makes it 12 observations
-
-#st_set_crs(crowns, "local")
-extent(crowns)
-tester <- rasterize(crowns, raster(extent(crowns), res = 1))
-plot(rasterize(crowns, raster(extent(crowns), res = 1)))
-crs(tester) # Deprecated Proj.4 representation: NA 
-
-tester2 <- rasterize(notcrowns, raster(extent(notcrowns), res = 1))
+notcrowns <- st_difference(bound, st_union(crowns)) # all area in non-crown space
+crowns1 <- st_difference(bound, st_union(notcrowns))
+tester2 <- rasterize(notcrowns, raster(extent(notcrowns), res = 0.07)) # turns sf into a raster -- this one is for all non-crown areas
 plot(tester2)
+plot(rast(tester2))
+
+tester <- rasterize(crowns1, raster(extent(crowns), res = 0.07)) # turns sf into a raster -- this one is for all crown areas and value = 1 ?
+plot(tester)
+
+
+pm_sr <- rast(tester) # turns raster into a SpatRaster
+plot(pm_sr)
 
 # patchMorph code
+# https://rdrr.io/github/bi0m3trics/patchwoRk/man/patchMorph.html
+
+patchMorph <- function(data_in, buffer = 2, res=-1, suitThresh=-1, gapThresh=-1, spurThresh=-1, suitVals=-1, gapVals=-1, spurVals=-1, proj4=-1,verbose = TRUE...)
+{
+  if(length(suitThresh) == 1)
+    class(data_in) <- "SpatRaster"
+  if(length(suitVals) > 1)
+    class(data_in) <- "pmMulti"
+  UseMethod("patchMorph", data_in)
+}
 
 getCircleKernel <- function(radius)
 {
@@ -267,57 +280,11 @@ getCircleKernel <- function(radius)
   return(kernel)
 }
 
-#' @param data_in A SpatRaster. Map of suitable/non-suitable habitat
-#' @param suitThresh A interger. A threshold value over which some organism may perceive the area as
-#' suitable habitat (resulting in a binary map of suitable and non-suitable pixels)
-#' @param gapThresh A interger. The gap diameter of non-suitable land cover within a habitat patch
-#' that should be considered part of the patch if small enough
-#' @param spurThresh A interger. The width of a section of narrow, unsuitable edge habitat extending
-#' out from a larger, wider patch that is too thin to be considered part of suitable habitat
-#' @param suitVals Integer vector. A vector of size = 3 specifying the lower suitability threshold,
-#' the upper suitability threshold, and the total number of values to be evaluated.
-#' @param gapVals Integer vector. A vector of size = 3 specifying the lower gap threshold, the upper
-#' gap threshold, and the total number of values to be evaluated.
-#' @param spurVals Integer vector. A vector of size = 3 specifying the lower spur threshold, the upper
-#' spur threshold, and the total number of values to be evaluated.
-#' @return A RasterLayer or a list of RasterLayers of the same dimensions as data_in where 1's are
-#' suitbale habitat and 0's are unsutiable habitat. In the case of PM_Hierarchy, patchMorph returns
-#' a list of RasterLayers (one per suitability-gap-spur combination) outcomes, otherwise it returns
-#' a single RasterLayer of the single resulting suitability-gap-spur outcome.
-#' @references
-#' Girvetz EH, and Greco SE. 2007. How to define a patch: a spatial model for hierarchically
-#' delineating organism-specific habitat patches. Landscape Ecology 22: 1131-1142.
-#' @examples
-#' myFile <- system.file("extdata", "mixedconifer.tif", package="patchwoRk")
-#' myRas <- rast(myFile)
-#'
-#pm.result.single <- patchMorph(data_in = tester, suitThresh = 1, gapThresh = 5, spurThresh = 10)
-pm.result.single <- patchMorph(data_in = tester2, suitThresh = 1, gapThresh = 5, spurThresh = 12)
-# 1: In .couldBeLonLat(x, warnings = warnings) :
-#CRS is NA. Assuming it is longitude/latitude
-plot(pm.result.single, main="PatchMorph Results (Gap-2 & Spur-2)")
-
-#'
-#' pm.layered.result <- patchMorph(data_in = myRas, suitVals = c(0, 1, 2),
-#' gapVals = c(2, 6, 3), spurVals = c(2, 6, 3))
-#' names(pm.layered.result)
-#' plot(pm.layered.result[[1]], main=names(pm.layered.result)[1])
-#'
-#' @export
-patchMorph <- function(data_in, res=-1, suitThresh=-1, gapThresh=-1, spurThresh=-1, suitVals=-1, gapVals=-1, spurVals=-1, proj4=-1,...)
-{
-  if(length(suitThresh) == 1)
-    class(data_in) <- "SpatRaster"
-  if(length(suitVals) > 1)
-    class(data_in) <- "pmMulti"
-  UseMethod("patchMorph", data_in)
-}
-
 #' @describeIn patchMorph.SpatRaster Input is a SpatRaster, and only a single suitability, gap, and spur
 #' values is specified, for which the only that outcomes is returned
 #' @method patchMorph SpatRaster
 #' @export
-patchMorph.SpatRaster <- function(data_in, suitThresh = 1, gapThresh = 2, spurThresh = 2)
+patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh = 2, spurThresh = 2, verbose = TRUE)
 {
   if(!is.numeric(c(suitThresh, gapThresh, spurThresh)))
     stop("suitThresh, gapThresh, and spurThresh must be numeric.")
@@ -325,9 +292,12 @@ patchMorph.SpatRaster <- function(data_in, suitThresh = 1, gapThresh = 2, spurTh
     stop("Gap/Spur threshold is too small! Must be at least twice the raster resolution.")
   
   ## Set up the crs, the extent, and a NA mask for the original raster
-  r.crs <- "local" #terra::crs(data_in)
-  r.e<-terra::ext(data_in)
-  e.mask<-terra::mask(data_in, data_in, maskvalue=0, updatevalue=1)
+  r.crs <- terra::crs(data_in)
+  r.e <- terra::ext(data_in)
+  e.mask <- terra::mask(data_in, subst(data_in, 0:1, 1))
+  
+  ## Extend the raster by the buffer (cropped before return)
+  data_in <- terra::extend(data_in, buffer, fill=NA)
   
   ## Get the associated kernels
   gapKernel  <- getCircleKernel(as.integer(gapThresh / 2))
@@ -337,10 +307,11 @@ patchMorph.SpatRaster <- function(data_in, suitThresh = 1, gapThresh = 2, spurTh
   data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
   
   ## Apply a focal maximum
-  data_in <- terra::focal(data_in, gapKernel, fun=max, na.rm=TRUE, na.policy="omit", fillvalue=NA, expand = TRUE)
-  data_in<-terra::mask(data_in, e.mask)
+  data_in <- terra::focal(data_in, gapKernel, fun="max", na.policy="omit", na.rm=TRUE)
+  # data_in <- terra::mask(data_in, e.mask)
   
-  cat("Processing gap threshold diameter:", ncol(gapKernel)-1,"pixels\n")
+  if(verbose == TRUE)
+    cat("Processing gap threshold diameter:", ncol(gapKernel)-1,"pixels\n")
   ## Reclassify based on the gap threshold
   data_in[data_in <= (ncol(gapKernel)+1)/2] <- 1
   data_in[data_in > (ncol(gapKernel)+1)/2] <- 0
@@ -352,13 +323,58 @@ patchMorph.SpatRaster <- function(data_in, suitThresh = 1, gapThresh = 2, spurTh
   data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
   
   ## Apply a focal maximum
-  data_in <- terra::focal(data_in, spurKernel, fun=max, na.rm=TRUE, na.policy="omit", fillvalue=NA, expand = TRUE)
-  data_in <- terra::mask(data_in, e.mask)
+  data_in <- terra::focal(data_in, spurKernel, fun="max", na.policy="omit", na.rm=TRUE)
+  # data_in <- terra::mask(data_in, e.mask)
   
-  cat("Processing spur threshold diameter:",ncol(spurKernel)-1, "pixels\n")
+  
+  if(verbose == TRUE)
+    cat("Processing spur threshold diameter:",ncol(spurKernel)-1, "pixels\n")
   ## Reclassify based on the spur threshold
   data_in[data_in <= (ncol(spurKernel)+1)/2] <- 0
   data_in[data_in > (ncol(spurKernel)+1)/2] <- 1
   
+  data_in <- terra::crop(data_in, e.mask, mask=TRUE)
+  
   return(data_in)
+}
+
+# sort of works
+# pm.result.single <- patchMorph(data_in = rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 9, spurThresh = 6, verbose = FALSE)
+# plot(pm.result.single, main="PatchMorph Results (Gap-9 & Spur-6)")
+
+pm.result.single <- patchMorph(data_in = rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 8, spurThresh = 6, verbose = FALSE)
+pm.result.single2 <- patchMorph(data_in = rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 10, spurThresh = 12, verbose = FALSE)
+par(mfrow=c(1,2))
+plot(pm.result.single, main="PatchMorph Results (Gap-8 & Spur-6)", col = c("#335566","#332211" ))
+plot(pm.result.single2, main="PatchMorph Results (Gap-10 & Spur-12)", col = c("#335566","#332211" ))
+
+# make a for loop to look at lots of values of this
+pm.results <- list()
+pm.labels <- rep(NA, rep(length(2:12)^2))
+for (i in 2:12) {
+  for (j in 2:12) {
+    pm.results[[(i-2)*11+(j-1)]] <- patchMorph(data_in = rast(tester2), buffer = 5, suitThresh = 1, gapThresh = i, spurThresh = j, verbose = FALSE)
+  #  pm.labels[(i-2)*11+(j-1)] <- paste0("PatchMorph Results (Gap-", i, " & Spur-", j,")")
+  }
+}
+
+par(mfrow=c(3,3))
+gap <- 3
+spur <- 12
+a <- (gap-2)*11+(spur-1)
+for (i in a:(a+8)) {
+  plot(pm.results[[i]], main = pm.labels[i], col = c("#335566","#332211" ))
+} # consecutive plots
+
+for (i in c(round(seq(23,90, length.out = 9)))) {
+  plot(pm.results[[i]], main = pm.labels[i], col = c("#335566","#332211" ))
+} # regularly spaced draws of 9
+
+
+gap_areas <- rep (NA, length(results))
+for (i in 1:length(results)){
+  gap_areas[i] <- 
+    (sum(st_area(st_cast(results[[i]], "POLYGON")))/st_area(bound_buff))*10000
+  # ( total area in gap polygons / total area not counting buffer ) * 10000 [scale up to 1ha full plot]
+  # gets gap area per hectare, having corrected for buffer area
 }
