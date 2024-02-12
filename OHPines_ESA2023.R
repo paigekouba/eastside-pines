@@ -104,7 +104,7 @@ OH_correction$HT <- core_height$Ht[match(OH_correction$series, core_height$Code)
 #names(OH_correction)[11] <- "GR5"
 names(OH_correction)[11] <- "GR15"
 
-## 5. Age correction function: PIJE from Wong and Lertzman 2001; 
+## 5. Age correction function: PIJE from Fraver 
 # JUGR from Landis and Bailey 2006;
 # ABCO from our O'Harrell 2023 data, no pith ht correction;
 # PICO from O'Harrell 2023 data, pith ht correction from Tomiolo 2016
@@ -136,7 +136,7 @@ library(ggplot2)
 #   geom_point()+
 #   stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
 #   labs(x="Diameter at Breast Height (cm)", y="Age") +
-#   ggtitle("Age-Size Regression for Jeffrey Pine") +
+#   ggtitle("Age-Size Regression for Jeffrey Pine") 
 #   theme_bw(base_size=22)
 
 ## 5.2 New model and model comparison based on polynomials
@@ -204,7 +204,7 @@ PICO_lm <- lm(age_est ~ dbh, data = OH_PICO)
 # PIJE:  age = 3.4328x + 26.2246
 # dbh = (age - 26.2246)/3.4328
 
-# JUGR: age = (39.9 * ln DRC) + 24.2
+# JUGR: age = (39.9 * ln DRC) + 24.2, Landis and Bailey 2006
 # dbh = e^((age - 24.2)/39.9)
 
 # ABCO: age = 0.7771x + 65.8335
@@ -329,52 +329,3 @@ OH3_1941 <- OH_trees1941[OH_trees1941$Plot == "OH3",]
 OH1_1941 <- rename(OH1_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 OH2_1941 <- rename(OH2_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 OH3_1941 <- rename(OH3_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
-
-#______________________________________________________________________________#
-
-# NON-SPATIAL METRICS
-
-# Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 2018:
-meanOH <- mean(OH_livetrees$dbh)
-sd(OH_livetrees$dbh) #28.5
-maxOH <- max(OH_livetrees$dbh)
-stemsOH <- nrow(OH_livetrees)/3
-BA_OH <- sum(pi*(OH_livetrees$dbh/200)^2)/3
-QMD_OH <- sqrt(sum(OH_livetrees$dbh^2)/nrow(OH_livetrees))
-
-# Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 1941:
-meanOH1941 <- mean(OH_trees1941$dbh1941)
-maxOH1941 <- max(OH_trees1941$dbh1941)
-stemsOH1941 <- nrow(OH_trees1941)/3
-BA_OH1941 <- sum(pi*(OH_trees1941$dbh1941/200)^2)/3
-QMD_OH1941 <- sqrt(sum(OH_trees1941$dbh1941^2)/nrow(OH_trees1941))
-
-OH_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QMD"), 
-                         OH2018 = c(meanOH, maxOH, stemsOH, BA_OH, QMD_OH),
-                         OH1941 = c(meanOH1941, maxOH1941, stemsOH1941, BA_OH1941, QMD_OH1941))
-
-# SPATIAL STUFF
-
-#install.packages("spatstat")
-library(spatstat)
-# subset just IS1 for mapping practice
-IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
-IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
-
-# convert x, y data to point patter
-IS1_2018ppp <- ppp(IS1_2018$X, IS1_2018$Y, c(-60,60), c(-60,60))
-IS1_1941ppp <- ppp(IS1_1941$X, IS1_1941$Y, c(-60,60), c(-60,60))
-# plot with dbh
-marks(IS1_1941ppp) <- IS1_1941[,13]
-marks(IS1_2018ppp) <- IS1_2018[,5]
-par(mfrow=c(1,2))
-plot(IS1_2018ppp)
-plot(IS1_1941ppp)
-
-par(mfrow=c(1,2)) # plot as heatmap of biggest-dbh trees
-plot(Smooth(IS1_1941ppp))
-plot(Smooth(IS1_2018ppp))
-
-par(mfrow=c(1,2)) # plot as heatmap of most stems per area
-plot(density(IS1_1941ppp))
-plot(density(IS1_2018ppp))
