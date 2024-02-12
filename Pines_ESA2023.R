@@ -93,7 +93,7 @@ IS_correction <- IS_correction %>%
 # #stat_smooth(method="lm",formula =  y~exp(-x),se=F,color="blue")
 # 
 ## 5.2 New model and model comparison based on polynomials
-# IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
+IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
 # IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
 # IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
 # IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
@@ -108,12 +108,17 @@ IS_correction <- IS_correction %>%
 #   geom_point() +
 #   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
 # 
-# # poly 2 is less over-fitted; bascially a straight line
+# poly 2 is less over-fitted; bascially a straight line
 # ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
 #   geom_point() +
 #   stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
-# # 
-# # # try fitting a line for a power law fit
+
+# # just lm
+# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+#   geom_point() +
+#   stat_smooth(method = lm, formula = y ~ poly(x, 1, raw= TRUE))
+
+# # try fitting a line for a power law fit
 # ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
 #   geom_point() +
 #     geom_smooth(data = IS_correction,
@@ -121,8 +126,8 @@ IS_correction <- IS_correction %>%
 #       method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
 #       se=FALSE) +
 #   labs(x="Diameter at Breast Height (cm)", y="Age") +
-#   ggtitle("Age-Size Regression for Jeffrey Pine") +
-#   theme_bw(base_size=22)
+#   ggtitle("Age-Size Regression for Jeffrey Pine") 
+#  theme_bw(base_size=22)
 
 # it looks almost indistinguishable from a straight line model
 IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
@@ -213,9 +218,6 @@ tree_data <- read.csv("Treedata_9-3_Em_DB.csv")
 tree_data[192,7] = 36.7
 tree_data <- tree_data %>% 
   filter(sqrt((X^2)+(Y^2))<sqrt(10000/pi))
-  
-  #filter(X>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi)) %>% 
-  #filter(Y>((-1)*sqrt(10000/pi))&X<sqrt(10000/pi))
 
 IS_trees <- tree_data[tree_data$Site=="IS",]
 names(IS_trees)[5] <- "dbh"
@@ -330,55 +332,3 @@ IS1_1941 <- rename(IS1_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 IS2_1941 <- rename(IS2_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 IS3_1941 <- rename(IS3_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 
-#______________________________________________________________________________#
-
-
-
-# NON-SPATIAL METRICS
-
-# Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 2018:
-meanIS <- mean(IS_livetrees$dbh)
-sd(IS_livetrees$dbh) #28.5
-maxIS <- max(IS_livetrees$dbh)
-stemsIS <- nrow(IS_livetrees)/3
-BA_IS <- sum(pi*(IS_livetrees$dbh/200)^2)/3
-QMD_IS <- sqrt(sum(IS_livetrees$dbh^2)/nrow(IS_livetrees))
-
-# Get avg DBH, max DBH, stems/ha, BA, and QMD for IS live trees in 1941:
-meanIS1941 <- mean(IS_trees1941$dbh1941)
-maxIS1941 <- max(IS_trees1941$dbh1941)
-stemsIS1941 <- nrow(IS_trees1941)/3
-BA_IS1941 <- sum(pi*(IS_trees1941$dbh1941/200)^2)/3
-QMD_IS1941 <- sqrt(sum(IS_trees1941$dbh1941^2)/nrow(IS_trees1941))
-
-IS_metrics <- data.frame(Metric = c("MeanDBH", "MaxDBH", "Stems","BasalArea","QMD"), 
-                         IS2018 = c(meanIS, maxIS, stemsIS, BA_IS, QMD_IS),
-                         IS1941 = c(meanIS1941, maxIS1941, stemsIS1941, BA_IS1941, QMD_IS1941))
-
-#______________________________________________________________________________#
-
-# SPATIAL STUFF
-
-#install.packages("spatstat")
-library(spatstat)
-# subset just IS1 for mapping practice
-IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
-IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
-
-# convert x, y data to point patter
-IS1_2018ppp <- ppp(IS1_2018$X, IS1_2018$Y, c(-60,60), c(-60,60))
-IS1_1941ppp <- ppp(IS1_1941$X, IS1_1941$Y, c(-60,60), c(-60,60))
-# plot with dbh
-marks(IS1_1941ppp) <- IS1_1941[,13]
-marks(IS1_2018ppp) <- IS1_2018[,5]
-par(mfrow=c(1,2))
-plot(IS1_2018ppp)
-plot(IS1_1941ppp)
-
-par(mfrow=c(1,2)) # plot as heatmap of biggest-dbh trees
-plot(Smooth(IS1_1941ppp))
-plot(Smooth(IS1_2018ppp))
-
-par(mfrow=c(1,2)) # plot as heatmap of most stems per area
-plot(density(IS1_1941ppp))
-plot(density(IS1_2018ppp))
