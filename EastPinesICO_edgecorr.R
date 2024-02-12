@@ -462,13 +462,6 @@ OHdots <- ggplot() +
   xlab("Metric") + ylab("Percent Change")
 grid.arrange(ISdots, OHdots, ncol=2)
 
-# Ripley's K
-# A result of trees being significantly clumped at a certain distance means that on average, trees have more neighbors within that distance than would be expected with a random distribution (Illian et al., 2008). The square-root transformation, or L-function, was calculated for each plot in each dataset, using the default settings in Spatstat, so that spatial aggregation was assessed up to a maximum distance of 45 m (one quarter the length of the shortest plot dimension), over 512 equally spaced intervals. We used the isotropic correction to control for edge effects. Observed values of L(r) were compared to an envelope of complete spatial randomness (CSR) generated with 999 simulations.
-# library(spatstat)
-# test_ppp <- ppp(OH1_2018$X, OH1_2018$Y, window = disc(radius = sqrt(10000/pi), centre = c(0,0)))
-# plot(Kest(test_ppp), correction="isotropic")
-# plot(envelope(test_ppp, Lest, nsim=50))
-
 #______________ ICO stats _______________# 
 
 # [1] "IS1 in 2018" [2]  "IS1 in 1941" [3]  "IS2 in 2018" [4]  "IS2 in 1941" 
