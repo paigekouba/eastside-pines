@@ -70,11 +70,11 @@ for(i in 1:length(plots_out)){
 allcrwndf <- lapply(plots_out, function(x) x[[11]])
 allcrwn <- unlist(lapply(allcrwndf, function(x) x[[6]]))
 
-ggplot(as.data.frame(allcrwn), aes(x = allcrwn)) + 
+ggplot(as.data.frame(allcrwn), aes(x = allcrwn*2)) + 
   geom_histogram() +
-  geom_vline(aes(xintercept = quantile(allcrwn, 0.1, na.rm = TRUE)), color = "grey", size = 0.5) + # 1.072585 
-  geom_vline(aes(xintercept = quantile(allcrwn, 0.9, na.rm = TRUE)),  color="grey", size=0.5) + # 4.300508 
-  geom_vline(aes(xintercept = mean(allcrwn, na.rm = TRUE)),  color="red", size=0.5) # 2.484347
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1, na.rm = TRUE)), color = "grey", size = 0.5) + # 2.14517 
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9, na.rm = TRUE)),  color="grey", size=0.5) + # 8.601016
+  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) # 4.968694
 
 mincrwn <- rep(NA, length(plots_out))
 for(i in 1:length(plots_out)){
@@ -275,7 +275,7 @@ tester <- rasterize(crowns1, raster(extent(crowns1), res = 1)) # turns sf into a
 # plot(pm_sr)
 
 # new idea: is PatchMorph taking threshold parameters in units of pixels, not meters??
-library(terra)
+# yes; but I am not sure how to convert betwixt them
 cellStats(tester2, sum) + cellStats(tester, sum) # 9991, I think this means that crowns plus notcrowns = 10000 with rounding error
 cellSize(rast(tester2), transform = FALSE)
 
@@ -292,38 +292,39 @@ patchMorph <- function(data_in, buffer = 2, suitThresh=-1, gapThresh=-1, spurThr
   UseMethod("patchMorph", data_in)
 }
 
-# getCircleKernel <- function(radius)
-# { # generates a circular kernel matrix based on specified radius
-#   # the kernel defines the spatial neighborhood around each pixel, identifying which neighboring pixels are in or outside the circle with the specified radius. In this code, the kernel applied for gaps uses a radius of as.integer(gapThresh/2), while the kernel applied for spurs uses a radius of as.integer(spurThresh/2)
-#   kernel_side <- 2 * as.integer(radius) + 1 # kernel side based on radius
-#   kernel_y <- matrix(rep(radius:-radius, kernel_side), ncol=kernel_side) # get kernel matrix coordinates
-#   kernel_x <- -t(kernel_y)
-#   kernel   <- matrix(as.matrix(dist(cbind(as.vector(kernel_x), as.vector(kernel_y))))[as.integer((kernel_side^2) / 2) + 1,], ncol=kernel_side) # calculates distances from kernel center
-#   # set threshold distances to create circular kernel
-#   kernel[kernel <= radius] <- 0
-#   kernel[kernel > 0]  <- 1
-#   kernel <- 1 - kernel # invert kernel to mark the area outside the circle
-#   return(kernel) # by the end of this process, there's a square window (r/2)+1 pixels across, with a circle of 1s in the center that are <= r pixels from the central pixel
-# } 
+getCircleKernel <- function(radius)
+{ # generates a circular kernel matrix based on specified radius
+  # the kernel defines the spatial neighborhood around each pixel, identifying which neighboring pixels are in or outside the circle with the specified radius. In this code, the kernel applied for gaps uses a radius of as.integer(gapThresh/2), while the kernel applied for spurs uses a radius of as.integer(spurThresh/2)
+  kernel_side <- 2 * as.integer(radius) + 1 # kernel side based on radius
+  kernel_y <- matrix(rep(radius:-radius, kernel_side), ncol=kernel_side) # get kernel matrix coordinates
+  kernel_x <- -t(kernel_y)
+  kernel   <- matrix(as.matrix(dist(cbind(as.vector(kernel_x), as.vector(kernel_y))))[as.integer((kernel_side^2) / 2) + 1,], ncol=kernel_side) # calculates distances from kernel center
+  # set threshold distances to create circular kernel
+  kernel[kernel <= radius] <- 0
+  kernel[kernel > 0]  <- 1
+  kernel <- 1 - kernel # invert kernel to mark the area outside the circle
+  return(kernel) # by the end of this process, there's a square window (r/2)+1 pixels across, with a circle of 1s in the center that are <= r pixels from the central pixel
+}
 
 # trying getCircleKernel with conversion from m to pixels
-getCircleKernel <- function(radius, resolution)
-{
-  # Calculate the number of pixels for the specified radius
-  radius_pixels <- radius / resolution
-
-  # Generate a circular kernel matrix based on the specified radius
-  kernel_side <- 2 * as.integer(radius_pixels) + 1
-  kernel_y <- matrix(rep(radius_pixels:-radius_pixels, kernel_side), ncol = kernel_side)
-  kernel_x <- -t(kernel_y)
-  kernel <- matrix(as.matrix(dist(cbind(as.vector(kernel_x), as.vector(kernel_y))))[as.integer((kernel_side^2) / 2) + 1,], ncol=kernel_side) # calculates distances from kernel center
-  # Set threshold distances to create circular kernel
-  kernel[kernel <= radius_pixels] <- 0
-  kernel[kernel > 0] <- 1
-  kernel <- 1 - kernel  # Invert kernel to mark the area outside the circle
-
-  return(kernel)
-}
+# getCircleKernel <- function(radius, resolution)
+# {
+#   # Calculate the number of pixels for the specified radius
+#   radius_pixels <- radius / resolution
+# 
+#   # Generate a circular kernel matrix based on the specified radius
+#   kernel_side <- 2 * as.integer(radius_pixels) + 1
+#   kernel_y <- matrix(rep(radius_pixels:-radius_pixels, kernel_side), ncol = kernel_side)
+#   kernel_x <- -t(kernel_y)
+#   kernel <- matrix(as.matrix(dist(cbind(as.vector(kernel_x), as.vector(kernel_y))))[as.integer((kernel_side^2) / 2) + 1,], ncol=kernel_side) # calculates distances from kernel center
+#   # Set threshold distances to create circular kernel
+#   kernel[kernel <= radius_pixels] <- 0
+#   kernel[kernel > 0] <- 1
+#   kernel <- 1 - kernel  # Invert kernel to mark the area outside the circle
+# # I will see if commenting out the above line changes the assignment of suitable/unsuitable
+#   # no it did not seem to do anything
+#   return(kernel)
+# }
 
 #' @describeIn patchMorph.SpatRaster Input is a SpatRaster, and only a single suitability, gap, and spur
 #' values is specified, for which the only that outcomes is returned
@@ -334,8 +335,8 @@ patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh
 { # check validity of threshold parameters specified in the function call
   if(!is.numeric(c(suitThresh, gapThresh, spurThresh)))
     stop("suitThresh, gapThresh, and spurThresh must be numeric.")
- # if(gapThresh < 2 | spurThresh < 2)
-#    stop("Gap/Spur threshold is too small! Must be at least twice the raster resolution.")
+  if(gapThresh < 2 | spurThresh < 2)
+    stop("Gap/Spur threshold is too small! Must be at least twice the raster resolution.")
   
   ## Set up the crs, the extent, and a NA mask for the original raster
   r.crs <- terra::crs(data_in)
@@ -346,10 +347,10 @@ patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh
   data_in <- terra::extend(data_in, buffer, fill=NA)
   
   ## Get circular kernels for gap and spur thresholds
-  # gapKernel  <- getCircleKernel(as.integer(gapThresh / 2)) # original
-  # spurKernel <- getCircleKernel(as.integer(spurThresh / 2))
-  gapKernel  <- getCircleKernel(as.integer(gapThresh / 2), 1)
-  spurKernel <- getCircleKernel(as.integer(spurThresh / 2), 1)
+  gapKernel  <- getCircleKernel(as.integer(gapThresh / 2)) # original
+  spurKernel <- getCircleKernel(as.integer(spurThresh / 2))
+  # gapKernel  <- getCircleKernel(as.integer(gapThresh / 2), 0.5) # with resolution 
+  # spurKernel <- getCircleKernel(as.integer(spurThresh / 2), 0.5)
   
   ## Get the euclidean distances to suitable habitat, and ensure the extent is the same as original
   data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
@@ -362,8 +363,10 @@ patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh
   if(verbose == TRUE)
     cat("Processing gap threshold diameter:", ncol(gapKernel)-1,"pixels\n")
   ## Reclassify based on the gap threshold
-  data_in[data_in <= (ncol(gapKernel)+1)/2] <- 1
-  data_in[data_in > (ncol(gapKernel)+1)/2] <- 0
+  # data_in[data_in <= (ncol(gapKernel)+1)/2] <- 1 # original
+  # data_in[data_in > (ncol(gapKernel)+1)/2] <- 0
+  data_in[data_in <= (ncol(gapKernel)+1)/2] <- 0 
+  data_in[data_in > (ncol(gapKernel)+1)/2] <- 1 # switched to make openings "suitable"
   
   ## Check to see if there's still non-suitable pixels in the raster, otherwise return data_in
   if( (sum(data_in[terra::values(data_in)==1]) + sum(is.na(terra::values(data_in))) ) == ( nrow(data_in)*ncol(data_in)) ) return(data_in)
@@ -378,8 +381,10 @@ patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh
   if(verbose == TRUE)
     cat("Processing spur threshold diameter:",ncol(spurKernel)-1, "pixels\n")
   ## Reclassify based on the spur threshold
-  data_in[data_in <= (ncol(spurKernel)+1)/2] <- 0
-  data_in[data_in > (ncol(spurKernel)+1)/2] <- 1
+  # data_in[data_in <= (ncol(spurKernel)+1)/2] <- 0
+  # data_in[data_in > (ncol(spurKernel)+1)/2] <- 1
+  data_in[data_in <= (ncol(spurKernel)+1)/2] <- 1
+  data_in[data_in > (ncol(spurKernel)+1)/2] <- 0 # switched to make spurs "unsuitable"
   
   # Crop the raster to the original extent
   data_in <- terra::crop(data_in, e.mask, mask=TRUE)
@@ -387,14 +392,11 @@ patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh
   return(data_in)
 }
 
-# sort of works
-# pm.result.single <- patchMorph(data_in = rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 9, spurThresh = 6, verbose = FALSE)
-# plot(pm.result.single, main="PatchMorph Results (Gap-9 & Spur-6)")
-
-pm.result <- patchMorph.SpatRaster(rast(tester2))
-pm.result <- patchMorph.SpatRaster(rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 6, spurThresh = 6, verbose = TRUE)
-plot(pm.result, main="PatchMorph Results (Gap-6 & Spur-6)", col = c("#332211", "#FEC44F"))
-
+# explanation of gap and spur, conceptually, from Girvetz and Greco 2007:
+# (1) land cover density threshold (suitThresh), (2) habitat gap maximum thickness (gapThresh), and (3) habitat patch minimum thickness (spurThresh)
+pm.result <- patchMorph.SpatRaster(rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 6, spurThresh = 7, verbose = TRUE)
+plot(pm.result, main="PatchMorph Results (Gap-6 & Spur-7)", col = c("#332211", "#FEC44F"))
+# this code with these parameters (gap 6, spur 7) produces a map that looks right; min opening size ~= max canopy, and openings can snake through the trees but not to a ridiculous extent (cf Lydersen)
 
 pm.result.single <- patchMorph(data_in = rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 8, spurThresh = 6, verbose = TRUE)
 pm.result.single2 <- patchMorph(data_in = rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 2, spurThresh = 12, verbose = TRUE)
