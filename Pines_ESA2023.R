@@ -13,7 +13,8 @@ library(tidyverse)
 IS_data = read.rwl("IS_2022.rwl")
 
 # IS21003 has no pith estimate due to aberrations; remove from df. 
-IS_data <- subset(IS_data, select = -c(IS21003)) # N = 90
+IS_data <- subset(IS_data, select = -c(IS21003, IS115, IS118)) # N = 88
+# 2/17/24 removed an additional 2 cores marked "out" in core_height sheet
 
 #setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Spreadsheets")
 core_height = read.csv("coredata_PK.csv")
@@ -32,6 +33,8 @@ IS_pith = read.csv("IS_pith.csv")
 
 # remove pithless ones
 IS_pith <- subset(IS_pith, Core != "IS21003")
+IS_pith <- IS_pith[IS_pith$Core != "IS115",] # 2/17/24 remove the two cores not in core_height
+IS_pith <- IS_pith[IS_pith$Core != "IS118",]
 
 ## Method from Fraver et al. (P. resinosa):
 #4. Calculate GR15 (average annual growth rate of first 15 rings)
@@ -68,7 +71,7 @@ names(IS_correction)[11] <- "GR15"
 #            year + correction + YearsToPith)
 
 IS_correction <- IS_correction %>%
-  filter(!is.na(dbh)) %>% 
+  #filter(!is.na(dbh)) %>% 
   mutate(fraver =
            0.591 * (HT+1)^0.665 + GR15^-0.497) %>% # Fraver equation
   mutate(corrected_age =
@@ -275,6 +278,8 @@ log_data <- rename(log_data, "dbh" = "LgDia")
 colnames(log_data)[1] = "Site"
 # subset to IS
 IS_logs <- log_data[log_data$Site=="IS",]
+unique(IS_logs$Spec) 
+# [1] "PIJE"  "PICO"  "PIJE*"
 # 2018 - [Years since death (based on decay class) + age from DBH] = establishment year
 # I will do a *placeholder*/best guess age correction for the logs. 1 = 10y, 2-3 = 15y, 4-5 = 20y
 IS_logs$log_correction[IS_logs$Dec == 1]=10
@@ -294,7 +299,7 @@ unique(IS_trees$Spec)
 # [1] "PIJE"  "PICO" "PIJE*"
 IS_trees$Spec[IS_trees$Spec=="PIJE*"] <- "PIJE"
 unique(IS_trees$Spec)
-
+# [1] "PIJE"  "PICO"
 
 #______________________________________________________________________________#
 # Size in 1941 = (1941 - estab. year) * size coefficient
@@ -332,3 +337,18 @@ IS1_1941 <- rename(IS1_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 IS2_1941 <- rename(IS2_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 IS3_1941 <- rename(IS3_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 
+#______________________________________________________________________________#
+# establishment histogram for cored trees
+IS_estab_cores <- hist(rwl.stats(IS_data)$first, breaks = (1982-1595)/10)
+# for estimated establishment (all trees)
+IS_estab_trees <- hist(IS_trees$estab_est, breaks=(1999-1603)/10)
+
+# size class distn
+IS_2018_hist <- hist(IS_trees$dbh)
+IS_1941_hist <- hist(IS_trees1941$dbh1941)
+
+# plot comparing age estimate model with observed, corrected ages for cored trees (purple dots)
+# need to correct for PIJE* and UNK
+model_v_cores_IS <- ggplot() +
+  geom_point(data = IS_trees, aes(x=dbh, y=age_est, group=Spec, color = Spec)) +
+  geom_point(data = IS_correction, aes(x=dbh, y=corrected_age), col="purple")
