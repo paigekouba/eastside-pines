@@ -11,7 +11,9 @@ library(tidyverse)
 # Read in the files. Need rwl collection from OH, and core height data.
 
 OH_rwl = read.rwl("OH_2022.rwl")
-OH_rwl <- subset(OH_rwl, select = -c(OH115, OH11a, OH271, OH3128, OH264)) # N = 81
+#OH_rwl <- subset(OH_rwl, select = -c(OH115, OH11a, OH271, OH3128, OH264)) # N = 81
+OH_rwl <- subset(OH_rwl, select = -c(OH115, OH11a, OH271, OH3128, OH264, OH2117, OH2_502)) # N = 79
+# 2/17/24 removed an additional 2 cores not found in core_height sheet
 
 #setwd("S:/FacultyData/LATIMER/LATIMERShared/Paige/PaigeCores/Spreadsheets")
 core_height = read.csv("coredata_PK.csv")
@@ -31,6 +33,8 @@ OH_pith = read.csv("OH_pith.csv") # do not know why this was so hard; trying to 
  OH_pith <- OH_pith[OH_pith$Core != "OH3128",]
  OH_pith <- OH_pith[OH_pith$Core != "OH264",]
  # now includes just good cores and just PIJE
+ OH_pith <- OH_pith[OH_pith$Core != "OH2_502",]
+ OH_pith <- OH_pith[OH_pith$Core != "OH2117",] # remove the two cores not in core_height
 
 # Need a species-specific height correction function
 # Check spp distributions
@@ -92,7 +96,7 @@ OH_correction <- cbind(cbind(rwl.stats(OH_rwl), apply(OH_rwl,2,GR15fun)), OH_pit
 
 ## 4.1 Incorporate core height. First, fix core_height Code names to match .rwl file
 core_height$Code[core_height$Code=="OH1501"] <- "OH1_501"
-core_height$Code[core_height$Code=="OH2502"] <- "OH2_502"
+# core_height$Code[core_height$Code=="OH2502"] <- "OH2_502"
 core_height$Code[core_height$Code=="OH1503"] <- "OH1_503"
 core_height$Code[core_height$Code=="OH2504"] <- "OH2_504"
 core_height$Code[core_height$Code=="OH2505"] <- "OH2_505"
@@ -121,7 +125,7 @@ names(OH_correction)[11] <- "GR15"
 #            year + wonglert + YearsToPith)
 
 OH_correction <- OH_correction %>%
-  filter(!is.na(dbh)) %>% 
+ # filter(!is.na(dbh)) %>% 
   mutate(fraver =
   0.591 * (HT+1)^0.665 + GR15^-0.497) %>% # Fraver equation
   mutate(corrected_age =
@@ -238,7 +242,9 @@ OH_snags <- OH_snags %>%
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
   mutate(ABCO_est = predict(ABCO_lm, newdata = OH_snags)) %>% 
   mutate(PICO_est = predict(PICO_lm, newdata = OH_snags)) %>% 
-  mutate(age_est = case_when(Spec=="PIJE" ~ PIJE_est,
+  mutate(age_est = case_when(Spec=="PIJE*" ~ PIJE_est, # fixing these 2/16/24
+                             Spec=="UNK" ~ PIJE_est, # fixing these 2/16/24
+                             Spec=="PIJE" ~ PIJE_est,
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
@@ -273,6 +279,11 @@ log_data <- rename(log_data, "dbh" = "LgDia")
 colnames(log_data)[1] = "Site"
 # subset to OH
 OH_logs <- log_data[log_data$Site=="OH",]
+#unique(OH_logs$Spec)
+#[1] "PIJE*" "PIJE"  "JUGR"  "PICO"  "ABCO"  "UNK"  
+OH_logs$Spec[OH_logs$Spec=="PIJE*"] <- "PIJE"
+OH_logs$Spec[OH_logs$Spec=="UNK"] <- "PIJE"
+
 # 2018 - [Years since death (based on decay class) + age from DBH] = establishment year
 # I will do a *placeholder*/best guess age correction for the logs. 1 = 10y, 2-3 = 15y, 4-5 = 20y
 OH_logs$log_correction[OH_logs$Dec == 1]=10
@@ -283,7 +294,9 @@ OH_logs <- OH_logs %>%
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
   mutate(ABCO_est = predict(ABCO_lm, newdata = OH_logs)) %>% 
   mutate(PICO_est = predict(PICO_lm, newdata = OH_logs)) %>% 
-  mutate(age_est = case_when(Spec=="PIJE" ~ PIJE_est,
+  mutate(age_est = case_when(Spec=="PIJE*" ~ PIJE_est, # fixing these 2/17/24
+                             Spec=="UNK" ~ PIJE_est, # fixing these 2/17/24
+                             Spec=="PIJE" ~ PIJE_est,
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
@@ -329,3 +342,19 @@ OH3_1941 <- OH_trees1941[OH_trees1941$Plot == "OH3",]
 OH1_1941 <- rename(OH1_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 OH2_1941 <- rename(OH2_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
 OH3_1941 <- rename(OH3_1941, "dbh2018" = "dbh", "dbh" = "dbh1941")
+
+#______________________________________________________________________________#
+# establishment histogram for cored trees
+OH_estab_cores <- hist(rwl.stats(OH_rwl)$first, breaks = (1980-1538)/10)
+# for estimated establishment (all trees)
+OH_estab_trees <- hist(OH_trees$estab_est, breaks=(1974-1539)/10)
+
+# size class distn
+OH_2018_hist <- hist(OH_trees$dbh)
+OH_1941_hist <- hist(OH_trees1941$dbh1941)
+
+# plot comparing age estimate model with observed, corrected ages for cored trees (purple dots)
+# need to correct for PIJE* and UNK
+model_v_cores_OH <- ggplot() +
+  geom_point(data = OH_trees, aes(x=dbh, y=age_est, group=Spec, color = Spec)) +
+  geom_point(data = OH_correction, aes(x=dbh, y=corrected_age), col="purple")
