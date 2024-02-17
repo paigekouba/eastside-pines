@@ -37,24 +37,37 @@ Crw.rad.pred = function(data,cr.coefs=-1){
   # Sort out species codes
   Species = as.character(data[,grep("Sp",colnames(data),ignore.case=T)])
   Species[grep("P|p",Species,fixed=T)]="PP"  # fixed=T restricts to only p
-  Species[grep("PP|PIPO|PIJE|PICO|PIJE*",Species,ignore.case=T)]="PP"
-  Species[grep("G|GF|ABGR|ABCO|WF",Species,ignore.case=T)]="GF"
-  Species[grep("RC|THPL|JUGR",Species,ignore.case=T)]="RC"
+  Species[grep("PP|PIPO|PIJE|PIJE*",Species,ignore.case=T)]="PP" # using ponderosa
+  Species[grep("PICO",Species,ignore.case=T)]="LP" # lodgepole pine
+  Species[grep("G|GF|ABGR|ABCO|WF",Species,ignore.case=T)]="WF" # white fir
+  Species[grep("RC|THPL|JUGR",Species,ignore.case=T)]="IC" # using incense cedar
   
   cr.rad = 	rep(0,length(dbh))
   
-  ## set up default coefs from East WA FIA & CVS Data
-  pp.coef =c( -1.3992691, 0.6416915)
-  gf.coef = c(  -0.882310, 0.526169)
-  rc.coef = c(  -0.436856, 0.426431)
+  # ## set up default coefs from East WA FIA & CVS Data
+  # pp.coef =c( -1.3992691, 0.6416915)
+  # gf.coef = c(  -0.882310, 0.526169)
+  # rc.coef = c(  -0.436856, 0.426431)
+  
+  ## set up coefs from Gill et al. 2000
+  pp.coef =c( 0.9488, 0.0356 )
+  lp.coef = c(  0.5230, 0.0440 )
+  wf.coef = c(  1.2256, 0.0299 )
+  ic.coef = c(  1.2960, 0.0256 )
 
-  coefs = data.frame(pp.coef,gf.coef,rc.coef); rownames(coefs)=c("Intcpt","log(dia)")
+  coefs = data.frame(pp.coef,lp.coef,wf.coef,ic.coef); rownames(coefs)=c("b0","b1")
   if (cr.coefs == -1) (cr.coefs = coefs)
   
-  ## run models
-  cr.rad[which(Species=="PP")] = exp(cr.coefs[1,1] + cr.coefs[2,1]*log(dbh[which(Species=="PP")]))
-  cr.rad[which(Species=="GF")] = exp(cr.coefs[1,2] + cr.coefs[2,2]*log(dbh[which(Species=="GF")]))  
-  cr.rad[which(Species=="RC")] = exp(cr.coefs[1,3] + cr.coefs[2,3]*log(dbh[which(Species=="RC")]))
+  # ## run models
+  # cr.rad[which(Species=="PP")] = exp(cr.coefs[1,1] + cr.coefs[2,1]*log(dbh[which(Species=="PP")]))
+  # cr.rad[which(Species=="GF")] = exp(cr.coefs[1,2] + cr.coefs[2,2]*log(dbh[which(Species=="GF")]))  
+  # cr.rad[which(Species=="RC")] = exp(cr.coefs[1,3] + cr.coefs[2,3]*log(dbh[which(Species=="RC")]))
+  
+  # ## run models
+  # cr.rad[which(Species=="PP")] = cr.coefs[1,1] + cr.coefs[2,1]*dbh[which(Species=="PP")]
+  # cr.rad[which(Species=="LP")] = cr.coefs[1,2] + cr.coefs[2,2]*dbh[which(Species=="LP")]  
+  # cr.rad[which(Species=="WF")] = cr.coefs[1,3] + cr.coefs[2,3]*dbh[which(Species=="WF")]
+  # cr.rad[which(Species=="IF")] = cr.coefs[1,4] + cr.coefs[2,4]*dbh[which(Species=="IC")]
   
   # Catch all for species with no coeff. PP as default
   cr.rad[which(cr.rad==0)] = exp(cr.coefs[1,1] + cr.coefs[2,1]*log(dbh[which(cr.rad==0)]))		
@@ -402,28 +415,6 @@ dpISn2 <- dpISn2 %>% # change all values to percentages for better comparison
   mutate(ymin.1N = 100*(ymin.1 - y)/y) %>% 
   mutate(ymax.1N = 100*(ymax.1 - y)/y)
 
-# Welch two-sample t-test, DBH
-t.test(IS_livetrees$dbh, IS_trees1941$dbh1941, var.equal=FALSE)
-# t = 6.7226, df = 696.47, p-value = 3.718e-11   difference in means is significant; 2018 trees are *bigger* at IS
-t.test(OH_livetrees$dbh, OH_trees1941$dbh1941, var.equal=FALSE)
-# t = -0.61142, df = 397.04, p-value = 0.5413   difference in means not significant; *no change* in size at OH
-
-# TPH
-t.test(dotplots_ISn$TPH.1, dotplots_ISn$TPH)
-# t = 0.037418, df = 2.2001, p-value = 0.9733   no sig diff in TPH at IS
-t.test(dotplots_OHn$TPH.1, dotplots_OHn$TPH)
-# t = 2.0448, df = 2.2099, p-value = 0.1653     no sig diff in TPH at OH
-t.test(c(dotplots_ISn$TPH.1, dotplots_OHn$TPH.1), c(dotplots_ISn$TPH, dotplots_OHn$TPH))
-# t = 1.1879, df = 8.2348, p-value = 0.268; 22 ( -20.49607  64.49607 95% CI) *no change* in TPH at p<0.05 level
-
-# BAH
-t.test(dotplots_ISn$BAH.1, dotplots_ISn$BAH)
-# t = 7.9895, df = 2.6744, p-value = 0.006129   sig diff in BAH at IS; 2018 value is higher
-t.test(dotplots_OHn$BAH.1, dotplots_OHn$BAH)
-# t = 3.2148, df = 2.2894, p-value = 0.07076    almost sig diff in BAH at OH; 2018 value is higher
-t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BH.1), c(dotplots_ISn$baH, dotplots_OHn$BAH))
-# t = 10.989, df = 2.9309, p-value = 0.001792; 16.06667 (11.35091 20.78242)  difference is significant; 2018 BAH is *higher*
-
 # Now O'Harrell Canyon ones
 summaries_OH <- filter(summaries, Site =="OH")
 dotplots_OH <- cbind(filter(summaries_OH, Year == 1941), filter(summaries_OH, Year == 2018))
@@ -445,6 +436,28 @@ dpOHn2 <- dpOHn2 %>%
   mutate(ymin.1N = 100*(ymin.1 - y)/y) %>% 
   mutate(ymax.1N = 100*(ymax.1 - y)/y)
 
+# Welch two-sample t-test, DBH
+t.test(IS_livetrees$dbh, IS_trees1941$dbh1941, var.equal=FALSE)
+# t = 6.7226, df = 696.47, p-value = 3.718e-11   difference in means is significant; 2018 trees are *bigger* at IS
+t.test(OH_livetrees$dbh, OH_trees1941$dbh1941, var.equal=FALSE)
+# t = -0.11542, df = 446.22, p-value = 0.9082   difference in means not significant; *no change* in size at OH
+
+# TPH
+t.test(dotplots_ISn$TPH.1, dotplots_ISn$TPH)
+# t = 0.037418, df = 2.2001, p-value = 0.9733   no sig diff in TPH at IS
+t.test(dotplots_OHn$TPH.1, dotplots_OHn$TPH)
+# t = 1.8671, df = 2.0835, p-value = 0.1977     no sig diff in TPH at OH
+t.test(c(dotplots_ISn$TPH.1, dotplots_OHn$TPH.1), c(dotplots_ISn$TPH, dotplots_OHn$TPH))
+# t = 1.1072, df = 8.4639, p-value = 0.2987; 19.8 ( -21.08453  60.75120 95% CI) *no change* in TPH at p<0.05 level
+
+# BAH
+t.test(dotplots_ISn$BAH.1, dotplots_ISn$BAH)
+# t = 7.9895, df = 2.6744, p-value = 0.006129   sig diff in BAH at IS; 2018 value is higher
+t.test(dotplots_OHn$BAH.1, dotplots_OHn$BAH)
+# t = 3.1419, df = 2.3059, p-value = 0.07332    almost sig diff in BAH at OH; 2018 value is higher
+t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BH.1), c(dotplots_ISn$baH, dotplots_OHn$BAH))
+# t = 10.813, df = 2.978, p-value = 0.001749; 15.9 (11.20076 20.59924)  difference is significant; 2018 BAH is *higher*
+
 # here is the one with standardized values
 #install.packages("gridExtra")
 library(gridExtra)
@@ -453,14 +466,16 @@ ISdots <- ggplot() +
   geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
   coord_flip() +
   ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
-  xlab("Metric") + ylab("Percent Change")
+  xlab("Metric") + ylab("Percent Change") +
+  theme_bw()
 OHdots <- ggplot() +
   geom_pointrange(data = dpOHn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 1, color="red", size=1) + 
   geom_pointrange(data = dpOHn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
   coord_flip() +
   ggtitle("Change in Nonspatial Forest Metrics \nat O'Harrell Canyon") +
-  xlab("Metric") + ylab("Percent Change")
-grid.arrange(ISdots, OHdots, ncol=2)
+  xlab("Metric") + ylab("Percent Change") +
+  theme_bw()
+dotplots <- grid.arrange(ISdots, OHdots, ncol=2)
 
 #______________ ICO stats _______________# 
 
@@ -470,23 +485,23 @@ grid.arrange(ISdots, OHdots, ncol=2)
 
 # what is average cluster size at IS in 1941 and 2018?
 # get average cluster size from plots c(2,4,6) [1941] and c(1,3,5) [2018]
-mean(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.507614 in 1941
-mean(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.728814 in 2018
+mean(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 2.073333 in 1941
+mean(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.691667 in 2018
 t.test(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size), c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size))
-# diff + 1.2212, 0.7249165 1.7174822, p-value = 3.096e-06
+# diff + 0.618334, -0.0524465  1.2891132, p-value = 0.07058
 
 # what is average cluster size at OH in 1941 and 2018?
 # get average cluster size from plots c(8,10,12) [1941] and c(7,9,11) [2018]
-mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 1.262295 in 1941
-mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)) # 2.08 in 2018
+mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 1.401639 in 1941
+mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)) # 2.536 in 2018
 t.test(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size), c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size))
-# diff +  0.817705, 0.4380618 1.1973481, p-value = 3.445e-05
+# diff +  1.134361, 0.6247905 1.6439308, p-value = 2.082e-05
 
 # what is average cluster size across both sites in 1941 and 2018?
-mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.413793 in 1941
-mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.365672 in 2018
+mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.772059 in 1941
+mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.612245 in 2018
 t.test(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size), c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size))
-# diff + 0.951879, 0.6439002 1.2598569, p-value = 3.377e-09
+# diff + 0.840186, 0.4158601 1.2645120, p-value = 0.0001177
 
 # proportion of single trees, IS
 sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1) # 140 in 1941
@@ -540,3 +555,32 @@ sum(c(plots_out[[1]]$clusters$bin=="10-15"), plots_out[[3]]$clusters$bin=="10-15
 # 268 clusters in 2018
 5/268 # 0.01865672, 1.9% of clusters are 10-15s in 2018
 
+# are trees found close to the edge more likely to be in small clusters?
+# get x,y coordinates and cluster size bin for all stems
+# group bins by <= 51m from center, > 51 m from center
+# if > 51 m group has higher proportion of singles/2-4s, might be an issue
+
+edge_trees <- plots_out[[11]]$trees.noedge %>% dplyr::select(x, y, bin) %>% 
+  mutate(ctr_dist = sqrt((x^2)+(y^2))) %>% 
+  filter(ctr_dist > 51.4) 
+
+inner_trees <- plots_out[[11]]$trees.noedge %>% dplyr::select(x, y, bin) %>% 
+  mutate(ctr_dist = sqrt((x^2)+(y^2))) %>% 
+  filter(ctr_dist <= 51.4) 
+
+sum(inner_trees$bin=="1" | inner_trees$bin =="2-4")/length(inner_trees$bin) # 0.656
+sum(inner_trees$bin!="1" & inner_trees$bin !="2-4")/length(inner_trees$bin) # 0.344
+
+sum(edge_trees$bin=="1" | edge_trees$bin =="2-4")/length(edge_trees$bin) # 0.412
+sum(edge_trees$bin!="1" & edge_trees$bin !="2-4")/length(edge_trees$bin) # 0.588
+
+#       small/large,  in    vs   out              smaller bins over represented at edge?
+# plot 1:       0.656/0.344     0.412/0.588       N
+# plot 3:       0.532/0.467     0.815/0.185       Y
+# plot 5:       0.555/0.445     1.000/0.000       Y
+# plot 7:       0.621/0.379     1.000/0.000       Y
+# plot 9:       0.667/0.333     0.484/0.516       N
+# plot 11:      o.720/0.280     0.682/0.318       N
+
+library(dplyr)
+dplyr::select(plots_out[[1]]$trees.noedge, x, y, bin)
