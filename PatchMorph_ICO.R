@@ -1,120 +1,96 @@
 # PatchMorph to find openings
+
+# what gap radius?
+
+# "set gap threshold to the *minimum* diameter for crowns across all plots"
+# "We set ours to 3 m, as all but one tree in our plots had a crown radius > 1.5 m" -- Ng 2020
+
+allcrwndf <- lapply(plots_out, function(x) x[[11]])
+allcrwn <- unlist(lapply(allcrwndf, function(x) x[[6]]))
+
+ggplot(as.data.frame(allcrwn), aes(x = allcrwn*2)) + # distribution of tree crown *diameters*
+  geom_histogram() +
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.6096  
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 7.955744 
+  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.733178
+  ggtitle("Crown Diameters, All Sites, All Years") +
+  xlab("Crown Diamter (m)") + ylab("Frequency")
+
+sum(allcrwn < 1)*100/length(allcrwn) # 0.49
+sum(allcrwn > 5)*100/length(allcrwn) # 1.710098
+# sum(allcrwn > 4)*100/length(allcrwn) # 9.771987
+
+min(allcrwn)*2 # 1.662 is the smallest tree crown across all the plots and both times
+max(allcrwn)*2 # 11.95104 is the biggest tree crown across all the plots and both times
+
 library(raster)
 library(sf)
 library(sp)
 library(terra)
-# prepare data: one plot (plot 9, OH2 in 2018) for testing
+# prepare data: one plot (plot 4, IS3 in 1941) for testing
+## checking plot 9 (OH2 in 2018) because of the error at PM result stage
 pm_df <- data.frame(X=plots_out[[9]]$trees.noedge$x, Y=plots_out[[9]]$trees.noedge$y, crown=plots_out[[9]]$trees.noedge$crown)
-ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
-bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle #, crs = custom_crs) 
-stems <- st_as_sf(pm_df, coords = c("X", "Y")) #, crs = custom_crs) # points for each tree w/dbh attribute
-crowns = st_buffer(stems, dist = stems$crown) # |> st_union()
-notcrowns <- st_difference(bound, st_union(crowns)) # all area in non-crown space
-tester2 <- rasterize(notcrowns, raster(extent(notcrowns), res = 0.1)) # turns sf into a raster -- this one is for all non-crown areas and value = 1
-crs(tester2) <- "local"
+# reproducible example:
+#Xs <- plots_out[[4]]$trees.noedge$x
+# [1] -54.3 -53.6 -52.4 -48.5 -47.0 -45.8 -45.6 -40.6 -39.5 -39.2 -36.1 -35.2 -34.6 -34.1 -30.3 -28.2 -27.7 -26.0 -25.9
+# [20] -25.9 -23.1 -21.6 -21.2 -20.5 -17.9 -17.3 -15.9 -15.4 -14.6 -10.0  -5.5  -4.9  -2.3  -1.9   0.3   2.2   4.3   4.7
+# [39]   6.0   6.9   8.6   9.1  10.4  13.5  13.9  16.8  22.3  28.1  31.4  36.0  37.7  50.0  50.7   5.2  -3.3  27.4  26.6
+# [58]  -2.2  -5.4   0.6 -29.9
+#Ys <- plots_out[[4]]$trees.noedge$y
+# [1]   3.2  -5.1   7.2 -20.5 -25.3 -26.0 -21.3  -0.2  12.7 -34.4 -35.6  36.5  23.5  -9.3  -1.9  35.4  18.0 -37.6 -26.9
+# [20] -11.9 -41.0  24.3  12.2  30.0   5.4  32.9  -4.3 -28.8  24.1 -23.0 -55.7  14.4  12.2 -53.1  -7.1 -13.8 -13.2  48.1
+# [39]   6.5  35.5  10.4  41.7  16.7  53.4  52.0 -12.8 -30.8 -25.0 -40.9 -22.7  41.5 -21.3  12.3  20.3  23.6  40.1 -10.8
+# [58] -32.3 -34.9 -36.0  24.0
+#Cs <- plots_out[[4]]$trees.noedge$crown
+# [1] 1.4116 1.1624 1.2336 3.5476 2.4084 1.7676 2.7644 1.1268 3.7612 1.5540 1.2336 3.3340 1.1980 1.1624 2.2304 2.6220
+# [17] 3.6188 1.5540 3.4764 3.8324 1.5896 2.4440 1.1268 3.2272 3.7968 3.4764 3.5476 3.7256 4.1528 2.7644 1.5896 2.8000
+# [33] 4.2240 1.9812 4.4732 3.4408 2.8356 1.2336 3.6188 1.4828 3.9392 1.8744 5.1140 3.2984 3.5120 3.9748 3.4408 3.0136
+# [49] 4.1528 5.2208 4.0460 2.6932 4.3308 2.9424 1.5896 1.5540 4.0104 2.1236 2.2304 2.6576 1.5540
+# pm_df <- data.frame(X=Xs, Y=Ys, crown=Cs)
 
-# patchMorph code original:
+ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
+bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle
+stems <- st_as_sf(pm_df, coords = c("X", "Y")) # points for each tree w/dbh attribute
+crowns = st_buffer(stems, dist = stems$crown) # each crown defined as a circle with r=crown radius
+notcrowns <- st_difference(bound, st_union(crowns)) # all area in non-crown space
+yescrowns <- st_difference(bound, st_union(notcrowns)) # all area in crown space
+
+r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 0.1)) # turns sf into a rasterlayer -- this one is for all non-crown areas
+# want now to make a raster with 1s for not-crown and 0s for crown
+r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=0.1)) # sf --> rasterlayer, this time for all crown areas
+
+values(r_yescrowns)[values(r_yescrowns) == 1] <- 0 # reassign all values in crown areas to 0 ("unsuitable")
+
+r_test <- merge(r_notcrowns, r_yescrowns) # creates one rasterlayer with 0s in crown areas, 1s everywhere else
+sr_test <- rast(r_test) # makes into a spatRaster
+crs(sr_test) <- "local" # set crs to Cartesian plane in meters
+
+# patchMorph code:
 # https://rdrr.io/github/bi0m3trics/patchwoRk/man/patchMorph.html
 
-patchMorph <- function(data_in, buffer = 2, suitThresh=-1, gapThresh=-1, spurThresh=-1, suitVals=-1, gapVals=-1, spurVals=-1, proj4=-1,verbose = TRUE...)
-{  # check input parameters and determine appropriate method based on input data type
-  if(length(suitThresh) == 1)
-    class(data_in) <- "SpatRaster"
-  if(length(suitVals) > 1)
-    class(data_in) <- "pmMulti"
-  UseMethod("patchMorph", data_in)
-}
-
-getCircleKernel <- function(radius)
-{ # generates a circular kernel matrix based on specified radius
-  # the kernel defines the spatial neighborhood around each pixel, identifying which neighboring pixels are in or outside the circle with the specified radius. In this code, the kernel applied for gaps uses a radius of as.integer(gapThresh/2), while the kernel applied for spurs uses a radius of as.integer(spurThresh/2)
-  kernel_side <- 2 * as.integer(radius) + 1 # kernel side based on radius
-  kernel_y <- matrix(rep(radius:-radius, kernel_side), ncol=kernel_side) # get kernel matrix coordinates
-  kernel_x <- -t(kernel_y)
-  kernel   <- matrix(as.matrix(dist(cbind(as.vector(kernel_x), as.vector(kernel_y))))[as.integer((kernel_side^2) / 2) + 1,], ncol=kernel_side) # calculates distances from kernel center
-  # set threshold distances to create circular kernel
-  kernel[kernel <= radius] <- 0
-  kernel[kernel > 0]  <- 1
-  kernel <- 1 - kernel # invert kernel to mark the area outside the circle
-  return(kernel) # by the end of this process, there's a square window (r/2)+1 pixels across, with a circle of 1s in the center that are <= r pixels from the central pixel
-}
-
-patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh = 2, spurThresh = 2, verbose = TRUE)
-  # try adding resolution as a parameter in the function definition, then change in "gapKernel" and "spurKernel" below
-{ # check validity of threshold parameters specified in the function call
-  if(!is.numeric(c(suitThresh, gapThresh, spurThresh)))
-    stop("suitThresh, gapThresh, and spurThresh must be numeric.")
-  if(gapThresh < 2 | spurThresh < 2)
-    stop("Gap/Spur threshold is too small! Must be at least twice the raster resolution.")
-  
-  ## Set up the crs, the extent, and a NA mask for the original raster
-  r.crs <- terra::crs(data_in)
-  r.e <- terra::ext(data_in)
-  e.mask <- terra::mask(data_in, subst(data_in, 0:1, 1))
-  
-  ## Extend the raster by the buffer (cropped before return)
-  data_in <- terra::extend(data_in, buffer, fill=NA)
-  
-  ## Get circular kernels for gap and spur thresholds
-  gapKernel  <- getCircleKernel(as.integer(gapThresh / 2)) # original
-  spurKernel <- getCircleKernel(as.integer(spurThresh / 2))
-  # gapKernel  <- getCircleKernel(as.integer(gapThresh / 2), 0.5) # with resolution 
-  # spurKernel <- getCircleKernel(as.integer(spurThresh / 2), 0.5)
-  
-  ## Get the euclidean distances to suitable habitat, and ensure the extent is the same as original
-  data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
-  
-  ## Apply a focal maximum
-  data_in <- terra::focal(data_in, gapKernel, fun="max", na.policy="omit", na.rm=TRUE)
-  # data_in <- terra::mask(data_in, e.mask)
-  # a circular window defined  by the gapKernel is centered around each pixel; the values of all pixels within the focal window thus established are considered. The max pixel value is calculated and then assigned to the central pixel. This process is repeated for every pixel in the raster, resulting in a new raster where each pixel value represents the maximum value within its neighborhood.
-  
-  if(verbose == TRUE)
-    cat("Processing gap threshold diameter:", ncol(gapKernel)-1,"pixels\n")
-  ## Reclassify based on the gap threshold
-  # data_in[data_in <= (ncol(gapKernel)+1)/2] <- 1 # original
-  # data_in[data_in > (ncol(gapKernel)+1)/2] <- 0
-  data_in[data_in <= (ncol(gapKernel)+1)/2] <- 0 
-  data_in[data_in > (ncol(gapKernel)+1)/2] <- 1 # switched to make openings "suitable"
-  
-  ## Check to see if there's still non-suitable pixels in the raster, otherwise return data_in
-  if( (sum(data_in[terra::values(data_in)==1]) + sum(is.na(terra::values(data_in))) ) == ( nrow(data_in)*ncol(data_in)) ) return(data_in)
-  
-  ## Get the euclidean distances to non-suitable habitat, and ensure the extent is the same as original
-  data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
-  
-  ## Apply a focal maximum
-  data_in <- terra::focal(data_in, spurKernel, fun="max", na.policy="omit", na.rm=TRUE)
-  # data_in <- terra::mask(data_in, e.mask)
-  
-  if(verbose == TRUE)
-    cat("Processing spur threshold diameter:",ncol(spurKernel)-1, "pixels\n")
-  ## Reclassify based on the spur threshold
-  # data_in[data_in <= (ncol(spurKernel)+1)/2] <- 0
-  # data_in[data_in > (ncol(spurKernel)+1)/2] <- 1
-  data_in[data_in <= (ncol(spurKernel)+1)/2] <- 1
-  data_in[data_in > (ncol(spurKernel)+1)/2] <- 0 # switched to make spurs "unsuitable"
-  
-  # Crop the raster to the original extent
-  data_in <- terra::crop(data_in, e.mask, mask=TRUE)
-  
-  return(data_in)
-}
+devtools::install_github("bi0m3trics/patchwoRk")
+library(patchwoRk)
 
 # explanation of gap and spur, conceptually, from Girvetz and Greco 2007:
 # (1) land cover density threshold (suitThresh), (2) habitat gap maximum thickness (gapThresh), and (3) habitat patch minimum thickness (spurThresh)
-pm.rast <- patchMorph.SpatRaster(rast(tester2), buffer = 5, suitThresh = 1, gapThresh = 6, spurThresh = 7, verbose = TRUE)
-plot(pm.rast, main="PatchMorph Results (Gap-6 & Spur-7)", col = c("#332211", "#FEC44F"))
-# this code with these parameters (gap 6, spur 7) produces a map that looks right; min opening size ~= max canopy, and openings can snake through the trees but not to a ridiculous extent (cf Lydersen)
+
+plot(sr_test, col=c("white", "#FEC44F"), main="Starting SpatRaster") # 0s in crowns (white), 1s everywhere else (yellow)
+pm.rast <- patchMorph(sr_test, buffer = 5, suitThresh = 1, gapThresh = 2, spurThresh = 12, verbose = TRUE) # 
+plot(pm.rast,  main="PatchMorph Results (Gap-8 & Spur-6)", col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0!
+plot(crowns, col="black", add=TRUE)
 
 # convert to polygons for area calculations and mapping
 pm.vect <- as.polygons(pm.rast, values = TRUE) # turns SpatRaster into SpatVector
 pm.sf <- st_as_sf(pm.vect) # turns SpatVector into sf with a multipolygon for 0 and for 1
-# take the multipolygon for cells with "1" attribute and turn it into lots of polygons
-pm.sf1 <- pm.sf %>% filter(focal_max == 1)
-pm.sfs <- st_cast(pm.sf1, "POLYGON")
+# # take the multipolygon for cells with "1" attribute and turn it into lots of polygons
+# pm.sf1 <- pm.sf %>% filter(focal_max == 1)
+# take the multipolygon for cells with "0" attribute and turn it into lots of polygons !! this because 0 and 1 are flipped !!
+pm.sf0 <- pm.sf %>% filter(focal_max == 0)
+# pm.sf1 <- pm.sf %>% filter(focal_max == 1)
+# pm.sfs <- st_cast(pm.sf1, "POLYGON")
+pm.sfs <- st_cast(pm.sf0, "POLYGON")
 pm.sfs$area <- st_area(pm.sfs)
-sum(pm.sfs$area) # 4672.42 
+sum(pm.sfs$area) # 4887.83 
 
 # loop this over all plots!
 # fn to convert plot x,y coords to spatRaster
@@ -122,44 +98,45 @@ sum(pm.sfs$area) # 4672.42
 ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
 bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle 
 
-xy_sr <- function(plot){ # fn to convert plot x,y coords to not-crowns spatRaster with local crs
+# fn to convert plot x,y coords to not-crowns spatRaster with local crs [and vals for crown, notcrown, commmented out rn]
+xy_sr <- function(plot){ 
   df <- data.frame(X=plots_out[[plot]]$trees.noedge$x, Y=plots_out[[plot]]$trees.noedge$y, crown=plots_out[[plot]]$trees.noedge$crown)
   stems <- st_as_sf(df, coords = c("X", "Y")) #, crs = custom_crs) # points for each tree w/dbh attribute
   crowns = st_buffer(stems, dist = stems$crown) 
   notcrowns <- st_difference(bound, st_union(crowns)) # all area in non-crown space
-  spatRast <- rast(rasterize(notcrowns, raster(extent(notcrowns), res = 0.1)))  # turns sf into a raster -- this one is for all non-crown areas and value = 1
+  yescrowns <- st_difference(bound, st_union(notcrowns)) # all area in crown space (non-overlapping, values = 1)
+  r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 0.1)) 
+  r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=0.1))
+  values(r_yescrowns)[values(r_yescrowns) == 1] <- 0
+  spatRast <- rast(merge(r_notcrowns, r_yescrowns))
   crs(spatRast) <- "local"
   return(spatRast)
 }
 # test
-#plot(xy_sr(9)) # works!
+# plot(xy_sr(4)) # works!
 
 # for loop for openings spatrasters from plots, converted to sf polygons and filtered for "1" attribute
-opes_sr <- list()
-for (i in 1:length(plots_out)){
-  opes_sr[i] <- st_cast(filter(st_as_sf(as.polygons(patchMorph.SpatRaster(xy_sr(i), buffer = 5, suitThresh = 1, gapThresh = 6, spurThresh = 7, verbose = FALSE)), values = TRUE), focal_max == 1), "POLYGON")
-} # result should be a set of polygons for each of 12 plots, representing the separate openings
 
 opes_sr <- list()
 for (i in 1:length(plots_out)){
-  thingy <- patchMorph.SpatRaster(xy_sr(i), buffer = 5, suitThresh = 1, gapThresh = 6, spurThresh = 7, verbose = FALSE) %>% 
+  thingy <- patchMorph(xy_sr(i), buffer=5, suitThresh=1, gapThresh=8, spurThresh=6, verbose=FALSE) %>%
   as.polygons(values = TRUE) %>% 
   st_as_sf() %>% 
-  filter(focal_max ==1) %>% 
+# filter(focal_max == 1) %>% # this part could be a place I can fix the 1/0 issue
+  filter(focal_max == 0) %>% # indeed, for now the 1s and 0s are flipped in PM; filter out 1s, keep 0s
   st_cast("POLYGON")
+  
+  st_crs(thingy) <- "local" # attempt to fix ggplot error "cannot transform sfc object with missing crs"
   
   opes_sr[[i]] <- thingy
 } 
-# test -- not working bc number of items to replace is not a multiple of replacement length
-# plot(opes_sr[[2]], col = "lavender")
-# ok! I am not happy with the snakiness of the super gap in e.g. plot 2... but moving on for now
 
 # I will calculate their associated areas
 for (i in 1:length(plots_out)){
   opes_sr[[i]]$area <- st_area(opes_sr[[i]])
 }
 
-# step A: add opes_sr polygons to ICO maps
+# step A: add opes_sr polygons to ICO maps # check!
 
 # step B: add opes_sr summed areas to pie charts (one per site per year = 4)
 
@@ -177,34 +154,32 @@ opes2018 <- c(as.vector(opes_sr[[1]]$area, mode = "numeric"), as.vector(opes_sr[
 opes1941 <- c(as.vector(opes_sr[[2]]$area, mode = "numeric"), as.vector(opes_sr[[4]]$area, mode = "numeric"), as.vector(opes_sr[[6]]$area, mode = "numeric"), as.vector(opes_sr[[8]]$area, mode = "numeric"), as.vector(opes_sr[[10]]$area, mode = "numeric"), as.vector(opes_sr[[12]]$area, mode = "numeric"))
 
 opes_all <- data.frame(Opes = c(opes1941, opes2018), Year = c(rep(1941, length(opes1941)), rep(2018, length(opes2018))))
-ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
+
+gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
   geom_histogram(bins = 11, position="dodge") +
+  scale_fill_manual(values = c("#cf4411", "black")) +
   stat_bin(geom="text", bins=11, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) + 
            scale_x_continuous(breaks = round(seq(50, 7550, length.out = 11))) +
            scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
   theme_classic()
 
+min(opes_all[opes_all$Year==1941,]) # 69.8
+max(opes_all[opes_all$Year==1941,]) # 6691.46
+mean(sapply(opes_all[opes_all$Year==1941,], as.numeric)) # 1577.804
+
+min(opes_all[opes_all$Year==2018,]) # 54.2
+max(opes_all[opes_all$Year==2018,]) # 6419.23
+mean(sapply(opes_all[opes_all$Year==2018,], as.numeric)) # 1381.669
+
+
 
 # Pie Charts -- IS (1941, 2018) and OH (1941, 2018)
 
 # pull area in clusters of each bin size
-# make a df with X, Y, crown, and bin, for plot # 9 as a test
-clust_area_df <- data.frame(X=plots_out[[9]]$trees$x, Y=plots_out[[9]]$trees$y, crown=plots_out[[9]]$trees$crown, bin=plots_out[[9]]$trees$bin)
-# split into bin levels, then calculate per-bin proportional areas
-#levels(plots_out[[9]]$trees$bin) # 6 levels
-# try this approach on cluster bin "2-4": make a polygon of just those trees, find the area of union, find intersection of that w bound
-two_four = st_buffer(st_as_sf(clust_area_df[clust_area_df$bin == "2-4",], coords = c("X","Y")), dist = clust_area_df[clust_area_df$bin == "2-4",]$crown) |> st_union() 
-plot(two_four)
-two_four_bound <- st_intersection(bound, st_cast(two_four))
-st_area(two_four_bound)*10000/st_area(bound_buff) # this finds the per-ha area of the shape representing all 2-4 clusters
-# this worked; need to do it over all bins, for all plots
-
-
+# I now think this should use trees.noedge also
 # make it a nested for lop: the outer loop applies, across all 12 plots, the inner loop to calculate proportional cluster area (across all bins)
 bin_names <- levels(plots_out[[9]]$trees$bin)
-
-# I now think this should use trees.noedge also
 
 clust_areas_all <- list()
 for (j in 1:length(plots_out)){
@@ -246,15 +221,14 @@ for (i in 1:length(plots_out)){
   interst_perplot[i] <- 10000 - sum(unlist(piebins[i,]), na.rm=TRUE)
 }
 piebins$interst <- interst_perplot
-piebins <- piebins[,-8] # removes 30+ category since there were no observed clusters in that bin
 
 tpiebins <- as.data.frame(t(piebins))
 colnames(tpiebins) <- c(1:12)
 
 # ok we will try to make pie charts using piebins. Start with plot 9   
 library(RColorBrewer)
-my.cols <- brewer.pal(6, "YlGn")
-my.cols <- c("white", "#FEC44F", my.cols[2:6])
+my.cols <- brewer.pal(5, "YlGn")
+my.cols <- c("white", "#FEC44F", my.cols[2:5])
 
 library(scales)
 blank_theme <- theme_minimal()+
@@ -326,3 +300,16 @@ pie_OH41 <- ggplot(bins_OH41, aes(x="", y=bins_OH41[,], fill=factor(rownames(bin
 
 grid.arrange(pie_IS41, pie_IS18, ncol=2)
 grid.arrange(pie_OH41, pie_OH18, ncol=2)
+
+grid.arrange(pie_IS41, pie_IS18, pie_OH41, pie_OH18, ncol=2)
+
+# math on area in interst, gap, size bins
+IS_change <- cbind(bins_IS41, bins_IS18)
+names(IS_change) <- c("IS_1941", "IS_2018")
+IS_change <- IS_change %>% mutate(change = (IS_2018/3) - (IS_1941/3)) %>% 
+  mutate(pct_change = change*100/10000)
+
+OH_change <- cbind(bins_OH41, bins_OH18)
+names(OH_change) <- c("OH_1941", "OH_2018")
+OH_change <- OH_change %>% mutate(change = (OH_2018/3) - (OH_1941/3)) %>% 
+  mutate(pct_change = change*100/10000)
