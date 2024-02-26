@@ -1850,6 +1850,15 @@ t(summ.bins1) # gives the per-bin chunk of the results table!!
 summary_table <- rbind(t(summ.bins1), t(summ.bins2), t(summ.bins3), t(summ.bins4))
 # summary_table <- replace(summary_table, summary_table == "NaN", "-")
 
+# need to loop this function over bin size
+# summ.bins <- data.frame(matrix(0,length(bin_names),6))
+# for (i in 1:length(bin_names)){
+#   summ.bins[i,] <- summ.bin(indices,i)
+# }
+# this gives a df with 6 columns (one per metric) and 4 rows (one per bin)
+# want to run this for all 6 plot groups (IS41, OH41, all41; IS18, OH18, all18)
+
+# actually, (ended up looping by index and applying to bins manually)
 
 # NEVER NEVER GIVE UP
 
