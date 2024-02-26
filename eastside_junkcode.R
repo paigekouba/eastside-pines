@@ -1860,6 +1860,267 @@ summary_table <- rbind(t(summ.bins1), t(summ.bins2), t(summ.bins3), t(summ.bins4
 
 # actually, (ended up looping by index and applying to bins manually)
 
+# redone summary metrics as averages per plot, averaged over # plots in (index)
+# now do it again for all IS in 2018 (plots 1, 3, 5) -- eventually this will have a loop over "bin", and will be a function of "indices" (vector of plot #s)
+indices <- c(1,3,5)
+n.ha <- length(indices)
+
+selected_data <- lapply(indices, function(i) { # n.clust.bin
+  clusters <- plots_out[[i]][[12]] %>% 
+    filter(bin == "2-4")
+  return(nrow(clusters)) })
+round(sum(unlist(selected_data))/n.ha,1) # 17.7 small clusters at IS in 2018 !! double-check this one for n = 6
+round(sd(unlist(selected_data)), 1) # sd = 3.1
+
+selected_data <- lapply(indices, function(i) { # p.trees.bin
+  trees.bin <- plots_out[[i]][[11]] %>% 
+    filter(bin == "2-4")
+  trees.ne <- plots_out[[i]][[11]] 
+  return(list(nrow(trees.bin), nrow(trees.ne))) })
+round(
+  mean(
+    (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[1]])))*100/ # take trees.bin per plot, x100
+      (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[2]])))) # divide each by all trees per plot
+  ,1) # 45.6%
+round(
+  sd(
+    (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[1]])))*100/ # take trees.bin per plot, x100
+      (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[2]])))) # divide each by all trees per plot
+  ,1) # sd = 4.9
+
+selected_data <- lapply(indices, function(i) { # mDBH.bin
+  trees.bin <- plots_out[[i]][[11]] %>% 
+    filter(bin == "2-4")
+  dbh <- trees.bin[,3]
+  return(dbh) })
+# round(mean(unlist(selected_data)),1) # 51.4 cm mean DBH
+# round(sd(unlist(selected_data)),1) # 30.5 ... not sure why this is so high!
+# maybe I should try average of averages approach. OK:
+round(mean(unlist(lapply(c(1:length(indices)), function(x) mean(selected_data[[x]])))),1) # 51.5
+round(sd(unlist(lapply(c(1:length(indices)), function(x) mean(selected_data[[x]])))),1) # 6.2
+
+selected_data <- lapply(indices, function(i) { # ba.bin
+  clusters <- plots_out[[i]][[12]] %>% 
+    filter(bin == "2-4")
+  ba <- clusters[,2]
+  return(ba) })
+round(sum(unlist(selected_data)/n.ha),1) # 13.6 m2/ha
+# redo as average of averages
+round(mean(unlist(lapply(c(1:length(indices)), function(x) sum(selected_data[[x]])))),1) # 13.6 m2/ha
+round(sd(unlist(lapply(c(1:length(indices)), function(x) sum(selected_data[[x]])))),1) # sd = 3.0
+
+selected_data <- lapply(indices, function(i) { # tph.bin
+  trees.bin <- plots_out[[i]][[11]] %>% 
+    filter(bin == "2-4")
+  return(nrow(trees.bin)) })
+round(sum(unlist(selected_data))/((sum(piebins[indices,4])/10000)),1) # 515.4
+# redo as average of averages
+round(mean(unlist(selected_data)/((piebins[indices,4])/10000)),1) # 536.1
+round(sd(unlist(selected_data)/((piebins[indices,4])/10000)),1) # sd = 123.5
+
+round(sum(piebins[indices,4]*100)/(10000*n.ha),1) # 10.7% p.area.bin
+# redo as average of averages
+round(mean(piebins[indices,4]*100/(10000)),1) # 10.7% p.area.bin
+round(sd(piebins[indices,4]*100/(10000)),1) # sd = 3.5
+
+
+# copy of summ.bin function with avg of avgs, sd
+
+summ.bin <- function(indices, bin.i){
+  
+  n.clust <- lapply(indices, function(i) { # n.clust.bin
+    clusters <- plots_out[[i]][[12]] %>% # for every plot in the list "indices", take the 12th element (clusters)
+      filter(bin == bin_names[bin.i]) # filter for bin size
+    return(nrow(clusters)) }) # how many clusters of this size?
+  n.clust.bin <- round(mean(unlist(n.clust)),1) # 17.7 small clusters/ha at IS in 2018
+  n.clust.bin.sd <- round(sd(unlist(n.clust)),1) # sd
+  
+  p.trees <- lapply(indices, function(i) { # p.trees.bin
+    trees.bin <- plots_out[[i]][[11]] %>% # for every plot in the list "indices", take the 11th element (trees.noedge)
+      filter(bin == bin_names[bin.i]) # filter for bin size 
+    trees.ne <- plots_out[[i]][[11]] # save all the info in trees.noedge
+    return(list(nrow(trees.bin), nrow(trees.ne))) }) # gives a list of the trees in this bin, followed by the total trees, for each plot in (indices)
+  p.trees.bin <- round(  mean(  (unlist(lapply(c(1:length(indices)), function(x) p.trees[[x]][[1]])))*100/
+                                  (unlist(lapply(c(1:length(indices)), function(x) p.trees[[x]][[2]])))  ), 1) # avg % of trees/plot for this bin
+  p.trees.bin.sd <- round(  sd(  (unlist(lapply(c(1:length(indices)), function(x) p.trees[[x]][[1]])))*100/
+                                   (unlist(lapply(c(1:length(indices)), function(x) p.trees[[x]][[2]])))  ), 1) # sd of % trees/plot for this bin
+  
+  mDBH <- lapply(indices, function(i) { # mDBH.bin
+    trees.bin <- plots_out[[i]][[11]] %>% 
+      filter(bin == bin_names[bin.i])
+    dbh <- trees.bin[,3]
+    return(dbh) })
+  mDBH.bin <- round(mean(unlist(lapply(c(1:length(indices)), function(x) mean(mDBH[[x]])))),1) # 51.4 cm mean DBH
+  mDBH.bin.sd <- round(sd(unlist(lapply(c(1:length(indices)), function(x) mean(mDBH[[x]])))),1)
+  
+  ba <- lapply(indices, function(i) { # ba.bin
+    clusters <- plots_out[[i]][[12]] %>% 
+      filter(bin == bin_names[bin.i])
+    ba <- clusters[,2]
+    return(ba) })
+  ba.bin <- round(mean(unlist(lapply(c(1:length(indices)), function(x) sum(ba[[x]])))),1) # 13.6 m2/ha
+  ba.bin.sd <- round(sd(unlist(lapply(c(1:length(indices)), function(x) sum(ba[[x]])))),1) # sd = 3.0
+  
+  tph <- lapply(indices, function(i) { # tph.bin
+    trees.bin <- plots_out[[i]][[11]] %>% 
+      filter(bin == bin_names[bin.i])
+    return(nrow(trees.bin)) })
+  tph.bin <- round(mean(unlist(tph)/((piebins[indices,4])/10000)),1) # 536.1
+  tph.bin.sd <- round(sd(unlist(tph)/((piebins[indices,4])/10000)),1) # sd = 123.5
+  
+  p.area.bin <- round(mean(piebins[indices,(bin.i+2)]*100/(10000)),1) # 10.7% p.area.bin
+  p.area.bin.sd <- round(sd(piebins[indices,(bin.i+2)]*100/(10000)),1) # sd = 3.5
+  
+  # output <- c(n.clust.bin,  p.trees.bin,  mDBH.bin,  ba.bin,  tph.bin,  p.area.bin, 
+  #             n.clust.bin.sd, p.trees.bin.sd, mDBH.bin.sd, ba.bin.sd, tph.bin.sd, p.area.bin.sd)
+  output <- c(n.clust.bin,  p.trees.bin,  mDBH.bin,  ba.bin,  tph.bin,  p.area.bin, 
+              paste0("(", c(n.clust.bin.sd, p.trees.bin.sd, mDBH.bin.sd, ba.bin.sd, tph.bin.sd, p.area.bin.sd),")") ) 
+  
+  return(output)
+}
+
+# Derek C's summary tables
+##################################################################################
+##
+##      Code to process generic stemmap plots
+##   		March 2017  Derek Churchill
+##  
+###     Produces ICO tables & sets up for plotting etc. 
+### 
+################################################################################
+
+
+# need to run these functions
+#source("Plotkin_Cluster_Crown.R")
+# PK: fns from EastPinesICO_edgecorr
+
+### Runs a set of stemmaped plots
+
+##  vector with plot names
+# All.plots
+# PK: names
+
+# List with a dataframe for each plot x,y,dbh, species, plus clumpID if Quickmap
+# All.list.cor
+# PK: plots
+
+# vector of T or F for each plot:  T if plot is a quickmap,  F if its a traditional stemmap
+#QM = ("F","F",..............)
+
+
+# matrix with 4 edge cut values for each plot. Edge cut is the buffer you want to come in off the edges. See Churchill 2013 for more on this. 
+
+#edge.ct = matrix (0,length(All.plots),4) # use this if no edge cut
+# PK: don't need, only appears within summarizeClusters below
+
+#############################################
+###  Run Stemmaps & Quickmaps through cluster function 
+# Stem.res = list()
+# summary.mets = matrix(0,length(All.plots),12)
+# ICO.tr.pct = ICO.ba.pct = matrix(0,length(All.plots),200) 
+# can.cov = vector()
+# 
+# for (w in 1:length(All.plots)){  
+#   # Prep input for cluster function & run through function 
+#   in.plot = All.list.cor[[w]]
+#   
+#   clust.in = formatSummaryInput(in.plot, x.min=0, x.max=max(in.plot[,1]), y.min=0, y.max=max(in.plot[,2]), dbh.units="cm")
+#   #edge.cut = as.numeric(edge.ct[1,c(6:9)]) ## non-buffer tree method, boundaries are extent of non-buf trees
+#   edge.cut = as.numeric(edge.ct[w,c(1:4)]) ## buffer tree method, bndries are extent of buffer trees
+#   
+#   # Calc canopy cover
+#   #can.cov[w] = can.cover.calc(clust.in$pointData,clust.in$treeData,edge.cut=edge.cut)
+#   
+#   # Run through cluster function
+#   Stem.res[[w]] = summarizeClusters.ppp (clust.in$pointData, clust.in$treeData, distThreshold=6, max.bin=-1,edge.cut =edge.cut, Quickmap = QM[w])
+# }  
+# PK: don't need this, ran cluster function in EastPinesICO_edgecorr
+
+
+## Sum up and store results
+#Plot.names=All.plots
+Plot.names=names
+n.plots = length(Plot.names)
+
+gap.hold=list()
+
+F.breaks = prop.open = vector()
+F.curve = matrix(0,n.plots,1000)
+F.bins =  matrix(0,n.plots,9)
+
+nn.hist = matrix(0,n.plots,60)
+Mean.clust = vector()
+summary.mets = matrix(0,length(Plot.names),12)
+ICO.tr.pct = ICO.ba.pct = matrix(0,length(Plot.names),700) 
+Clump.bins = as.data.frame(matrix(0,n.plots,18))
+gap.size = as.data.frame(matrix(0,n.plots,7))
+
+##
+for (w in 1:n.plots)  {
+  #Clump metrics
+  print(w)
+  
+  summary.mets[w,] = plots_out[[w]]$summary
+  ICO.tr.pct[w,] =  c(plots_out[[w]]$maxbin[,7],rep(0,700-length(plots_out[[w]]$maxbin[,7]))) 
+  ICO.ba.pct[w,] =  c(plots_out[[w]]$maxbin[,8],rep(0,700-length(plots_out[[w]]$maxbin[,8])))
+  Mean.clust[w]= plots_out[[w]]$mean.clust.size 
+  Clump.bins[w,] = c(plots_out[[w]]$clump.bins[,1],plots_out[[w]]$clump.bins[,2],plots_out[[w]]$clump.bins[,3])
+  nn.hist[w,] = hist(nndist(plots_out[[w]]$pointData)*3.28084,plot=F,breaks=seq(0,300,5))$counts/sum(hist(nndist(plots_out[[w]]$pointData)*3.28084,plot=F,breaks=seq(0,300,5))$counts)
+  # 1m = 3.28084ft  
+  
+  # ##  Run F test & openings
+  F.hold = open.DistM.calc(plots_out[[w]]$points.noedge,Plot.name = Plot.names[w] ,eps = .5,f.break=9)
+  F.bins[w,] = F.hold$F.bin[,2]
+  F.curve[w,] = c(F.hold$F.cml[,2],rep(0,1000-length(F.hold$F.cml[,2])))
+  F.breaks[w]= F.hold$f.break
+  
+  # Run openings
+  # gap.hold[[w]] =gap.quant(plots_out[[w]]$points.noedge,name=Plot.names[w],edge.buf=6,gap.thresh = 9, open.breaks=c(0.04, 0.08, 0.2, 0.4, 0.8, 1.6, 100))
+  # prop.open[w]= gap.hold[[w]][[5]]$Prop.open
+  # gap.size[w,] = gap.hold[[w]][[2]]
+}
+
+
+## Set up results tables
+
+colnames(summary.mets)=colnames(plots_out[[w]]$summary)
+
+# # If run openings
+# summary.mets=data.frame(summary.mets,prop.open)
+# colnames(summary.mets)=c(colnames(plots_out[[w]]$summary),"PropOpen")
+# colnames(gap.size)=c(0.04, 0.08, 0.2, 0.4, 0.8, 1.6, 100)
+# rownames(gap.size)=Plot.names
+
+#
+Pattern.df = data.frame(Plot.names,TPA=summary.mets[,"TPA"],Mean.clust,F.breaks)
+rownames(summary.mets)=Plot.names
+rownames(ICO.tr.pct)=Plot.names
+rownames(ICO.ba.pct)=Plot.names
+
+colnames(F.bins) = c(3,6,   9,   12,  15,  18,  21,  24,  "24+")
+rownames(F.bins) = Plot.names
+colnames(F.curve) = seq(0,99.9,0.1)
+rownames(F.curve) = Plot.names
+rownames(nn.hist) = Plot.names
+rownames(Clump.bins) = Plot.names
+
+colnames(Clump.bins) = rep(rownames(plots_out[[w]]$clump.bins),3)
+
+
+# 
+# # Store
+place.name = "EastSide"
+#setwd("C:/Users/Derek/Dropbox/ICO/Reference_sites/aaReference summary data/Blues_envelopes")
+
+# write.csv(F.curve,paste(place.name,"_FCurves.csv",sep=""))
+# write.csv(F.bins,paste(place.name,"_FBins.csv",sep=""))
+# write.csv(summary.mets,paste(place.name,"_summary_metrics.csv",sep=""))
+# write.csv(ICO.tr.pct,paste(place.name,"_Cluster_tpa_GT15_6m.csv",sep=""))
+# write.csv(ICO.ba.pct,paste(place.name,"_Cluster_ba_GT15_6m.csv",sep=""))
+# write.csv(Pattern.df,paste(place.name,"_TPA_AvgClus_F9.csv",sep=""))
+# write.csv(Clump.bins,paste(place.name,"_ClumpBins.csv",sep=""))
+# # write.csv(gap.size,paste(place.name,"_gapSize.csv",sep=""))  
+
 # NEVER NEVER GIVE UP
 
 # NEVER LET GO, NEVER SURRENDER

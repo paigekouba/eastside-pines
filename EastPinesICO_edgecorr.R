@@ -50,7 +50,7 @@ Crw.rad.pred = function(data,cr.coefs=-1){
   # rc.coef = c(  -0.436856, 0.426431)
   
   ## set up coefs from Gill et al. 2000
-  pp.coef =c( 0.9488, 0.0356 )
+  pp.coef = c( 0.9488, 0.0356 )
   lp.coef = c(  0.5230, 0.0440 )
   wf.coef = c(  1.2256, 0.0299 )
   ic.coef = c(  1.2960, 0.0256 )
@@ -63,15 +63,16 @@ Crw.rad.pred = function(data,cr.coefs=-1){
   # cr.rad[which(Species=="GF")] = exp(cr.coefs[1,2] + cr.coefs[2,2]*log(dbh[which(Species=="GF")]))  
   # cr.rad[which(Species=="RC")] = exp(cr.coefs[1,3] + cr.coefs[2,3]*log(dbh[which(Species=="RC")]))
   
-  # ## run models
-  # cr.rad[which(Species=="PP")] = cr.coefs[1,1] + cr.coefs[2,1]*dbh[which(Species=="PP")]
-  # cr.rad[which(Species=="LP")] = cr.coefs[1,2] + cr.coefs[2,2]*dbh[which(Species=="LP")]  
-  # cr.rad[which(Species=="WF")] = cr.coefs[1,3] + cr.coefs[2,3]*dbh[which(Species=="WF")]
-  # cr.rad[which(Species=="IF")] = cr.coefs[1,4] + cr.coefs[2,4]*dbh[which(Species=="IC")]
+  ## run models
+  cr.rad[which(Species=="PP")] = cr.coefs[1,1] + cr.coefs[2,1]*dbh[which(Species=="PP")]
+  cr.rad[which(Species=="LP")] = cr.coefs[1,2] + cr.coefs[2,2]*dbh[which(Species=="LP")]
+  cr.rad[which(Species=="WF")] = cr.coefs[1,3] + cr.coefs[2,3]*dbh[which(Species=="WF")]
+  cr.rad[which(Species=="IF")] = cr.coefs[1,4] + cr.coefs[2,4]*dbh[which(Species=="IC")]
   
   # Catch all for species with no coeff. PP as default
-  cr.rad[which(cr.rad==0)] = exp(cr.coefs[1,1] + cr.coefs[2,1]*log(dbh[which(cr.rad==0)]))		
-  
+ # cr.rad[which(cr.rad==0)] = exp(cr.coefs[1,1] + cr.coefs[2,1]*log(dbh[which(cr.rad==0)]))		
+  cr.rad[which(cr.rad==0)] = cr.coefs[1,1] + cr.coefs[2,1]*dbh[which(Species=="PP")]
+    
   # Output
   return(res=data.frame(data,crown = cr.rad)) # adds crown column to df
 }
@@ -168,10 +169,12 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
   tree.cluster.membership <- as.matrix(tree.cluster.membership[as.character(sort(as.integer(names(tree.cluster.membership))))])
   tree.dbh <- as.matrix(treeData$dbh)
   tree.ba  <- as.matrix(pi * (tree.dbh / 200)^2)
-  tree.sdi <- as.matrix((tree.dbh / 25)^1.7)
+  tree.sdi <- as.matrix((tree.dbh / 25)^1.7) # is this right? I found this online: sdi = tpa * (qmd / 25.4) ^ 1.605
   tree.clust.sz = cluster.size[tree.cluster.membership]
-  tree.bin = lut(c("1","2-4","5-9","10-15","16-29","30+"),breaks=c(0,2,5,10,16,30,200))(tree.clust.sz)
-  tree.bin = factor(tree.bin,levels=c("1","2-4","5-9","10-15","16-29","30+"),order=T)
+  tree.bin = lut(c("1","2-4","5-9","10+"),breaks=c(0,2,5,10,200))(tree.clust.sz)
+  tree.bin = factor(tree.bin,levels=c("1","2-4","5-9","10+"),order=T)
+    # tree.bin = lut(c("1","2-4","5-9","10-15","16-29","30+"),breaks=c(0,2,5,10,16,30,200))(tree.clust.sz)
+  # tree.bin = factor(tree.bin,levels=c("1","2-4","5-9","10-15","16-29","30+"),order=T)
   rownames(tree.dbh) <- rownames(tree.ba) <- rownames(tree.sdi) <- rownames(tree.cluster.membership)
   
   trees <- cbind(data.frame(x=pointData$x,y=pointData$y),as.data.frame(treeData), data.frame(ba=tree.ba, sdi=tree.sdi, clust.sz=tree.clust.sz ,cluster.membership=tree.cluster.membership,bin=tree.bin))
@@ -254,11 +257,13 @@ cut.index <- which(trees$x %in% edgefilter$x & trees$y %in% edgefilter$y)
     cluster.gini[i] = round(gini(noedge.trees[trees.hd,"dbh"]),3)
     d.class = lut(c(20,40,60,80,100,180),breaks=c(0,20,40,60,80,100,180))(noedge.trees[trees.hd,"dbh"])  
     cluster.mgf[i] = (length(unique(d.class)) - 1) /log(sum(cluster.ba[i]*10))
-    cluster.bin[i] = lut(c("1","2-4","5-9","10-15","16-29","30+"),breaks=c(0,2,5,10,16,30,200))(cluster.size[i])
+    cluster.bin[i] = lut(c("1","2-4","5-9","10+"),breaks=c(0,2,5,10,200))(cluster.size[i])
+ #   cluster.bin[i] = lut(c("1","2-4","5-9","10-15","16-29","30+"),breaks=c(0,2,5,10,16,30,200))(cluster.size[i])
   }
   # Set factor order
-  cluster.bin = factor(cluster.bin,levels=c("1","2-4","5-9","10-15","16-29","30+"),order=T)
-  clusters <- data.frame(size=cluster.size, tot.ba=cluster.ba, tot.sdi=cluster.sdi,
+#  cluster.bin = factor(cluster.bin,levels=c("1","2-4","5-9","10-15","16-29","30+"),order=T)
+   cluster.bin = factor(cluster.bin,levels=c("1","2-4","5-9","10+"),order=T)
+   clusters <- data.frame(size=cluster.size, tot.ba=cluster.ba, tot.sdi=cluster.sdi,
                          qmd=cluster.qmd,mn.dbh= cluster.mndbh,dbh.lar=cluster.lartr,gini=cluster.gini,mrglf.indx = cluster.mgf,bin=cluster.bin)
   clusters = clusters[sort.list(clusters[,1]), ]                     
   
@@ -322,14 +327,19 @@ cut.index <- which(trees$x %in% edgefilter$x & trees$y %in% edgefilter$y)
   colnames(add.mat)=colnames(maxbin)
   maxbin = rbind(maxbin,add.mat)
   
-  pct.tree =	round(c(maxbin[1,7],sum(maxbin[2:4,7]),sum(maxbin[5:9,7]),sum(maxbin[10:15,7]),sum(maxbin[16:29,7]),sum(maxbin[30:nrow(maxbin),7])),2)
-  pct.ba =	round(c(maxbin[1,8],sum(maxbin[2:4,8]),sum(maxbin[5:9,8]),sum(maxbin[10:15,8]),sum(maxbin[16:29,8]),sum(maxbin[30:nrow(maxbin),8])),2)
+  # pct.tree =	round(c(maxbin[1,7],sum(maxbin[2:4,7]),sum(maxbin[5:9,7]),sum(maxbin[10:15,7]),sum(maxbin[16:29,7]),sum(maxbin[30:nrow(maxbin),7])),2)
+  # pct.ba =	round(c(maxbin[1,8],sum(maxbin[2:4,8]),sum(maxbin[5:9,8]),sum(maxbin[10:15,8]),sum(maxbin[16:29,8]),sum(maxbin[30:nrow(maxbin),8])),2)
+  # # Get QMD per clump bin
+  # ba.bin.sum = c(maxbin[1,3],sum(maxbin[2:4,3]),sum(maxbin[5:9,3]),sum(maxbin[10:15,3]),sum(maxbin[16:29,3]),sum(maxbin[30:nrow(maxbin),3]))
+  # tpa.bin.sum =  c(maxbin[1,2],sum(maxbin[2:4,2]),sum(maxbin[5:9,2]),sum(maxbin[10:15,2]),sum(maxbin[16:29,2]),sum(maxbin[30:nrow(maxbin),2]))
+  pct.tree =	round(c(maxbin[1,7],sum(maxbin[2:4,7]),sum(maxbin[5:9,7]),sum(maxbin[10:nrow(maxbin),7])),2)
+  pct.ba =	round(c(maxbin[1,8],sum(maxbin[2:4,8]),sum(maxbin[5:9,8]),sum(maxbin[10:nrow(maxbin),8])),2)
   # Get QMD per clump bin
-  ba.bin.sum = c(maxbin[1,3],sum(maxbin[2:4,3]),sum(maxbin[5:9,3]),sum(maxbin[10:15,3]),sum(maxbin[16:29,3]),sum(maxbin[30:nrow(maxbin),3]))
-  tpa.bin.sum =  c(maxbin[1,2],sum(maxbin[2:4,2]),sum(maxbin[5:9,2]),sum(maxbin[10:15,2]),sum(maxbin[16:29,2]),sum(maxbin[30:nrow(maxbin),2]))
+  ba.bin.sum = c(maxbin[1,3],sum(maxbin[2:4,3]),sum(maxbin[5:9,3]),sum(maxbin[10:nrow(maxbin),3]))
+  tpa.bin.sum =  c(maxbin[1,2],sum(maxbin[2:4,2]),sum(maxbin[5:9,2]),sum(maxbin[10:nrow(maxbin),2]))
   qmd.bin =  round((((ba.bin.sum/tpa.bin.sum)/pi)^.5)*200,1)
   
-  clump.bins = data.frame(pct.tree,pct.ba,qmd.bin,row.names=c("1","2-4","5-9","10-15","16-29","30+"))
+  clump.bins = data.frame(pct.tree,pct.ba,qmd.bin,row.names=c("1","2-4","5-9","10+"))
   maxbin = maxbin.orig # reset to orig
   
   
@@ -455,8 +465,9 @@ t.test(dotplots_ISn$BAH.1, dotplots_ISn$BAH)
 # t = 7.9895, df = 2.6744, p-value = 0.006129   sig diff in BAH at IS; 2018 value is higher
 t.test(dotplots_OHn$BAH.1, dotplots_OHn$BAH)
 # t = 3.1419, df = 2.3059, p-value = 0.07332    almost sig diff in BAH at OH; 2018 value is higher
-t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BH.1), c(dotplots_ISn$baH, dotplots_OHn$BAH))
-# t = 10.813, df = 2.978, p-value = 0.001749; 15.9 (11.20076 20.59924)  difference is significant; 2018 BAH is *higher*
+# t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BH.1), c(dotplots_ISn$baH, dotplots_OHn$BAH))
+t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BAH.1), c(dotplots_ISn$BAH, dotplots_OHn$BAH))
+# t = 3.9437, df = 7.3676, p-value = 0.005035; 9.6 (3.901582 15.298418) difference is significant; 2018 BAH is *higher*
 
 # here is the one with standardized values
 #install.packages("gridExtra")
@@ -485,47 +496,48 @@ dotplots <- grid.arrange(ISdots, OHdots, ncol=2)
 
 # what is average cluster size at IS in 1941 and 2018?
 # get average cluster size from plots c(2,4,6) [1941] and c(1,3,5) [2018]
-mean(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 2.073333 in 1941
-mean(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.691667 in 2018
+mean(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.505051 in 1941
+mean(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.340741 in 2018
 t.test(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size), c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size))
-# diff + 0.618334, -0.0524465  1.2891132, p-value = 0.07058
+# diff +  0.83569, 0.4419772 1.2294033, p-value = p-value = 4.479e-05
 
 # what is average cluster size at OH in 1941 and 2018?
 # get average cluster size from plots c(8,10,12) [1941] and c(7,9,11) [2018]
-mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 1.401639 in 1941
-mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)) # 2.536 in 2018
+mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 1.227941 in 1941
+mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)) # 1.906832 in 2018
 t.test(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size), c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size))
-# diff +  1.134361, 0.6247905 1.6439308, p-value = 2.082e-05
+# diff +  0.678891,  0.3746479 0.9831344, p-value = p-value = 1.791e-05
 
 # what is average cluster size across both sites in 1941 and 2018?
-mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.772059 in 1941
-mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.612245 in 2018
+mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.392216 in 1941
+mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.10473 in 2018
 t.test(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size), c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size))
-# diff + 0.840186, 0.4158601 1.2645120, p-value = 0.0001177
+# diff + 0.712514, 0.4648563 0.9601720, p-value = 3.038e-08
 
 # proportion of single trees, IS
-sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1) # 140 in 1941
+sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1) # 139 in 1941
 sum(c(plots_out[[2]]$n.pts, plots_out[[4]]$n.pts, plots_out[[6]]$n.pts)) # 292 trees in 1941
-140/292
-# [1] 0.4794521, 47.5% of trees are singletons in 1941
-sum(c(plots_out[[1]]$clusters$size==1), plots_out[[3]]$clusters$size==1, plots_out[[5]]$clusters$size==1) # 54 in 2018
+139/292
+# [1] 0.4760274, 47.6% of trees are singletons in 1941
+sum(c(plots_out[[1]]$clusters$size==1), plots_out[[3]]$clusters$size==1, plots_out[[5]]$clusters$size==1) # 68 in 2018
 sum(c(plots_out[[1]]$n.pts, plots_out[[3]]$n.pts, plots_out[[5]]$n.pts)) # 295 trees in 2018
 # should it be single trees as a proportion of trees? or single trees as a proportion of clusters? I think the former
-54/295
-# [1] 0.1830508, 18.3% of trees are singletons in 2018
+68/295
+# [1] 0.2305085, 23.1% of trees are singletons in 2018
 
 # proportions of single trees, OH
-sum(c(plots_out[[8]]$clusters$size==1), plots_out[[10]]$clusters$size==1, plots_out[[12]]$clusters$size==1) # 99 in 1941
-sum(c(plots_out[[8]]$n.pts, plots_out[[10]]$n.pts, plots_out[[12]]$n.pts)) # 151 trees in 1941
-99/151
-# [1] 0.6556291, 65.6% of trees are singletons in 1941
-sum(c(plots_out[[7]]$clusters$size==1), plots_out[[9]]$clusters$size==1, plots_out[[11]]$clusters$size==1) # 94 in 2018
+sum(c(plots_out[[8]]$clusters$size==1), plots_out[[10]]$clusters$size==1, plots_out[[12]]$clusters$size==1) # 112 in 1941
+sum(c(plots_out[[8]]$n.pts, plots_out[[10]]$n.pts, plots_out[[12]]$n.pts)) # 164 trees in 1941
+112/164
+# [1] 0.6829268, 68.3% of trees are singletons in 1941
+sum(c(plots_out[[7]]$clusters$size==1), plots_out[[9]]$clusters$size==1, plots_out[[11]]$clusters$size==1) # 101 in 2018
 sum(c(plots_out[[7]]$n.pts, plots_out[[9]]$n.pts, plots_out[[11]]$n.pts)) # 280 trees in 2018
-94/280
-# [1] 0.3357143, 33.6% of trees are singletons in 2018
+101/280
+# [1] 0.3607143, 36.1% of trees are singletons in 2018
 
 
 # proportions of (trees/)clusters in singletons, both sites
+# !! need to redo these as proportions of trees in each category -- will do in summary_tables
 sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1, plots_out[[8]]$clusters$size==1, plots_out[[10]]$clusters$size==1, plots_out[[12]]$clusters$size==1) # 239  in 1941
 # sum(c(plots_out[[2]]$n.pts, plots_out[[4]]$n.pts, plots_out[[6]]$n.pts, plots_out[[8]]$n.pts, plots_out[[10]]$n.pts, plots_out[[12]]$n.pts)) # 443 trees in 1941
 # 239/443
@@ -558,29 +570,26 @@ sum(c(plots_out[[1]]$clusters$bin=="10-15"), plots_out[[3]]$clusters$bin=="10-15
 # are trees found close to the edge more likely to be in small clusters?
 # get x,y coordinates and cluster size bin for all stems
 # group bins by <= 51m from center, > 51 m from center
-# if > 51 m group has higher proportion of singles/2-4s, might be an issue
+# if > 51 m group has higher proportion of [singles+2-4s], might be an issue
 
-edge_trees <- plots_out[[11]]$trees.noedge %>% dplyr::select(x, y, bin) %>% 
+edge_trees <- plots_out[[1]]$trees.noedge %>% dplyr::select(x, y, bin) %>% 
   mutate(ctr_dist = sqrt((x^2)+(y^2))) %>% 
   filter(ctr_dist > 51.4) 
 
-inner_trees <- plots_out[[11]]$trees.noedge %>% dplyr::select(x, y, bin) %>% 
+inner_trees <- plots_out[[1]]$trees.noedge %>% dplyr::select(x, y, bin) %>% 
   mutate(ctr_dist = sqrt((x^2)+(y^2))) %>% 
   filter(ctr_dist <= 51.4) 
 
-sum(inner_trees$bin=="1" | inner_trees$bin =="2-4")/length(inner_trees$bin) # 0.656
-sum(inner_trees$bin!="1" & inner_trees$bin !="2-4")/length(inner_trees$bin) # 0.344
+sum(inner_trees$bin=="1" | inner_trees$bin =="2-4")/length(inner_trees$bin) #
+sum(inner_trees$bin!="1" & inner_trees$bin !="2-4")/length(inner_trees$bin) #
 
-sum(edge_trees$bin=="1" | edge_trees$bin =="2-4")/length(edge_trees$bin) # 0.412
-sum(edge_trees$bin!="1" & edge_trees$bin !="2-4")/length(edge_trees$bin) # 0.588
+sum(edge_trees$bin=="1" | edge_trees$bin =="2-4")/length(edge_trees$bin) # 
+sum(edge_trees$bin!="1" & edge_trees$bin !="2-4")/length(edge_trees$bin) # 
 
 #       small/large,  in    vs   out              smaller bins over represented at edge?
-# plot 1:       0.656/0.344     0.412/0.588       N
-# plot 3:       0.532/0.467     0.815/0.185       Y
-# plot 5:       0.555/0.445     1.000/0.000       Y
-# plot 7:       0.621/0.379     1.000/0.000       Y
-# plot 9:       0.667/0.333     0.484/0.516       N
-# plot 11:      o.720/0.280     0.682/0.318       N
-
-library(dplyr)
-dplyr::select(plots_out[[1]]$trees.noedge, x, y, bin)
+# plot 1:       0.710/0.290     0.353/0.647       N      
+# plot 3:       0.402/0.598     0.630/0.370       Y
+# plot 5:       0.491/0.509     0.952/0.048       Y
+# plot 7:       0.603/0.397     1.000/0.000       N
+# plot 9:       0.527/0.473     0.258/0.742       N
+# plot 11:      0.581/0.419     0.682/0.318       Y

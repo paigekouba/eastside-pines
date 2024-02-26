@@ -1,179 +1,29 @@
 # ICO Maps from Scratch/GPT Code from Andrew
 # 7/30/23
 
-# Starting with tree.data_out from DChurchill_ICO.R
-# or maybe treeData3 ?
-
 library(ggplot2)
-# requires a data set that contains columns for x, y, stem_diameter, crown_diameter, 
-# and categorical cluster size
-# head(treeData3) # dbh, spp, Tree.ID
-# head(plot.data)
-# #    Site Plot   Date Spec   dbh Dec     X     Y    Z CrHt SrchHt Core. Comments  age_est estab_est
-# 
-# ICO_out[9]
-# #       x    y   dbh  spp Tree.ID    crown         ba        sdi clust.sz cluster.membership   bin
-# #dataGPT <- as.data.frame(tree.data_out[9])
-# dataGPT <- as.data.frame(ICO_out[9])
-
-# # Create the ggplot map
-# ggplot(dataGPT, aes(x = trees.x, y = trees.y)) +
-#   # Crowns as green circles with width corresponding to crown diameter
-#   geom_point(aes(shape = "Crown", size = trees.crown, color = factor(trees.bin), alpha=0.75)) +
-#   # Set the size range for stems and crowns separately
-#   geom_point(aes(shape = "Stem", size = .5), color = "burlywood4") +
-#     scale_size_continuous(range = c(2,10)) +
-#   # Set the shape for stems and crowns separately
-#   scale_shape_manual(values = c(16, 16)) +
-#   # Set the color palette for cluster sizes
-#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-#   # Customize the plot appearance
-#   labs(title = "Schematic Map of Trees",
-#       # x = "X Coordinate",
-#       # y = "Y Coordinate",
-#        size = "Crown",
-#        size = "Diameter",
-#        shape = "",
-#        color = "black") +
-#   theme_classic()
-
-# for (i in 1:length(plots_out)){
-#   #jpeg(paste("ICO_Map",names[i]),700,630)
-#   print(ggplot(as.data.frame(plots_out[[i]][9]), aes(x = trees.x, y = trees.y)) +
-#     # Crowns as green circles with width corresponding to crown diameter
-#     geom_point(aes(size = trees.crown, color = factor(trees.bin)), alpha=0.75) +
-#     # Set the size range for stems and crowns separately
-#     geom_point(aes(size = .5), color = "burlywood4") +
-#     scale_size_continuous(range = c(2,10)) +
-#     # Set the shape for stems and crowns separately
-#     scale_shape_manual(values = c(16, 16)) +
-#     # Set the color palette for cluster sizes
-#     scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-#     # Customize the plot appearance
-#       theme_classic(base_size=22) +
-#       theme(plot.title=element_text(hjust=0.5)) +
-#       labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
-#          x = "Distance in m",
-#          y = "",
-#          size = "Crown (m)") +
-#     guides(size = guide_legend(override.aes = list(color ="#addd8e")))) 
-#   #  dev.off() 
-# }
-
-# try to make same map with crown projections at same scale as x axis (in m, i.e.)
-#install.packages("ggforce")
 library(ggforce)
-# df <- as.data.frame(plots_out[[10]][11]) # try list #11 from plots_out, for trees.noedge
-# ggplot(df, aes(x0 = trees.x, y0 = trees.y, r = trees.crown)) +
-#   ggforce::geom_circle(n = 20) + #5-7x faster than default
-#   coord_fixed()
-# 
-# ggplot(df, aes(x0 = trees.x, y0 = trees.y, r = trees.crown)) +
-#   geom_circle(n = 20) + #5-7x faster than default
-#   coord_fixed()
-# # this seems to give true-to-size crowns; incorporate into color-coded plots
-# 
-# ggplot(df, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y)) +
-#   # Crowns as green circles with width corresponding to crown diameter
-#   geom_circle(n=20, aes(fill=factor(trees.bin), color=factor(trees.bin), alpha=0.85)) +
-#   coord_fixed() +
-#   # stems as brown circles with width corresponding to dbh (in m)
-#   geom_circle(n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", fill="burlywood4") +
-#   coord_fixed() +
-#   # Set the color palette for cluster sizes
-#   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-#   # Customize the plot appearance
-#   theme_classic(base_size=22) +
-#   theme(plot.title=element_text(hjust=0.5)) +
-#   labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
-#        x = "Distance in m",
-#        y = "") +
-#   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) 
-# 
-# # add gap polygons
-#     # function to create gap polygons -- GapFinder.R
-#     # for loop to create gap polygons
-# 
-# # loop of ggplot with map of true-to-scale crown radius, dbh, and gaps
-#   # good map w/ gaps
-# ggplot() +
-#   geom_sf(data=bound, fill="black") +
-#   geom_circle(data = df, n=20, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
-#                                    fill=factor(trees.bin), color=factor(trees.bin), alpha=0.75)) +
-#   geom_circle(data = df, n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", 
-#               fill="burlywood4") +
-#   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-#   geom_sf(data=gaps3_noedge, col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
-#   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
-#   theme_light()
-# 
-# ggplot() + # this one uses results vector from gapfinder script to call the purple blob geom
-#   geom_sf(data=bound, fill="black") +
-#   geom_circle(data = df, n=20, aes(x0 = trees.x, y0 = trees.y, r=trees.crown, x=trees.x, y=trees.y, 
-#                                    fill=factor(trees.bin), color=factor(trees.bin), alpha=0.75)) +
-#   geom_circle(data = df, n=20, aes(x0=trees.x, y0=trees.y, r=trees.dbh/200), color="burlywood4", 
-#               fill="burlywood4") +
-#   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-#   geom_sf(data=results[[10]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
-#   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
-#   theme_light()
-# 
-# ggplot() + # for this one I am trying out the trees.noedge output from #11 of plots_out[[i]] KEEPER
-#   geom_sf(data=bound, fill="black") +
-#   geom_circle(data = df, n=20, aes(x0 = trees.noedge.x, y0 = trees.noedge.y, r=trees.noedge.crown, x=trees.noedge.x, y=trees.noedge.y, 
-#                                    fill=factor(trees.noedge.bin), color=factor(trees.noedge.bin), alpha=0.75)) +
-#   geom_circle(data = df, n=20, aes(x0=trees.noedge.x, y0=trees.noedge.y, r=trees.noedge.dbh/200), color="burlywood4", 
-#               fill="burlywood4") +
-#   scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-#   scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-#   geom_sf(data=results[[10]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
-#   guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
-#   theme_light()
+library(RColorBrewer)
 
+# saving each ggplot object produced, for easier comparison
+my.cols <- brewer.pal(5, "YlGn")
+my.cols <- my.cols[2:5]
 
-  # edited for loop: map of true-to-scale crown radius, dbh, and gaps
-  # 12/15 update, using trees.noedge for mapping purposes
-# GOOD FOR AFE 2023
-for (i in 1:length(plots_out)){
-  #jpeg(paste("ICO_GapMap",names[i]),700,630)
-  print(ggplot() +
-          geom_sf(data=bound, fill="black") +
-          geom_circle(data = as.data.frame(plots_out[[i]][11]), n=20, # #9 is trees; try 11 for trees.noedge
-                      aes(x0 = trees.noedge.x, y0 = trees.noedge.y, r=trees.noedge.crown, x=trees.noedge.x, y=trees.noedge.y, 
-                                           fill=factor(trees.noedge.bin), color=factor(trees.noedge.bin), alpha=0.75)) +
-          geom_circle(data = as.data.frame(plots_out[[i]][11]), n=20, 
-                      aes(x0=trees.noedge.x, y0=trees.noedge.y, r=trees.noedge.dbh/200), color="burlywood4", fill="burlywood4") +
-          scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-          scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-          geom_sf(data=results[[i]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
-          guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
-          #theme_classic(base_size=22) +
-          theme(plot.title=element_text(hjust=0.5)) +
-          labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
-               x = "Distance in m",
-               y = "",
-               size = "Crown (m)") +
-          guides(size = guide_legend(override.aes = list(color ="#addd8e"))) +
-          theme_light())#base_size = 22) )
- # dev.off()
-  }
-
-# try saving each ggplot object produced, for easier comparison
 ICO_maps <- list()
 for (i in 1:length(plots_out)){
  p <- ggplot() +
-          geom_sf(data=bound, fill="black") +
+          geom_sf(data=bound, fill="white") +
           geom_circle(data = as.data.frame(plots_out[[i]][11]), n=20, # #9 is trees; try 11 for trees.noedge
                       aes(x0 = trees.noedge.x, y0 = trees.noedge.y, r=trees.noedge.crown, x=trees.noedge.x, y=trees.noedge.y, 
                           fill=factor(trees.noedge.bin), color=factor(trees.noedge.bin), alpha=0.75)) +
           geom_circle(data = as.data.frame(plots_out[[i]][11]), n=20, 
-                      aes(x0=trees.noedge.x, y0=trees.noedge.y, r=trees.noedge.dbh/200), color="burlywood4", fill="burlywood4") +
-          scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
-          scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
-          geom_sf(data=results[[i]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
+       aes(x0=trees.noedge.x, y0=trees.noedge.y, r=trees.noedge.dbh/200), color="burlywood4", fill="burlywood4") +
+        #  scale_fill_brewer(palette = "YlGn", name = "Cluster Size") +
+        #  scale_colour_brewer(palette = "YlGn", name = "Cluster Size") +
+          scale_fill_manual(values = my.cols, name = "Cluster Size") +
+          scale_color_manual(values = my.cols, name = "Cluster Size") +
+# no gaps for now    # geom_sf(data=results[[i]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
+          geom_sf(opes_sr[[i]], mapping = aes(), fill = "#FEC44F", alpha=0.3) +        
           guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
           #theme_classic(base_size=22) +
           theme(plot.title=element_text(hjust=0.5)) +
@@ -189,7 +39,6 @@ for (i in 1:length(plots_out)){
 
 # double check the arrangement of the maps; remove per-map labels and add to grid.arrange ?
 # goal is two figs: IS 1, 2, 3 in a column for 1941 at left; IS 1, 2, 3 in a column for 2018 at right. Same for OH
-grid.arrange(ICO_maps[[1]], ICO_maps[[3]], ICO_maps[[5]], ICO_maps[[2]], ICO_maps[[4]], ICO_maps[[6]], ncol=3) 
-grid.arrange(ICO_maps[[2]], ICO_maps[[1]], ICO_maps[[4]], ICO_maps[[3]], ICO_maps[[5]], ICO_maps[[6]], ncol=2) 
+grid.arrange(ICO_maps[[2]], ICO_maps[[1]], ICO_maps[[4]], ICO_maps[[3]], ICO_maps[[6]], ICO_maps[[5]], ncol=2) # IS
 
-grid.arrange(ICO_maps[[7]], ICO_maps[[9]], ICO_maps[[11]], ICO_maps[[8]], ICO_maps[[10]], ICO_maps[[12]], ncol=3) 
+grid.arrange(ICO_maps[[8]], ICO_maps[[7]], ICO_maps[[10]], ICO_maps[[9]], ICO_maps[[12]], ICO_maps[[11]], ncol=2) # OH

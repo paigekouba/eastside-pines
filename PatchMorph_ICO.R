@@ -29,6 +29,7 @@ library(sp)
 library(terra)
 # prepare data: one plot (plot 4, IS3 in 1941) for testing
 ## checking plot 9 (OH2 in 2018) because of the error at PM result stage
+pm_df <- data.frame(X=plots_out[[4]]$trees.noedge$x, Y=plots_out[[4]]$trees.noedge$y, crown=plots_out[[4]]$trees.noedge$crown)
 pm_df <- data.frame(X=plots_out[[9]]$trees.noedge$x, Y=plots_out[[9]]$trees.noedge$y, crown=plots_out[[9]]$trees.noedge$crown)
 # reproducible example:
 #Xs <- plots_out[[4]]$trees.noedge$x
@@ -75,8 +76,8 @@ library(patchwoRk)
 # (1) land cover density threshold (suitThresh), (2) habitat gap maximum thickness (gapThresh), and (3) habitat patch minimum thickness (spurThresh)
 
 plot(sr_test, col=c("white", "#FEC44F"), main="Starting SpatRaster") # 0s in crowns (white), 1s everywhere else (yellow)
-pm.rast <- patchMorph(sr_test, buffer = 5, suitThresh = 1, gapThresh = 2, spurThresh = 12, verbose = TRUE) # 
-plot(pm.rast,  main="PatchMorph Results (Gap-8 & Spur-6)", col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0!
+pm.rast <- patchMorph(sr_test, buffer = 5, suitThresh = 1, gapThresh = 10, spurThresh = 6, verbose = TRUE) # 
+plot(pm.rast,  main="PatchMorph Results (Gap-10 & Spur-6)", col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0! ## I did not get this on the most recent run but I don't think I've changed anything....except I was using plot 9! also focus for kernel looks like crowns now?
 plot(crowns, col="black", add=TRUE)
 
 # convert to polygons for area calculations and mapping
