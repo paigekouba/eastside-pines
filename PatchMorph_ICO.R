@@ -10,15 +10,15 @@ allcrwn <- unlist(lapply(allcrwndf, function(x) x[[6]]))
 
 ggplot(as.data.frame(allcrwn), aes(x = allcrwn*2)) + # distribution of tree crown *diameters*
   geom_histogram() +
-  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.6096  
-  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 7.955744 
-  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.733178
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.585392 
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 8.070112
+  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.729545
   ggtitle("Crown Diameters, All Sites, All Years") +
   xlab("Crown Diamter (m)") + ylab("Frequency")
 
 sum(allcrwn < 1)*100/length(allcrwn) # 0.49
-sum(allcrwn > 5)*100/length(allcrwn) # 1.710098
-# sum(allcrwn > 4)*100/length(allcrwn) # 9.771987
+sum(allcrwn > 5)*100/length(allcrwn) # 1.87144
+# sum(allcrwn > 4)*100/length(allcrwn) # 10.74044
 
 min(allcrwn)*2 # 1.662 is the smallest tree crown across all the plots and both times
 max(allcrwn)*2 # 11.95104 is the biggest tree crown across all the plots and both times
@@ -30,7 +30,7 @@ library(terra)
 # prepare data: one plot (plot 4, IS3 in 1941) for testing
 ## checking plot 9 (OH2 in 2018) because of the error at PM result stage
 pm_df <- data.frame(X=plots_out[[4]]$trees.noedge$x, Y=plots_out[[4]]$trees.noedge$y, crown=plots_out[[4]]$trees.noedge$crown)
-pm_df <- data.frame(X=plots_out[[9]]$trees.noedge$x, Y=plots_out[[9]]$trees.noedge$y, crown=plots_out[[9]]$trees.noedge$crown)
+#pm_df <- data.frame(X=plots_out[[9]]$trees.noedge$x, Y=plots_out[[9]]$trees.noedge$y, crown=plots_out[[9]]$trees.noedge$crown)
 # reproducible example:
 #Xs <- plots_out[[4]]$trees.noedge$x
 # [1] -54.3 -53.6 -52.4 -48.5 -47.0 -45.8 -45.6 -40.6 -39.5 -39.2 -36.1 -35.2 -34.6 -34.1 -30.3 -28.2 -27.7 -26.0 -25.9
@@ -56,28 +56,33 @@ crowns = st_buffer(stems, dist = stems$crown) # each crown defined as a circle w
 notcrowns <- st_difference(bound, st_union(crowns)) # all area in non-crown space
 yescrowns <- st_difference(bound, st_union(notcrowns)) # all area in crown space
 
-r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 0.1)) # turns sf into a rasterlayer -- this one is for all non-crown areas
+#r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 1)) 
+r_notcrowns <- rasterize(notcrowns, rast(ext(bound), res = 0.1)) # AJSM edit
+
+#r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 0.1)) # turns sf into a rasterlayer -- this one is for all non-crown areas
 # want now to make a raster with 1s for not-crown and 0s for crown
-r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=0.1)) # sf --> rasterlayer, this time for all crown areas
+#r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=1))
+# r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=0.1)) # sf --> rasterlayer, this time for all crown areas
+r_yescrowns <- rasterize(yescrowns, rast(ext(bound), res = 0.1)) # AJSM edit
 
 values(r_yescrowns)[values(r_yescrowns) == 1] <- 0 # reassign all values in crown areas to 0 ("unsuitable")
 
 r_test <- merge(r_notcrowns, r_yescrowns) # creates one rasterlayer with 0s in crown areas, 1s everywhere else
-sr_test <- rast(r_test) # makes into a spatRaster
+#  sr_test <- rast(r_test) # makes into a spatRaster 
 crs(sr_test) <- "local" # set crs to Cartesian plane in meters
-
+crs(r_test) <- "local" # set crs to Cartesian plane in meters
 # patchMorph code:
 # https://rdrr.io/github/bi0m3trics/patchwoRk/man/patchMorph.html
 
-devtools::install_github("bi0m3trics/patchwoRk")
+#devtools::install_github("bi0m3trics/patchwoRk")
 library(patchwoRk)
 
 # explanation of gap and spur, conceptually, from Girvetz and Greco 2007:
 # (1) land cover density threshold (suitThresh), (2) habitat gap maximum thickness (gapThresh), and (3) habitat patch minimum thickness (spurThresh)
 
-plot(sr_test, col=c("white", "#FEC44F"), main="Starting SpatRaster") # 0s in crowns (white), 1s everywhere else (yellow)
-pm.rast <- patchMorph(sr_test, buffer = 5, suitThresh = 1, gapThresh = 10, spurThresh = 6, verbose = TRUE) # 
-plot(pm.rast,  main="PatchMorph Results (Gap-10 & Spur-6)", col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0! ## I did not get this on the most recent run but I don't think I've changed anything....except I was using plot 9! also focus for kernel looks like crowns now?
+plot(r_test, col=c("white", "#FEC44F"), main="Starting SpatRaster") # 0s in crowns (white), 1s everywhere else (yellow)
+pm.rast <- patchMorph(r_test, buffer = 5, suitThresh = 1, gapThresh = 20, spurThresh = 100, verbose = TRUE) # 
+plot(pm.rast,  main="PatchMorph Results (Gap-2x10 & Spur-10x10)", col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0! ## I did not get this on the most recent run but I don't think I've changed anything....except I was using plot 9! also focus for kernel looks like crowns now?
 plot(crowns, col="black", add=TRUE)
 
 # convert to polygons for area calculations and mapping
@@ -99,7 +104,7 @@ sum(pm.sfs$area) # 4887.83
 ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
 bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle 
 
-# fn to convert plot x,y coords to not-crowns spatRaster with local crs [and vals for crown, notcrown, commmented out rn]
+# fn to convert plot x,y coords to not-crowns spatRaster with local crs [and vals for crown area = 0]
 xy_sr <- function(plot){ 
   df <- data.frame(X=plots_out[[plot]]$trees.noedge$x, Y=plots_out[[plot]]$trees.noedge$y, crown=plots_out[[plot]]$trees.noedge$crown)
   stems <- st_as_sf(df, coords = c("X", "Y")) #, crs = custom_crs) # points for each tree w/dbh attribute
@@ -120,7 +125,7 @@ xy_sr <- function(plot){
 
 opes_sr <- list()
 for (i in 1:length(plots_out)){
-  thingy <- patchMorph(xy_sr(i), buffer=5, suitThresh=1, gapThresh=8, spurThresh=6, verbose=FALSE) %>%
+  thingy <- patchMorph(xy_sr(i), buffer=5, suitThresh=1, gapThresh=8, spurThresh=4, verbose=FALSE) %>%
   as.polygons(values = TRUE) %>% 
   st_as_sf() %>% 
 # filter(focal_max == 1) %>% # this part could be a place I can fix the 1/0 issue
@@ -165,13 +170,13 @@ gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
   theme_classic()
 
-min(opes_all[opes_all$Year==1941,]) # 69.8
-max(opes_all[opes_all$Year==1941,]) # 6691.46
-mean(sapply(opes_all[opes_all$Year==1941,], as.numeric)) # 1577.804
+min(opes_all[opes_all$Year==1941,]) # 32.01
+max(opes_all[opes_all$Year==1941,]) # 5727.85
+mean(sapply(opes_all[opes_all$Year==1941,], as.numeric)) # 1338.109
 
-min(opes_all[opes_all$Year==2018,]) # 54.2
-max(opes_all[opes_all$Year==2018,]) # 6419.23
-mean(sapply(opes_all[opes_all$Year==2018,], as.numeric)) # 1381.669
+min(opes_all[opes_all$Year==2018,]) # 33.32
+max(opes_all[opes_all$Year==2018,]) # 5718.15
+mean(sapply(opes_all[opes_all$Year==2018,], as.numeric)) # 1302.589
 
 
 
@@ -251,7 +256,7 @@ piefn <- function(plot) {
     theme(axis.text.x=element_blank()) +
     labs(title = paste("Spatial Composition, ", names[plot]))
 }
-piefn(8) # works
+# piefn(8) # works
 
 ICO_pies <- list()
 for (i in 1:length(plots_out)){
@@ -261,8 +266,8 @@ for (i in 1:length(plots_out)){
   #dev.off()
 }
 library(gridExtra)
-grid.arrange(ICO_pies[[1]], ICO_pies[[3]], ICO_pies[[5]], ICO_pies[[2]], ICO_pies[[4]], ICO_pies[[6]], ncol=3) #IS
-grid.arrange(ICO_pies[[7]], ICO_pies[[9]], ICO_pies[[11]], ICO_pies[[8]], ICO_pies[[10]], ICO_pies[[12]], ncol=3) #OH
+#grid.arrange(ICO_pies[[1]], ICO_pies[[3]], ICO_pies[[5]], ICO_pies[[2]], ICO_pies[[4]], ICO_pies[[6]], ncol=3) #IS
+#grid.arrange(ICO_pies[[7]], ICO_pies[[9]], ICO_pies[[11]], ICO_pies[[8]], ICO_pies[[10]], ICO_pies[[12]], ncol=3) #OH
 
 # one pie each for each site/year combo
 # first, get columns of tpiebins broken out: IS 2018 = 1, 3, 5; IS 1941 = 2, 4, 6     OH 2018 = 7, 9, 11; OH 1941 = 8, 10, 12
