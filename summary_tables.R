@@ -20,93 +20,6 @@
 # maxtpclust.stand = max trees per cluster
 # gaps.ha.stand = gaps per ha
 
-n.ha <- 1
-# Starting with plot 1 (IS1 in 2018), small clusters (2-4)
-nrow(filter(plots_out[[1]][[12]], bin =="2-4"))/n.ha # 17 small (2-4) clusters = n.clust.bin 
-round(nrow(filter(plots_out[[1]][[11]], bin =="2-4"))*100/nrow(plots_out[[1]][[11]]),1) # 41.8% = p.trees.bin
-round(mean(filter(plots_out[[1]][[11]], bin =="2-4")[,3]),1) # 47.1 cm = mDBH.bin
-round(sum(filter(plots_out[[1]][[12]], bin =="2-4")[,2]),1) # 10.3 (m2/ha) = ba.bin
-round(nrow(filter(plots_out[[1]][[11]], bin == "2-4"))/(piebins[1,4]/10000),1) # 469.3 = tph.bin (for this bin (col 4) in this plot (row 1), in ha)
-round(piebins[1,4]*100/(10000*n.ha),1) # 9.8% = p.area.bin
-
-nrow(plots_out[[1]][[11]])/1 # 110 = TPH
-plots_out[[1]][[5]][1]/n.ha # 26.7 m2/ha = BAH
-round(mean(plots_out[[1]][[11]][,3]),1) # 49.8 = meanDBH
-round(mean(plots_out[[1]][[12]][,1]),1) # 2.2 = tpclust.stand
-max(plots_out[[1]][[12]][,1]) # 13 = maxtpclust.stand
-nrow(opes_sr[[1]])/n.ha # 7 = gaps.ha.stand !! not accurate but this will be how to get it when it is
-
-
-# now do it again for all IS in 2018 (plots 1, 3, 5) -- eventually this will have a loop over "bin", and will be a function of "indices" (vector of plot #s)
-indices <- c(1,3,5)
-n.ha <- length(indices)
-
-selected_data <- lapply(indices, function(i) { # n.clust.bin
-  clusters <- plots_out[[i]][[12]] %>% 
-    filter(bin == "2-4")
-  return(nrow(clusters)) })
-round(mean(unlist(selected_data)),1) # 17.7 small clusters at IS in 2018 !! double-check this one for n = 6
-round(sd(unlist(selected_data)), 1) # sd = 3.1
-
-selected_data <- lapply(indices, function(i) { # p.trees.bin
-  trees.bin <- plots_out[[i]][[11]] %>% 
-    filter(bin == "2-4")
-  trees.ne <- plots_out[[i]][[11]] 
-  return(list(nrow(trees.bin), nrow(trees.ne))) })
-round(
-  mean(
-    (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[1]])))*100/ # take trees.bin per plot, x100
-         (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[2]])))) # divide each by all trees per plot
-  ,1) # 45.6%
-round(
-  sd(
-    (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[1]])))*100/ # take trees.bin per plot, x100
-      (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[2]])))) # divide each by all trees per plot
-  ,1) # sd = 4.9
-
-selected_data <- lapply(indices, function(i) { # mDBH.bin
-  trees.bin <- plots_out[[i]][[11]] %>% 
-    filter(bin == "2-4")
-  dbh <- trees.bin[,3]
-  return(dbh) })
-# round(mean(unlist(selected_data)),1) # 51.4 cm mean DBH
-# round(sd(unlist(selected_data)),1) # 30.5 ... not sure why this is so high!
-# maybe I should try average of averages approach. OK:
-round(mean(unlist(lapply(c(1:length(indices)), function(x) mean(selected_data[[x]])))),1) # 51.5
-round(sd(unlist(lapply(c(1:length(indices)), function(x) mean(selected_data[[x]])))),1) # 6.2
-
-selected_data <- lapply(indices, function(i) { # ba.bin
-  clusters <- plots_out[[i]][[12]] %>% 
-    filter(bin == "2-4")
-  ba <- clusters[,2]
-  return(ba) })
-round(sum(unlist(selected_data)/n.ha),1) # 13.6 m2/ha
-# redo as average of averages
-round(mean(unlist(lapply(c(1:length(indices)), function(x) sum(selected_data[[x]])))),1) # 13.6 m2/ha
-round(sd(unlist(lapply(c(1:length(indices)), function(x) sum(selected_data[[x]])))),1) # sd = 3.0
-
-selected_data <- lapply(indices, function(i) { # tph.bin
-  trees.bin <- plots_out[[i]][[11]] %>% 
-    filter(bin == "2-4")
-  return(nrow(trees.bin)) })
-round(sum(unlist(selected_data))/((sum(piebins[indices,4])/10000)),1) # 515.4
-# redo as average of averages
-round(mean(unlist(selected_data)/((piebins[indices,4])/10000)),1) # 536.1
-round(sd(unlist(selected_data)/((piebins[indices,4])/10000)),1) # sd = 123.5
-
-round(sum(piebins[indices,4]*100)/(10000*n.ha),1) # 10.7% p.area.bin
-# redo as average of averages
-round(mean(piebins[indices,4]*100/(10000)),1) # 10.7% p.area.bin
-round(sd(piebins[indices,4]*100/(10000)),1) # sd = 3.5
-
-
-# save all the functions above as output names
-# generalize anywhere that calls "2-4" to call bin_names[i]
-# write a function that returns a vector of those outputs for each bin size
-# repeat these steps for stand-level metrics
-
-indices <- c(1,3,5)
-n.ha <- length(indices)
 # make a function (of indices, bin)
 
 summ.bin <- function(indices, bin.i){
@@ -166,6 +79,9 @@ return(output)
 IS41 <- c(2,4,6)
 OH41 <- c(8,10,12)
 all41 <- c(IS41, OH41)
+ISpf <- c(13,14,15)
+OHpf <- c(16,17,18)
+allpf <- c(ISpf, OHpf)
 IS18 <- c(1,3,5)
 OH18 <- c(7,9,11)
 all18 <- c(IS18, OH18)
@@ -175,7 +91,7 @@ mets_names <- c("n.clust.bin",  "p.trees.bin",  "mDBH.bin", "ba.bin",  "tph.bin"
 
            
 
-indices_list <- list(IS41, OH41, all41, IS18, OH18, all18)
+indices_list <- list(IS41, OH41, all41, ISpf, OHpf, allpf, IS18, OH18, all18)
 summ.bins1 <- data.frame(matrix(0,length(indices_list),12))
 for (i in 1:length(indices_list)){
   summ.bins1[i,] <- summ.bin(indices_list[[i]],1)
@@ -200,18 +116,24 @@ for (i in 1:length(indices_list)){
   colnames(summ.bins4) <- paste0(mets_names, 4)
 }
 
-t(summ.bins1) # gives the per-bin chunk of the results table!! 
+#t(summ.bins1) # gives the per-bin chunk of the results table!! 
 #rbind(t(summ.bins1)[1:6,], t(summ.bins1)[7:12,])
 #cbind(t(summ.bins1)[1:6,], t(summ.bins1)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)] 
 
 #summary_table <- rbind(t(summ.bins1), t(summ.bins2), t(summ.bins3), t(summ.bins4))
 
-summary_table <- rbind( cbind(t(summ.bins1)[1:6,], t(summ.bins1)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)],
-                        cbind(t(summ.bins2)[1:6,], t(summ.bins2)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)],
-                        cbind(t(summ.bins3)[1:6,], t(summ.bins3)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)],
-                        cbind(t(summ.bins4)[1:6,], t(summ.bins4)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)])
+# summary_table <- rbind( cbind(t(summ.bins1)[1:6,], t(summ.bins1)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)],
+#                         cbind(t(summ.bins2)[1:6,], t(summ.bins2)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)],
+#                         cbind(t(summ.bins3)[1:6,], t(summ.bins3)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)],
+#                         cbind(t(summ.bins4)[1:6,], t(summ.bins4)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)])
+summary_table <- rbind( cbind(t(summ.bins1)[1:6,], t(summ.bins1)[7:12,])[,c(1,10,2,11,3,12,4,13,5,14,6,15,7,16,8,17,9,18)],
+                        cbind(t(summ.bins2)[1:6,], t(summ.bins2)[7:12,])[,c(1,10,2,11,3,12,4,13,5,14,6,15,7,16,8,17,9,18)],
+                        cbind(t(summ.bins3)[1:6,], t(summ.bins3)[7:12,])[,c(1,10,2,11,3,12,4,13,5,14,6,15,7,16,8,17,9,18)],
+                        cbind(t(summ.bins4)[1:6,], t(summ.bins4)[7:12,])[,c(1,10,2,11,3,12,4,13,5,14,6,15,7,16,8,17,9,18)])
 
-mets_names_final <- c("IS41", "IS41sd", "OH41", "OH41sd", "all41", "all41sd", "IS18", "IS18sd", "OH18", "OH18sd", "all18", "all18sd")
+mets_names_final <- c("IS41", "IS41sd", "OH41", "OH41sd", "all41", "all41sd", 
+                      "ISpf", "ISpfsd", "OHpf", "OHpfsd", "allpf", "allpfsd",
+                      "IS18", "IS18sd", "OH18", "OH18sd", "all18", "all18sd")
 colnames(summary_table) <- mets_names_final
 
 ## stand-level metrics
@@ -271,12 +193,16 @@ for (i in 1:length(indices_list)){
   summ.stands[i,] <- summ.stand(indices_list[[i]])
  # colnames(summ.stands) <- paste0(mets_names, 1)
 }
-summ.stands <- cbind(t(summ.stands)[1:6,], t(summ.stands)[7:12,])[,c(1,7,2,8,3,9,4,10,5,11,6,12)]
+summ.stands <- cbind(t(summ.stands)[1:6,], t(summ.stands)[7:12,])[,c(1,10,2,11,3,12,4,13,5,14,6,15,7,16,8,17,9,18)]
 colnames(summ.stands) <- mets_names_final
 rownames(summ.stands) <- c("tph.stand",  "ba.stand",  "mDBH.stand",  "mean.tpc",  "max.tpc",  "avg.opes")
 
 
 summ.all <- rbind(summary_table, summ.stands)
+library(reader)
+# write_csv(data.frame(summ.all), "Eastside_summary.csv")
+# write.table(data.frame(summ.all), file = 'Eastside_summary.txt', col.names = TRUE,
+#            row.names = TRUE, sep = "\t")
 
 # summary_table <- replace(summary_table, summary_table == "NaN", "-")
 # c("n.clust.bin", "n.clust.bin.sd", "p.trees.bin", "p.trees.bin.sd", "mDBH.bin", "mDBH.bin.sd",
