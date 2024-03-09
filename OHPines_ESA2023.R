@@ -140,7 +140,7 @@ library(ggplot2)
 #   geom_point()+
 #   stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
 #   labs(x="Diameter at Breast Height (cm)", y="Age") +
-#   ggtitle("Age-Size Regression for Jeffrey Pine") 
+#   ggtitle("Age-Size Regression for Jeffrey Pine")
 #   theme_bw(base_size=22)
 
 ## 5.2 New model and model comparison based on polynomials
@@ -248,12 +248,24 @@ OH_snags <- OH_snags %>%
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
-  mutate(snag_correction =
+  mutate(dec_correction =
            case_when(Dec == 1 ~ 2,
-                     TRUE ~ 10)) %>%
-  mutate(estab_est = round(2018 - (age_est+snag_correction),0))
+                     TRUE ~ 9)) %>%
+  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
 
 # SNAGS ARE READY AT O'HARRELL CANYON
+
+OH_livetrees <- OH_livetrees %>% 
+  mutate(Code = paste0(Plot, Core.))
+
+OH_correction$Code <- gsub("_","", OH_correction$series)
+OH_correction$Code <- gsub("b","", OH_correction$Code)
+sum(OH_livetrees$Code %in% OH_correction$Code) # 71
+
+allcodes <- OH_livetrees$Code
+goodcodes <- allcodes[c(which(OH_livetrees$Code %in% OH_correction$Code))]
+
+# now 71 livetrees have a Code I can look up in the OH_correction df to pull corrected_age (and reassign to age_est)
 
 OH_livetrees <- OH_livetrees %>%
   mutate(PIJE_est = predict(OH_lm, newdata = OH_livetrees)) %>% 
@@ -263,8 +275,89 @@ OH_livetrees <- OH_livetrees %>%
   mutate(age_est = case_when(Spec=="PIJE" ~ PIJE_est,
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
-                             Spec=="PICO" ~ PICO_est)) %>% 
+                             Spec=="PICO" ~ PICO_est)) 
+# !! need to re-assign age_est with the core-based ages of the trees that we cored
+for(i in 1:length(goodcodes)){
+  OH_livetrees[OH_livetrees$Code == goodcodes[i],]$age_est <- OH_correction[OH_correction$Code == goodcodes[i], 26]
+}
+
+# still need to force ages from OH_2023 (all in OH2) -- PICO and ABCO
+#View(OH_livetrees[OH_livetrees$Plot =="OH2" & OH_livetrees$Spec=="PICO",])
+
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "PICO" & 
+                     OH_livetrees$dbh == 8.6),]$age_est <- OH_2023[20,]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "PICO" & 
+                     OH_livetrees$dbh == 8.7),]$age_est <- OH_2023[19,]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "PICO" & 
+                     OH_livetrees$dbh == 9.2),]$age_est <- OH_2023[21,]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "PICO" & 
+                     OH_livetrees$dbh == 10.7),]$age_est <- OH_2023[17,]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "PICO" & 
+                     OH_livetrees$dbh == 10.8),]$age_est <- OH_2023[16,]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "PICO" & 
+                     OH_livetrees$dbh == 12.0),]$age_est <- OH_2023[18,]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "PICO" & 
+                     OH_livetrees$dbh == 27.8),]$age_est <- OH_2023[14,]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "PICO" & 
+                     OH_livetrees$dbh == 29.0),]$age_est <- OH_2023[15,]$age_est
+
+# yuck! Now ABCO
+#View(OH_livetrees[OH_livetrees$Plot =="OH2" & OH_livetrees$Spec=="ABCO",])
+
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == -51.8 & 
+                     OH_livetrees$Y == 2.3),]$age_est <- OH_2023[OH_2023$number=="2001",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == -48.5 & 
+                     OH_livetrees$Y == 7.3),]$age_est <- OH_2023[OH_2023$number=="2002",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == -43.2 & 
+                     OH_livetrees$Y == 5.5),]$age_est <- OH_2023[OH_2023$number=="2003",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == -8.7 & 
+                     OH_livetrees$Y == 51.1),]$age_est <- OH_2023[OH_2023$number=="2015",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == 7.1 & 
+                     OH_livetrees$Y == -14.3),]$age_est <- OH_2023[OH_2023$number=="2016",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == -3.1 & 
+                     OH_livetrees$Y == -53.4),]$age_est <- OH_2023[OH_2023$number=="2017",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == 0.4 & 
+                     OH_livetrees$Y == 54.9),]$age_est <- OH_2023[OH_2023$number=="2018",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == 1.1 & 
+                     OH_livetrees$Y == 37.3),]$age_est <- OH_2023[OH_2023$number=="2019",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == 35.1 & 
+                     OH_livetrees$Y == 42.1),]$age_est <- OH_2023[OH_2023$number=="2020",]$age_est
+OH_livetrees[which(OH_livetrees$Plot =="OH2" & 
+                     OH_livetrees$Spec == "ABCO" & 
+                     OH_livetrees$X == 1.3 & 
+                     OH_livetrees$Y == 52.0),]$age_est <- OH_2023[OH_2023$number=="2021",]$age_est
+
+OH_livetrees <- OH_livetrees %>%
   mutate(estab_est = round(2018 - age_est,0))
+
+OH_livetrees$dec_correction <- 0
+
 # SO ARE LIVETREES
 
 #______________________________________________________________________________#
@@ -286,9 +379,9 @@ OH_logs$Spec[OH_logs$Spec=="UNK"] <- "PIJE"
 
 # 2018 - [Years since death (based on decay class) + age from DBH] = establishment year
 # I will do a *placeholder*/best guess age correction for the logs. 1 = 10y, 2-3 = 15y, 4-5 = 20y
-OH_logs$log_correction[OH_logs$Dec == 1]=10
-OH_logs$log_correction[OH_logs$Dec > 1 & OH_logs$Dec < 4]=15
-OH_logs$log_correction[OH_logs$Dec > 3 & OH_logs$Dec <=5]=20
+OH_logs$dec_correction[OH_logs$Dec == 1]=10
+OH_logs$dec_correction[OH_logs$Dec > 1 & OH_logs$Dec < 4]=15
+OH_logs$dec_correction[OH_logs$Dec > 3 & OH_logs$Dec <=5]=20
 OH_logs <- OH_logs %>%
   mutate(PIJE_est = predict(OH_lm, newdata = OH_logs)) %>% 
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
@@ -300,17 +393,17 @@ OH_logs <- OH_logs %>%
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
-  mutate(estab_est = round(2018 - (age_est+log_correction),0))
+  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
 # names(OH_livetrees)
 # names(OH_snags)
 # names(OH_logs) 
-OH_trees <- rbind(OH_livetrees[,c(1:9,18,19)],OH_snags[,c(1:9,18,20)],OH_logs[,c(1:9,15,16)])
+OH_trees <- rbind(OH_livetrees[,c(1:9,19,20,21)],OH_snags[,c(1:9,18,20,21)],OH_logs[,c(1:9,15,16,10)])
 
 #______________________________________________________________________________#
-# find dbh from 1941 age using dbh = (age^(1/0.9783))/3.2088
+# find dbh from 1941 age
 OH_trees1941 <- OH_trees %>% 
   mutate(age1941 = 1941 - estab_est) %>% 
   mutate(PIJE_1941 = (age1941 - 26.2246)/3.4328) %>% 
@@ -329,10 +422,43 @@ OH_trees1941 <- OH_trees %>%
 # then we are ready to compare stand metrics in 1941 to 2018
 
 #______________________________________________________________________________#
+# Size in 2006, before O'Harrell Fire
+# need to account for trees that were dead *before* O'Harrell Fire, i.e. all logs Dec > 1 were snags in 2006 (all snags, and logs Dec = 1, were live trees in 2006)
+
+OH_trees2006 <- OH_trees %>% 
+  mutate(age2006 = 2006 - estab_est) %>% 
+  mutate(PIJE_2006 = (age2006 - 26.2246)/3.4328) %>% 
+  mutate(JUGR_2006 = exp((age2006 - 24.2)/39.9)) %>% 
+  mutate(ABCO_2006 = (age2006-65.8335)/0.7771) %>% 
+  mutate(PICO_2006 = (age2006-64.0018)/1.1501) %>% 
+  mutate(dbh2006 = case_when(Spec=="PIJE" ~ PIJE_2006,
+                             Spec=="JUGR" ~ JUGR_2006,
+                             Spec=="ABCO" ~ ABCO_2006,
+                             Spec=="PICO" ~ PICO_2006))  %>% 
+  # need to filter out rows with trees that have NaN or <5 DBH
+  filter(!is.na(dbh2006)) %>% # 
+  filter(dbh2006>=5)
+
+OH_snags2006 <- OH_trees2006 %>% 
+  filter(dec_correction > 14) # any logs with Dec >1 were 2006 snags (so dec_correction ≥15)
+
+OH_trees2006 <- OH_trees2006 %>% 
+  filter(dec_correction < 14) # remove trees dead before O'Harrell Fire, but keep all live trees as of 2015
+
+#______________________________________________________________________________#
 # Prepping all OH sites in 2018
 OH1_2018 <- OH_livetrees[OH_livetrees$Plot == "OH1",]
 OH2_2018 <- OH_livetrees[OH_livetrees$Plot == "OH2",]
 OH3_2018 <- OH_livetrees[OH_livetrees$Plot == "OH3",]
+
+# Prepping all OH sites in 2006
+OH1_2006 <- OH_trees2006[OH_trees2006$Plot == "OH1",]
+OH2_2006 <- OH_trees2006[OH_trees2006$Plot == "OH2",]
+OH3_2006 <- OH_trees2006[OH_trees2006$Plot == "OH3",]
+# Need to reassign dbh to 2006 value
+OH1_2006 <- rename(OH1_2006, "dbh2018" = "dbh", "dbh" = "dbh2006")
+OH2_2006 <- rename(OH2_2006, "dbh2018" = "dbh", "dbh" = "dbh2006")
+OH3_2006 <- rename(OH3_2006, "dbh2018" = "dbh", "dbh" = "dbh2006")
 
 # Prepping all OH sites in 1941
 OH1_1941 <- OH_trees1941[OH_trees1941$Plot == "OH1",]
