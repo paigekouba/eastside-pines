@@ -1,6 +1,12 @@
 # Mon 5/8/23
 # Updating Age-Size Regression Model
 # Redoing Stand Metrics for ESA Abstract
+
+# Sun 2/25/24
+# Final Analyses
+
+# Fri 3/8/24
+# Adding Pre-Fire Timestep
 library(dplR)
 library(tidyverse)
 
@@ -224,11 +230,6 @@ tree_data <- tree_data %>%
 
 IS_trees <- tree_data[tree_data$Site=="IS",]
 names(IS_trees)[5] <- "dbh"
-unique(IS_trees$Spec)
-# [1] "PIJE"  "PICO" "PIJE*"
-IS_trees$Spec[IS_trees$Spec=="PIJE*"] <- "PIJE"
-unique(IS_trees$Spec)
-# [1] "PIJE" "PICO"
 
 # IS_count <- IS_trees %>% 
 #   group_by(Spec) %>% 
@@ -252,18 +253,37 @@ IS_livetrees <- IS_trees[is.na(IS_trees$Dec),] # later I will do stand metrics o
 #Example: Tree of diameter 23.7 is still 77 years old at IS, but if decay class is 4, then establishment date = 2018-(77+10)
 # Need to add column for age estimate:
 IS_snags <- IS_snags %>%
-  mutate(age_est = predict(IS_exp, newdata = IS_snags)) %>% 
+  mutate(age_est = predict(IS_lm, newdata = IS_snags)) %>% 
 # mutate(age_est = DBH/0.307204)%>%  # Old method based on straight-line regression; now need to use predict
-  mutate(snag_correction =
+  mutate(dec_correction =
            case_when(Dec == 1 ~ 2,
-                     TRUE ~ 10)) %>%
-  mutate(estab_est = round(2018 - (age_est+snag_correction),0))
+                     TRUE ~ 9)) %>%
+  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
 
 # SNAGS ARE READY AT INDIANA SUMMIT
 
+IS_livetrees <- IS_livetrees %>% 
+  mutate(Code = paste0(Plot, Core.))
+IS_correction$Code <- gsub("B","", IS_correction$series) # remove all the Bs
+sum(IS_livetrees$Code %in% IS_correction$Code) # 68
+
+allcodes <- IS_livetrees$Code
+goodcodes <- allcodes[c(which(IS_livetrees$Code %in% IS_correction$Code))]
+
+# now 68 livetrees have a Code I can look up in the IS_correction df to pull corrected_age (and reassign to age_est)
+
 IS_livetrees <- IS_livetrees %>%
-  mutate(age_est = predict(IS_exp, newdata = IS_livetrees)) %>% 
+     mutate(age_est = predict(IS_lm, newdata = IS_livetrees)) 
+# !! need to re-assign age_est with the core-based ages of the trees that we cored
+for(i in 1:length(goodcodes)){
+  IS_livetrees[IS_livetrees$Code == goodcodes[i],]$age_est <- IS_correction[IS_correction$Code == goodcodes[i], 22]
+}
+
+IS_livetrees <- IS_livetrees %>%
   mutate(estab_est = round(2018 - age_est,0))
+
+IS_livetrees$dec_correction <- 0
+
 # SO ARE LIVETREES
 
 #______________________________________________________________________________#
@@ -282,19 +302,20 @@ unique(IS_logs$Spec)
 # [1] "PIJE"  "PICO"  "PIJE*"
 # 2018 - [Years since death (based on decay class) + age from DBH] = establishment year
 # I will do a *placeholder*/best guess age correction for the logs. 1 = 10y, 2-3 = 15y, 4-5 = 20y
-IS_logs$log_correction[IS_logs$Dec == 1]=10
-IS_logs$log_correction[IS_logs$Dec > 1 & IS_logs$Dec < 4]=15
-IS_logs$log_correction[IS_logs$Dec > 3 & IS_logs$Dec <=5]=20
+IS_logs$dec_correction[IS_logs$Dec == 1]=10
+IS_logs$dec_correction[IS_logs$Dec > 1 & IS_logs$Dec < 4]=15
+IS_logs$dec_correction[IS_logs$Dec > 3 & IS_logs$Dec <=5]=20
 IS_logs <- IS_logs %>%
-  mutate(age_est = predict(IS_exp, newdata = IS_logs)) %>% 
-  mutate(estab_est = round(2018 - (age_est+log_correction),0))
+  mutate(age_est = predict(IS_lm, newdata = IS_logs)) %>% 
+  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
 # names(IS_livetrees)
 # names(IS_snags)
 # names(IS_logs) 
-IS_trees <- rbind(IS_livetrees[,c(1:9,14,15)],IS_snags[,c(1:9,14,16)],IS_logs[,c(1:9,11,12)])
+
+IS_trees <- rbind(IS_livetrees[,c(1:9,15,16,17)],IS_snags[,c(1:9,14,16,15)],IS_logs[,c(1:9,11,12,10)])
 unique(IS_trees$Spec)
 # [1] "PIJE"  "PICO" "PIJE*"
 IS_trees$Spec[IS_trees$Spec=="PIJE*"] <- "PIJE"
@@ -315,18 +336,47 @@ unique(IS_trees$Spec)
 # find dbh from 1941 age using dbh = (age^(1/0.95850))/3.61166
 IS_trees1941 <- IS_trees %>% 
   mutate(age1941 = 1941 - estab_est) %>% 
-  mutate(dbh1941 =round(age1941^(1/0.95850)/3.61166)) %>% 
-    # I think this worked; need to filter out rows with trees that have NaN or <5 DBH
+  #mutate(dbh1941 =round(age1941^(1/0.95850)/3.61166)) %>% 
+  mutate(dbh1941 = round((age1941 - 9.178)/2.889)) %>% 
+   # I think this worked; need to filter out rows with trees that have NaN or <5 DBH
   filter(!is.na(dbh1941)) %>% # this takes it from 650 to 412 trees
   filter(dbh1941>=5) # and this goes from 412 to 326 ! #IS_livetrees has 361 observations :)
 # hist(IS_trees1941$dbh1941, breaks = 10)
 # hist(IS_livetrees$dbh, breaks = 10)
 # then we are ready to compare stand metrics in 1941 to 2018 using MANOVA
 #______________________________________________________________________________#
+# Size in 2015, before Clark Fire
+# need to account for trees that were dead *before* Clark Fire, i.e. Dec = ≥2 for snags and all logs
+# simpler way is to use dec_correction (in years) and filter for >2, <10y (snags)
+
+IS_trees2015 <- IS_trees %>% 
+  mutate(age2015 = 2015 - estab_est) %>% 
+  mutate(dbh2015 = dbh - ((2018-2015)*2.889)) %>% # for this very recent forest, just subtract, not estimating size from age
+  # need to filter out rows with trees that have NaN or <5 DBH
+  filter(!is.na(dbh2015)) %>% # 
+  filter(dbh2015>=5)
+
+IS_snags2015 <- IS_trees2015 %>% 
+  filter(dec_correction > 2 & dec_correction < 10) # 2015 snags will be those with >2 but <10y correction
+
+IS_trees2015 <- IS_trees2015 %>% 
+  filter(dec_correction < 3) # remove trees dead before Clark Fire, but keep all live trees as of 2015
+
+
+#______________________________________________________________________________#
 # Prepping all IS sites in 2018
 IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
 IS2_2018 <- IS_livetrees[IS_livetrees$Plot == "IS2",]
 IS3_2018 <- IS_livetrees[IS_livetrees$Plot == "IS3",]
+
+# Prepping all IS sites in 2015
+IS1_2015 <- IS_trees2015[IS_trees2015$Plot == "IS1",]
+IS2_2015 <- IS_trees2015[IS_trees2015$Plot == "IS2",]
+IS3_2015 <- IS_trees2015[IS_trees2015$Plot == "IS3",]
+# Need to reassign dbh to 2015 value
+IS1_2015 <- rename(IS1_2015, "dbh2018" = "dbh", "dbh" = "dbh2015")
+IS2_2015 <- rename(IS2_2015, "dbh2018" = "dbh", "dbh" = "dbh2015")
+IS3_2015 <- rename(IS3_2015, "dbh2018" = "dbh", "dbh" = "dbh2015")
 
 # Prepping all IS sites in 1941
 IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
