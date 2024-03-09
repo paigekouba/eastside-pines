@@ -39,6 +39,9 @@ for (i in 1:length(plots_out)){
 
 # double check the arrangement of the maps; remove per-map labels and add to grid.arrange ?
 # goal is two figs: IS 1, 2, 3 in a column for 1941 at left; IS 1, 2, 3 in a column for 2018 at right. Same for OH
-grid.arrange(ICO_maps[[2]], ICO_maps[[1]], ICO_maps[[4]], ICO_maps[[3]], ICO_maps[[6]], ICO_maps[[5]], ncol=2) # IS
+#grid.arrange(ICO_maps[[2]], ICO_maps[[1]], ICO_maps[[4]], ICO_maps[[3]], ICO_maps[[6]], ICO_maps[[5]], ncol=2) # IS
+grid.arrange(ICO_maps[[2]], ICO_maps[[13]], ICO_maps[[1]], ICO_maps[[4]], ICO_maps[[14]], ICO_maps[[3]], ICO_maps[[6]], ICO_maps[[15]], ICO_maps[[5]], ncol=3) # IS
 
-grid.arrange(ICO_maps[[8]], ICO_maps[[7]], ICO_maps[[10]], ICO_maps[[9]], ICO_maps[[12]], ICO_maps[[11]], ncol=2) # OH
+#grid.arrange(ICO_maps[[8]], ICO_maps[[7]], ICO_maps[[10]], ICO_maps[[9]], ICO_maps[[12]], ICO_maps[[11]], ncol=2) # OH
+grid.arrange(ICO_maps[[8]], ICO_maps[[16]], ICO_maps[[7]], ICO_maps[[10]], ICO_maps[[17]], ICO_maps[[9]], ICO_maps[[12]], ICO_maps[[18]], ICO_maps[[11]], ncol=3) # OH
+
