@@ -368,9 +368,11 @@ cut.index <- which(trees$x %in% edgefilter$x & trees$y %in% edgefilter$y)
 
 # for loop to prep all 12 plots for mapping and figures
 plots <- list(IS1_2018, IS1_1941, IS2_2018, IS2_1941, IS3_2018, IS3_1941, 
-           OH1_2018, OH1_1941, OH2_2018, OH2_1941, OH3_2018, OH3_1941)
+           OH1_2018, OH1_1941, OH2_2018, OH2_1941, OH3_2018, OH3_1941,
+           IS1_2015, IS2_2015, IS3_2015, OH1_2006, OH2_2006, OH3_2006) # new line for prefire analysis
 names <- c("IS1 in 2018", "IS1 in 1941", "IS2 in 2018", "IS2 in 1941", "IS3 in 2018", "IS3 in 1941", 
-              "OH1 in 2018", "OH1 in 1941", "OH2 in 2018", "OH2 in 1941", "OH3 in 2018", "OH3 in 1941")
+              "OH1 in 2018", "OH1 in 1941", "OH2 in 2018", "OH2 in 1941", "OH3 in 2018", "OH3 in 1941",
+           "IS1 in 2015", "IS2 in 2015", "IS3 in 2015", "OH1 in 2006", "OH2 in 2006", "OH3 in 2006") # new for prefire 
 plots_out <- vector(mode='list',length=length(plots))
 
 for(i in 1:length(plots)){
@@ -405,17 +407,17 @@ summaries <- summaries %>%
 
 # make plot for IS
 summaries_IS <- filter(summaries, Site =="IS") # drop out OH
-dotplots_IS <- cbind(filter(summaries_IS, Year == 1941), filter(summaries_IS, Year == 2018)) # arrange by year
-dotplots_ISn <- dotplots_IS[,c(3:7,12:16)] # selects just metrics columns: 3:7 for 1941, 12:16 for 2018
+dotplots_IS <- cbind(filter(summaries_IS, Year == 1941), filter(summaries_IS, Year == 2018), filter(summaries_IS, Year == 2015)) # arrange by year
+dotplots_ISn <- dotplots_IS[,c(3:7,12:16,21:25)] # selects just metrics columns: 3:7 for 1941, 12:16 for 2018, 21:25 for 2015
 #dpISn <- apply(dotplots_ISn,2,mean_se)
 dpISn <- as.data.frame(t(sapply(dotplots_ISn,mean_se))) # get mean and se of each column
-dpISn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18')) # add column indicating which metric/year is in each row
+dpISn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', 'BAH15', 'TPH15', 'Mean.dbh15', 'QMD15', 'SDI15')) # add column indicating which metric/year is in each row
 
-dpISn2 <- cbind(dpISn[1:5,],dpISn[6:10,1:3]) # make wider, for plotting
+dpISn2 <- cbind(dpISn[1:5,],dpISn[6:10,1:3], dpISn[11:15,1:3]) # make wider, for plotting
 dpISn2$Metrics <- c("BAH","TPH","meanDBH","QMD","SDI") # metric labes w/o year, for plotting
-colnames(dpISn2) <- c("y", "ymin", "ymax", "Metrics", "y.1", "ymin.1", "ymax.1")
+colnames(dpISn2) <- c("y", "ymin", "ymax", "Metrics", "y.1", "ymin.1", "ymax.1", "y.2", "ymin.2", "ymax.2")
 
-dpISn2 <- dpISn2 %>% mutate_at(c("y","ymin","ymax","y.1","ymin.1","ymax.1"), as.numeric) 
+dpISn2 <- dpISn2 %>% mutate_at(c("y","ymin","ymax","y.1","ymin.1","ymax.1", "y.2","ymin.2","ymax.2"), as.numeric) 
 
 dpISn2 <- dpISn2 %>% # change all values to percentages for better comparison
   mutate(yN = 100*(y - y)/y) %>% 
@@ -423,20 +425,23 @@ dpISn2 <- dpISn2 %>% # change all values to percentages for better comparison
   mutate(ymaxN = 100*(ymax - y)/y) %>% 
   mutate(y.1N = 100*(y.1 - y)/y) %>% 
   mutate(ymin.1N = 100*(ymin.1 - y)/y) %>% 
-  mutate(ymax.1N = 100*(ymax.1 - y)/y)
+  mutate(ymax.1N = 100*(ymax.1 - y)/y) %>% 
+  mutate(y.2N = 100*(y.2 - y)/y) %>% 
+  mutate(ymin.2N = 100*(ymin.2 - y)/y) %>% 
+  mutate(ymax.2N = 100*(ymax.2 - y)/y)
 
 # Now O'Harrell Canyon ones
 summaries_OH <- filter(summaries, Site =="OH")
-dotplots_OH <- cbind(filter(summaries_OH, Year == 1941), filter(summaries_OH, Year == 2018))
-dotplots_OHn <- dotplots_OH[,c(3:7,12:16)]
+dotplots_OH <- cbind(filter(summaries_OH, Year == 1941), filter(summaries_OH, Year == 2018), filter(summaries_OH, Year == 2006))
+dotplots_OHn <- dotplots_OH[,c(3:7,12:16, 21:25)]
 dpOHn <- as.data.frame(t(sapply(dotplots_OHn,mean_se)))
-dpOHn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18'))
+dpOHn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', 'BAH06', 'TPH06', 'Mean.dbh06', 'QMD06', 'SDI06'))
 
-dpOHn2 <- cbind(dpOHn[1:5,],dpOHn[6:10,1:3])
+dpOHn2 <- cbind(dpOHn[1:5,],dpOHn[6:10,1:3], dpOHn[11:15,1:3])
 dpOHn2$Metrics <- c("BAH","TPH","meanDBH","QMD","SDI")
-colnames(dpOHn2) <- c("y",       "ymin",    "ymax",    "Metrics", "y.1",       "ymin.1",    "ymax.1")
+colnames(dpOHn2) <- c("y","ymin","ymax","Metrics","y.1","ymin.1","ymax.1", "y.2","ymin.2","ymax.2")
 
-dpOHn2 <- dpOHn2 %>% mutate_at(c("y","ymin","ymax","y.1","ymin.1","ymax.1"), as.numeric)
+dpOHn2 <- dpOHn2 %>% mutate_at(c("y","ymin","ymax","y.1","ymin.1","ymax.1", "y.2","ymin.2","ymax.2"), as.numeric)
 
 dpOHn2 <- dpOHn2 %>% 
   mutate(yN = 100*(y - y)/y) %>% 
@@ -444,30 +449,33 @@ dpOHn2 <- dpOHn2 %>%
   mutate(ymaxN = 100*(ymax - y)/y) %>% 
   mutate(y.1N = 100*(y.1 - y)/y) %>% 
   mutate(ymin.1N = 100*(ymin.1 - y)/y) %>% 
-  mutate(ymax.1N = 100*(ymax.1 - y)/y)
+  mutate(ymax.1N = 100*(ymax.1 - y)/y) %>% 
+  mutate(y.2N = 100*(y.2 - y)/y) %>% 
+  mutate(ymin.2N = 100*(ymin.2 - y)/y) %>% 
+  mutate(ymax.2N = 100*(ymax.2 - y)/y)
 
 # Welch two-sample t-test, DBH
 t.test(IS_livetrees$dbh, IS_trees1941$dbh1941, var.equal=FALSE)
-# t = 6.7226, df = 696.47, p-value = 3.718e-11   difference in means is significant; 2018 trees are *bigger* at IS
+# t = 6.9171, df = 696.99, p-value = 1.045e-11   difference in means is significant; 2018 trees are *bigger* at IS (+15.5 cm) 11.12942 19.95152
 t.test(OH_livetrees$dbh, OH_trees1941$dbh1941, var.equal=FALSE)
-# t = -0.11542, df = 446.22, p-value = 0.9082   difference in means not significant; *no change* in size at OH
+# t = -0.41581, df = 407.26, p-value = 0.6778   difference in means not significant; *no change* in size at OH
 
 # TPH
 t.test(dotplots_ISn$TPH.1, dotplots_ISn$TPH)
-# t = 0.037418, df = 2.2001, p-value = 0.9733   no sig diff in TPH at IS
+# t = 0.050903, df = 2.2087, p-value = 0.9636   no sig diff in TPH at IS
 t.test(dotplots_OHn$TPH.1, dotplots_OHn$TPH)
-# t = 1.8671, df = 2.0835, p-value = 0.1977     no sig diff in TPH at OH
+# 1.8685, df = 2.0772, p-value = 0.1979    no sig diff in TPH at OH
 t.test(c(dotplots_ISn$TPH.1, dotplots_OHn$TPH.1), c(dotplots_ISn$TPH, dotplots_OHn$TPH))
-# t = 1.1072, df = 8.4639, p-value = 0.2987; 19.8 ( -21.08453  60.75120 95% CI) *no change* in TPH at p<0.05 level
+# t = 1.1292, df = 8.5435, p-value = 0.2895; 20.0 ( -20.39653  60.39653 95% CI) *no change* in TPH at p<0.05 level
 
 # BAH
 t.test(dotplots_ISn$BAH.1, dotplots_ISn$BAH)
-# t = 7.9895, df = 2.6744, p-value = 0.006129   sig diff in BAH at IS; 2018 value is higher
+# t = 7.8478, df = 2.7517, p-value = 0.005828   sig diff in BAH at IS; 2018 value is higher
 t.test(dotplots_OHn$BAH.1, dotplots_OHn$BAH)
-# t = 3.1419, df = 2.3059, p-value = 0.07332    almost sig diff in BAH at OH; 2018 value is higher
+# t = 2.6861, df = 2.3998, p-value = 0.09491    almost sig diff in BAH at OH; 2018 value is higher
 # t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BH.1), c(dotplots_ISn$baH, dotplots_OHn$BAH))
 t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BAH.1), c(dotplots_ISn$BAH, dotplots_OHn$BAH))
-# t = 3.9437, df = 7.3676, p-value = 0.005035; 9.6 (3.901582 15.298418) difference is significant; 2018 BAH is *higher*
+# t = 3.8218, df = 6.7058, p-value = 0.00708; 9.0 (3.387807 14.645526) difference is significant; 2018 BAH is *higher*
 
 # here is the one with standardized values
 #install.packages("gridExtra")
@@ -475,6 +483,7 @@ library(gridExtra)
 ISdots <- ggplot() +
   geom_pointrange(data = dpISn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 1, color="red", size=1) + 
   geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), shape = 16, color = "darkgray",size=1) + 
   coord_flip() +
   ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
   xlab("Metric") + ylab("Percent Change") +
@@ -482,6 +491,7 @@ ISdots <- ggplot() +
 OHdots <- ggplot() +
   geom_pointrange(data = dpOHn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 1, color="red", size=1) + 
   geom_pointrange(data = dpOHn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
+  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), shape = 16, color = "darkgray",size=1) +
   coord_flip() +
   ggtitle("Change in Nonspatial Forest Metrics \nat O'Harrell Canyon") +
   xlab("Metric") + ylab("Percent Change") +
@@ -496,23 +506,23 @@ dotplots <- grid.arrange(ISdots, OHdots, ncol=2)
 
 # what is average cluster size at IS in 1941 and 2018?
 # get average cluster size from plots c(2,4,6) [1941] and c(1,3,5) [2018]
-mean(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.505051 in 1941
+mean(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.515306 in 1941
 mean(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.340741 in 2018
 t.test(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size), c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size))
-# diff +  0.83569, 0.4419772 1.2294033, p-value = p-value = 4.479e-05
+# diff +  0.825435, 0.4248285 1.2260407, p-value = p-value = 7.144e-05
 
 # what is average cluster size at OH in 1941 and 2018?
 # get average cluster size from plots c(8,10,12) [1941] and c(7,9,11) [2018]
-mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 1.227941 in 1941
+mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 1.282443 in 1941
 mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)) # 1.906832 in 2018
 t.test(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size), c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size))
-# diff +  0.678891,  0.3746479 0.9831344, p-value = p-value = 1.791e-05
+# diff +  0.624389,  0.3131096 0.9356695, p-value = p-value = 0.0001055
 
 # what is average cluster size across both sites in 1941 and 2018?
-mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.392216 in 1941
+mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.422018 in 1941
 mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.10473 in 2018
 t.test(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size), c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size))
-# diff + 0.712514, 0.4648563 0.9601720, p-value = 3.038e-08
+# diff +  0.682712, 0.4296467 0.9357760, p-value = 1.869e-07
 
 # proportion of single trees, IS
 sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1) # 139 in 1941
