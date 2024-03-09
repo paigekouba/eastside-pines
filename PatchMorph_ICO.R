@@ -10,22 +10,22 @@ allcrwn <- unlist(lapply(allcrwndf, function(x) x[[6]]))
 
 ggplot(as.data.frame(allcrwn), aes(x = allcrwn*2)) + # distribution of tree crown *diameters*
   geom_histogram() +
-  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.585392 
-  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 8.070112
-  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.729545
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.5384
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 8.04848
+  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.643106
   ggtitle("Crown Diameters, All Sites, All Years") +
   xlab("Crown Diamter (m)") + ylab("Frequency")
 
-sum(allcrwn < 1)*100/length(allcrwn) # 0.49
-sum(allcrwn > 5)*100/length(allcrwn) # 1.87144
-# sum(allcrwn > 4)*100/length(allcrwn) # 10.74044
+sum(allcrwn < 1)*100/length(allcrwn) # 0.5416051
+sum(allcrwn > 5)*100/length(allcrwn) # 1.920236
+# sum(allcrwn > 4)*100/length(allcrwn) # 10.2905
 
-min(allcrwn)*2 # 1.662 is the smallest tree crown across all the plots and both times
+min(allcrwn)*2 # 1.486 is the smallest tree crown across all the plots and both times
 max(allcrwn)*2 # 11.95104 is the biggest tree crown across all the plots and both times
 
-library(raster)
+#library(raster)
 library(sf)
-library(sp)
+#library(sp)
 library(terra)
 # prepare data: one plot (plot 4, IS3 in 1941) for testing
 ## checking plot 9 (OH2 in 2018) because of the error at PM result stage
@@ -69,7 +69,7 @@ values(r_yescrowns)[values(r_yescrowns) == 1] <- 0 # reassign all values in crow
 
 r_test <- merge(r_notcrowns, r_yescrowns) # creates one rasterlayer with 0s in crown areas, 1s everywhere else
 #  sr_test <- rast(r_test) # makes into a spatRaster 
-crs(sr_test) <- "local" # set crs to Cartesian plane in meters
+#crs(sr_test) <- "local" # set crs to Cartesian plane in meters
 crs(r_test) <- "local" # set crs to Cartesian plane in meters
 # patchMorph code:
 # https://rdrr.io/github/bi0m3trics/patchwoRk/man/patchMorph.html
@@ -81,8 +81,8 @@ library(patchwoRk)
 # (1) land cover density threshold (suitThresh), (2) habitat gap maximum thickness (gapThresh), and (3) habitat patch minimum thickness (spurThresh)
 
 plot(r_test, col=c("white", "#FEC44F"), main="Starting SpatRaster") # 0s in crowns (white), 1s everywhere else (yellow)
-pm.rast <- patchMorph(r_test, buffer = 5, suitThresh = 1, gapThresh = 20, spurThresh = 100, verbose = TRUE) # 
-plot(pm.rast,  main="PatchMorph Results (Gap-2x10 & Spur-10x10)", col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0! ## I did not get this on the most recent run but I don't think I've changed anything....except I was using plot 9! also focus for kernel looks like crowns now?
+pm.rast <- patchMorph(r_test, buffer = 5, suitThresh = 1, gapThresh = 8, spurThresh = 4, verbose = TRUE) # 
+plot(pm.rast,  main="PatchMorph Results (Gap-8 & Spur-4)", col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0! ## I did not get this on the most recent run but I don't think I've changed anything....except I was using plot 9! also focus for kernel looks like crowns now?
 plot(crowns, col="black", add=TRUE)
 
 # convert to polygons for area calculations and mapping
@@ -111,15 +111,16 @@ xy_sr <- function(plot){
   crowns = st_buffer(stems, dist = stems$crown) 
   notcrowns <- st_difference(bound, st_union(crowns)) # all area in non-crown space
   yescrowns <- st_difference(bound, st_union(notcrowns)) # all area in crown space (non-overlapping, values = 1)
-  r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 0.1)) 
-  r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=0.1))
+  r_notcrowns <- rasterize(notcrowns, rast(ext(bound), res = 0.1)) 
+  r_yescrowns <- rasterize(yescrowns, rast(ext(bound), res=0.1))
   values(r_yescrowns)[values(r_yescrowns) == 1] <- 0
-  spatRast <- rast(merge(r_notcrowns, r_yescrowns))
-  crs(spatRast) <- "local"
-  return(spatRast)
+  rastLayer <- merge(r_notcrowns, r_yescrowns)
+  #spatRast <- rast(merge(r_notcrowns, r_yescrowns))
+  crs(rastLayer) <- "local"
+  return(rastLayer)
 }
 # test
-# plot(xy_sr(4)) # works!
+plot(xy_sr(4)) # works!
 
 # for loop for openings spatrasters from plots, converted to sf polygons and filtered for "1" attribute
 
@@ -159,11 +160,13 @@ opes2018 <- c(as.vector(opes_sr[[1]]$area, mode = "numeric"), as.vector(opes_sr[
 
 opes1941 <- c(as.vector(opes_sr[[2]]$area, mode = "numeric"), as.vector(opes_sr[[4]]$area, mode = "numeric"), as.vector(opes_sr[[6]]$area, mode = "numeric"), as.vector(opes_sr[[8]]$area, mode = "numeric"), as.vector(opes_sr[[10]]$area, mode = "numeric"), as.vector(opes_sr[[12]]$area, mode = "numeric"))
 
-opes_all <- data.frame(Opes = c(opes1941, opes2018), Year = c(rep(1941, length(opes1941)), rep(2018, length(opes2018))))
+opesPrefire <- c(as.vector(opes_sr[[13]]$area, mode = "numeric"), as.vector(opes_sr[[14]]$area, mode = "numeric"), as.vector(opes_sr[[15]]$area, mode = "numeric"), as.vector(opes_sr[[16]]$area, mode = "numeric"), as.vector(opes_sr[[17]]$area, mode = "numeric"), as.vector(opes_sr[[18]]$area, mode = "numeric"))
+
+opes_all <- data.frame(Opes = c(opes1941, opes2018, opesPrefire), Year = c(rep(1941, length(opes1941)), rep(2018, length(opes2018)), rep("PreFire", length(opesPrefire))))
 
 gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
   geom_histogram(bins = 11, position="dodge") +
-  scale_fill_manual(values = c("#cf4411", "black")) +
+  scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
   stat_bin(geom="text", bins=11, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) + 
            scale_x_continuous(breaks = round(seq(50, 7550, length.out = 11))) +
            scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
@@ -215,7 +218,7 @@ piebins <- cbind(interst = 0, piebins)
 piebins <- as.data.frame(piebins)
 # now need to draw total gap area from patchmorph section
 
-opes_perplot <- vector(mode = "numeric", length = 12)
+opes_perplot <- vector(mode = "numeric", length = length(plots_out))
 for (i in 1:length(plots_out)){
   opes_perplot[i] <- sum(opes_sr[[i]]$area)
 }
@@ -229,7 +232,7 @@ for (i in 1:length(plots_out)){
 piebins$interst <- interst_perplot
 
 tpiebins <- as.data.frame(t(piebins))
-colnames(tpiebins) <- c(1:12)
+colnames(tpiebins) <- c(1:18)
 
 # ok we will try to make pie charts using piebins. Start with plot 9   
 library(RColorBrewer)
@@ -265,7 +268,7 @@ for (i in 1:length(plots_out)){
   ICO_pies[[i]] <- p
   #dev.off()
 }
-library(gridExtra)
+#library(gridExtra)
 #grid.arrange(ICO_pies[[1]], ICO_pies[[3]], ICO_pies[[5]], ICO_pies[[2]], ICO_pies[[4]], ICO_pies[[6]], ncol=3) #IS
 #grid.arrange(ICO_pies[[7]], ICO_pies[[9]], ICO_pies[[11]], ICO_pies[[8]], ICO_pies[[10]], ICO_pies[[12]], ncol=3) #OH
 
@@ -275,6 +278,8 @@ bins_IS18 <- as.data.frame(sapply(rowSums(tpiebins[,c(1,3,5)]), as.numeric))
 bins_IS41 <- as.data.frame(sapply(rowSums(tpiebins[,c(2,4,6)]), as.numeric))
 bins_OH18 <- as.data.frame(sapply(rowSums(tpiebins[,c(7,9,11)]), as.numeric))
 bins_OH41 <- as.data.frame(sapply(rowSums(tpiebins[,c(8,10,12)]), as.numeric))
+bins_IS15 <- as.data.frame(sapply(rowSums(tpiebins[,c(13,14,15)]), as.numeric))
+bins_OH06 <- as.data.frame(sapply(rowSums(tpiebins[,c(16,17,18)]), as.numeric))
 
 # IS 2018
 pie_IS18 <- ggplot(bins_IS18, aes(x="", y=bins_IS18[,], fill=factor(rownames(bins_IS18), levels=c(rownames(bins_IS18))))) +
@@ -282,6 +287,13 @@ pie_IS18 <- ggplot(bins_IS18, aes(x="", y=bins_IS18[,], fill=factor(rownames(bin
   coord_polar("y", start=0) +
   scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
   labs(title = "Spatial Composition at IS, 2018")
+
+# IS 2015
+pie_IS15 <- ggplot(bins_IS15, aes(x="", y=bins_IS15[,], fill=factor(rownames(bins_IS15), levels=c(rownames(bins_IS15))))) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
+  labs(title = "Spatial Composition at IS, 2015")
 
 # IS 1941
 pie_IS41 <- ggplot(bins_IS41, aes(x="", y=bins_IS41[,], fill=factor(rownames(bins_IS41), levels=c(rownames(bins_IS41))))) +
@@ -297,6 +309,13 @@ pie_OH18 <- ggplot(bins_OH18, aes(x="", y=bins_OH18[,], fill=factor(rownames(bin
   scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
   labs(title = "Spatial Composition at OH, 2018")
 
+# OH 2006
+pie_OH06 <- ggplot(bins_OH06, aes(x="", y=bins_OH06[,], fill=factor(rownames(bins_OH06), levels=c(rownames(bins_OH06))))) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start=0) +
+  scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
+  labs(title = "Spatial Composition at OH, 2006")
+
 # OH 1941
 pie_OH41 <- ggplot(bins_OH41, aes(x="", y=bins_OH41[,], fill=factor(rownames(bins_OH41), levels=c(rownames(bins_OH41))))) +
   geom_bar(width = 1, stat = "identity") +
@@ -304,10 +323,10 @@ pie_OH41 <- ggplot(bins_OH41, aes(x="", y=bins_OH41[,], fill=factor(rownames(bin
   scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
   labs(title = "Spatial Composition at OH, 1941")
 
-grid.arrange(pie_IS41, pie_IS18, ncol=2)
-grid.arrange(pie_OH41, pie_OH18, ncol=2)
+grid.arrange(pie_IS41, pie_IS15, pie_IS18, ncol=3)
+grid.arrange(pie_OH41, pie_OH06, pie_OH18, ncol=3)
 
-grid.arrange(pie_IS41, pie_IS18, pie_OH41, pie_OH18, ncol=2)
+grid.arrange(pie_IS41, pie_IS15, pie_IS18, pie_OH41, pie_OH06, pie_OH18, ncol=3)
 
 # math on area in interst, gap, size bins
 IS_change <- cbind(bins_IS41, bins_IS18)
