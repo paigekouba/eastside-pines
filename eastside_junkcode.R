@@ -2121,6 +2121,512 @@ place.name = "EastSide"
 # write.csv(Clump.bins,paste(place.name,"_ClumpBins.csv",sep=""))
 # # write.csv(gap.size,paste(place.name,"_gapSize.csv",sep=""))  
 
+# _____________________ #
+# Practice with summary tables
+
+n.ha <- 1
+# Starting with plot 1 (IS1 in 2018), small clusters (2-4)
+nrow(filter(plots_out[[1]][[12]], bin =="2-4"))/n.ha # 17 small (2-4) clusters = n.clust.bin 
+round(nrow(filter(plots_out[[1]][[11]], bin =="2-4"))*100/nrow(plots_out[[1]][[11]]),1) # 41.8% = p.trees.bin
+round(mean(filter(plots_out[[1]][[11]], bin =="2-4")[,3]),1) # 47.1 cm = mDBH.bin
+round(sum(filter(plots_out[[1]][[12]], bin =="2-4")[,2]),1) # 10.3 (m2/ha) = ba.bin
+round(nrow(filter(plots_out[[1]][[11]], bin == "2-4"))/(piebins[1,4]/10000),1) # 469.3 = tph.bin (for this bin (col 4) in this plot (row 1), in ha)
+round(piebins[1,4]*100/(10000*n.ha),1) # 9.8% = p.area.bin
+
+nrow(plots_out[[1]][[11]])/1 # 110 = TPH
+plots_out[[1]][[5]][1]/n.ha # 26.7 m2/ha = BAH
+round(mean(plots_out[[1]][[11]][,3]),1) # 49.8 = meanDBH
+round(mean(plots_out[[1]][[12]][,1]),1) # 2.2 = tpclust.stand
+max(plots_out[[1]][[12]][,1]) # 13 = maxtpclust.stand
+nrow(opes_sr[[1]])/n.ha # 7 = gaps.ha.stand !! not accurate but this will be how to get it when it is
+
+
+# now do it again for all IS in 2018 (plots 1, 3, 5) -- eventually this will have a loop over "bin", and will be a function of "indices" (vector of plot #s)
+indices <- c(1,3,5)
+n.ha <- length(indices)
+
+selected_data <- lapply(indices, function(i) { # n.clust.bin
+  clusters <- plots_out[[i]][[12]] %>% 
+    filter(bin == "2-4")
+  return(nrow(clusters)) })
+round(mean(unlist(selected_data)),1) # 17.7 small clusters at IS in 2018 !! double-check this one for n = 6
+round(sd(unlist(selected_data)), 1) # sd = 3.1
+
+selected_data <- lapply(indices, function(i) { # p.trees.bin
+  trees.bin <- plots_out[[i]][[11]] %>% 
+    filter(bin == "2-4")
+  trees.ne <- plots_out[[i]][[11]] 
+  return(list(nrow(trees.bin), nrow(trees.ne))) })
+round(
+  mean(
+    (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[1]])))*100/ # take trees.bin per plot, x100
+      (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[2]])))) # divide each by all trees per plot
+  ,1) # 45.6%
+round(
+  sd(
+    (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[1]])))*100/ # take trees.bin per plot, x100
+      (unlist(lapply(c(1:length(indices)), function(x) selected_data[[x]][[2]])))) # divide each by all trees per plot
+  ,1) # sd = 4.9
+
+selected_data <- lapply(indices, function(i) { # mDBH.bin
+  trees.bin <- plots_out[[i]][[11]] %>% 
+    filter(bin == "2-4")
+  dbh <- trees.bin[,3]
+  return(dbh) })
+# round(mean(unlist(selected_data)),1) # 51.4 cm mean DBH
+# round(sd(unlist(selected_data)),1) # 30.5 ... not sure why this is so high!
+# maybe I should try average of averages approach. OK:
+round(mean(unlist(lapply(c(1:length(indices)), function(x) mean(selected_data[[x]])))),1) # 51.5
+round(sd(unlist(lapply(c(1:length(indices)), function(x) mean(selected_data[[x]])))),1) # 6.2
+
+selected_data <- lapply(indices, function(i) { # ba.bin
+  clusters <- plots_out[[i]][[12]] %>% 
+    filter(bin == "2-4")
+  ba <- clusters[,2]
+  return(ba) })
+round(sum(unlist(selected_data)/n.ha),1) # 13.6 m2/ha
+# redo as average of averages
+round(mean(unlist(lapply(c(1:length(indices)), function(x) sum(selected_data[[x]])))),1) # 13.6 m2/ha
+round(sd(unlist(lapply(c(1:length(indices)), function(x) sum(selected_data[[x]])))),1) # sd = 3.0
+
+selected_data <- lapply(indices, function(i) { # tph.bin
+  trees.bin <- plots_out[[i]][[11]] %>% 
+    filter(bin == "2-4")
+  return(nrow(trees.bin)) })
+round(sum(unlist(selected_data))/((sum(piebins[indices,4])/10000)),1) # 515.4
+# redo as average of averages
+round(mean(unlist(selected_data)/((piebins[indices,4])/10000)),1) # 536.1
+round(sd(unlist(selected_data)/((piebins[indices,4])/10000)),1) # sd = 123.5
+
+round(sum(piebins[indices,4]*100)/(10000*n.ha),1) # 10.7% p.area.bin
+# redo as average of averages
+round(mean(piebins[indices,4]*100/(10000)),1) # 10.7% p.area.bin
+round(sd(piebins[indices,4]*100/(10000)),1) # sd = 3.5
+
+
+# save all the functions above as output names
+# generalize anywhere that calls "2-4" to call bin_names[i]
+# write a function that returns a vector of those outputs for each bin size
+# repeat these steps for stand-level metrics
+
+indices <- c(1,3,5)
+n.ha <- length(indices)
+
+# fixing core-based ages
+
+# IS_coredtrees <- IS_livetrees[!is.na(IS_livetrees$Core.),]
+# IS_coredtrees <- IS_coredtrees %>% 
+#   mutate(Code = paste0(Plot, Core.))
+
+# IS_livetrees <- IS_livetrees %>%
+#   mutate(age_est = predict(IS_exp, newdata = IS_livetrees)) %>% 
+#   mutate(estab_est = round(2018 - age_est,0))
+
+# IS_livetrees <- IS_livetrees %>%
+#   mutate(age_est = 
+#            case_when(Code %in% IS_correction$series.1 ~ 69,  #IS_correction$corrected_age,
+#                      TRUE ~ predict(IS_exp, newdata = IS_livetrees)) ) # %>% 
+#            mutate(estab_est = round(2018 - age_est,0)))
+
+# IS_livetrees <- IS_livetrees %>%
+#   mutate(age_est = 
+#            IS_correction[IS_correction$series.1 == Code, 22])
+
+IS_livetrees$age_est <- 0
+IS_livetrees[IS_livetrees$Code =="IS110",]$age_est <- IS_correction[IS_correction$Code == "IS110", 22]
+
+
+#IS_livetrees$age_est <- 0
+# IS_livetrees[IS_livetrees$Code =="IS110",]$age_est <- IS_correction[IS_correction$Code == "IS110", 22]
+#IS_correction[IS_correction$series.1 == "IS110", 22]
+# [1] 115.9594
+
+IS_livetrees <- IS_livetrees %>% 
+  mutate(Code = paste0(Plot, Core.))
+IS_correction$Code <- gsub("B","", IS_correction$series) # remove all the Bs
+sum(IS_livetrees$Code %in% IS_correction$Code) # 68
+
+allcodes <- IS_livetrees$Code
+goodcodes <- allcodes[c(which(IS_livetrees$Code %in% IS_correction$Code))]
+
+# now 68 livetrees have a Code I can look up in the IS_correction df to pull corrected_age (and reassign to age_est)
+
+IS_livetrees <- IS_livetrees %>%
+  mutate(age_est = predict(IS_exp, newdata = IS_livetrees)) 
+# !! need to re-assign age_est with the core-based ages of the trees that we cored
+for(i in 1:length(goodcodes)){
+  IS_livetrees[IS_livetrees$Code == goodcodes[i],]$age_est <- IS_correction[IS_correction$Code == goodcodes[i], 22]
+}
+
+IS_livetrees <- IS_livetrees %>%
+  mutate(estab_est = round(2018 - age_est,0))
+
+# clean copy of OH_livetrees before messing with species-specific core age forcing
+OH_livetrees <- OH_livetrees %>%
+  mutate(PIJE_est = predict(OH_lm, newdata = OH_livetrees)) %>% 
+  mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
+  mutate(ABCO_est = predict(ABCO_lm, newdata = OH_livetrees)) %>% 
+  mutate(PICO_est = predict(PICO_lm, newdata = OH_livetrees)) %>% 
+  mutate(age_est = case_when(Spec=="PIJE" ~ PIJE_est,
+                             Spec=="JUGR" ~ JUGR_est,
+                             Spec=="ABCO" ~ ABCO_est,
+                             Spec=="PICO" ~ PICO_est)) %>% 
+  mutate(estab_est = round(2018 - age_est,0))
+
+# PatchMorph testing reproducible code
+# prepare data: one plot (plot 4, IS3 in 1941) for testing
+## checking plot 9 (OH2 in 2018) because of the error at PM result stage
+pm_df <- data.frame(X=plots_out[[4]]$trees.noedge$x, Y=plots_out[[4]]$trees.noedge$y, crown=plots_out[[4]]$trees.noedge$crown)
+#pm_df <- data.frame(X=plots_out[[9]]$trees.noedge$x, Y=plots_out[[9]]$trees.noedge$y, crown=plots_out[[9]]$trees.noedge$crown)
+# reproducible example:
+#Xs <- plots_out[[4]]$trees.noedge$x
+# [1] -54.3 -53.6 -52.4 -48.5 -47.0 -45.8 -45.6 -40.6 -39.5 -39.2 -36.1 -35.2 -34.6 -34.1 -30.3 -28.2 -27.7 -26.0 -25.9
+# [20] -25.9 -23.1 -21.6 -21.2 -20.5 -17.9 -17.3 -15.9 -15.4 -14.6 -10.0  -5.5  -4.9  -2.3  -1.9   0.3   2.2   4.3   4.7
+# [39]   6.0   6.9   8.6   9.1  10.4  13.5  13.9  16.8  22.3  28.1  31.4  36.0  37.7  50.0  50.7   5.2  -3.3  27.4  26.6
+# [58]  -2.2  -5.4   0.6 -29.9
+#Ys <- plots_out[[4]]$trees.noedge$y
+# [1]   3.2  -5.1   7.2 -20.5 -25.3 -26.0 -21.3  -0.2  12.7 -34.4 -35.6  36.5  23.5  -9.3  -1.9  35.4  18.0 -37.6 -26.9
+# [20] -11.9 -41.0  24.3  12.2  30.0   5.4  32.9  -4.3 -28.8  24.1 -23.0 -55.7  14.4  12.2 -53.1  -7.1 -13.8 -13.2  48.1
+# [39]   6.5  35.5  10.4  41.7  16.7  53.4  52.0 -12.8 -30.8 -25.0 -40.9 -22.7  41.5 -21.3  12.3  20.3  23.6  40.1 -10.8
+# [58] -32.3 -34.9 -36.0  24.0
+#Cs <- plots_out[[4]]$trees.noedge$crown
+# [1] 1.4116 1.1624 1.2336 3.5476 2.4084 1.7676 2.7644 1.1268 3.7612 1.5540 1.2336 3.3340 1.1980 1.1624 2.2304 2.6220
+# [17] 3.6188 1.5540 3.4764 3.8324 1.5896 2.4440 1.1268 3.2272 3.7968 3.4764 3.5476 3.7256 4.1528 2.7644 1.5896 2.8000
+# [33] 4.2240 1.9812 4.4732 3.4408 2.8356 1.2336 3.6188 1.4828 3.9392 1.8744 5.1140 3.2984 3.5120 3.9748 3.4408 3.0136
+# [49] 4.1528 5.2208 4.0460 2.6932 4.3308 2.9424 1.5896 1.5540 4.0104 2.1236 2.2304 2.6576 1.5540
+# pm_df <- data.frame(X=Xs, Y=Ys, crown=Cs)
+
+ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
+bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle
+stems <- st_as_sf(pm_df, coords = c("X", "Y")) # points for each tree w/dbh attribute
+crowns = st_buffer(stems, dist = stems$crown) # each crown defined as a circle with r=crown radius
+notcrowns <- st_difference(bound, st_union(crowns)) # all area in non-crown space
+yescrowns <- st_difference(bound, st_union(notcrowns)) # all area in crown space
+
+#r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 1)) 
+r_notcrowns <- rasterize(notcrowns, rast(ext(bound), res = 0.1)) # AJSM edit
+
+#r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 0.1)) # turns sf into a rasterlayer -- this one is for all non-crown areas
+# want now to make a raster with 1s for not-crown and 0s for crown
+#r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=1))
+# r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=0.1)) # sf --> rasterlayer, this time for all crown areas
+r_yescrowns <- rasterize(yescrowns, rast(ext(bound), res = 0.1)) # AJSM edit
+
+values(r_yescrowns)[values(r_yescrowns) == 1] <- 0 # reassign all values in crown areas to 0 ("unsuitable")
+
+r_test <- merge(r_notcrowns, r_yescrowns) # creates one rasterlayer with 0s in crown areas, 1s everywhere else
+#  sr_test <- rast(r_test) # makes into a spatRaster 
+#crs(sr_test) <- "local" # set crs to Cartesian plane in meters
+crs(r_test) <- "local" # set crs to Cartesian plane in meters
+#r_test <- 1-r_test
+
+plot(r_test, col=c("white", "#FEC44F"), main="Starting SpatRaster") # 0s in crowns (white), 1s everywhere else (yellow)
+pm.rast <- patchMorph(r_test, buffer = 5, suitThresh = 1, gapThresh = 6, spurThresh = 6, verbose = TRUE) # 
+plot(pm.rast, col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0! ## I did not get this on the most recent run but I don't think I've changed anything....except I was using plot 9! also focus for kernel looks like crowns now?
+plot(crowns, col="black", add=TRUE)
+
+# convert to polygons for area calculations and mapping
+pm.vect <- as.polygons(pm.rast, values = TRUE) # turns SpatRaster into SpatVector
+pm.sf <- st_as_sf(pm.vect) # turns SpatVector into sf with a multipolygon for 0 and for 1
+# # take the multipolygon for cells with "1" attribute and turn it into lots of polygons
+# pm.sf1 <- pm.sf %>% filter(focal_max == 1)
+# take the multipolygon for cells with "0" attribute and turn it into lots of polygons !! this because 0 and 1 are flipped !!
+pm.sf0 <- pm.sf %>% filter(focal_max == 0)
+# pm.sf1 <- pm.sf %>% filter(focal_max == 1)
+# pm.sfs <- st_cast(pm.sf1, "POLYGON")
+pm.sfs <- st_cast(pm.sf0, "POLYGON")
+pm.sfs$area <- st_area(pm.sfs)
+sum(pm.sfs$area) # 4887.83 
+
+
+# step A: add opes_sr polygons to ICO maps # check!
+
+# step B: add opes_sr summed areas to pie charts (one per site per year = 4)
+
+# step C: make gap size distribution by year. Start with this one
+# opes_sr has 12 lists containing 1-10 polygons and their associated areas
+# break these out by (site and) year
+# names
+# [1] "IS1 in 2018" "IS1 in 1941" "IS2 in 2018" "IS2 in 1941" "IS3 in 2018" "IS3 in 1941" "OH1 in 2018" "OH1 in 1941"
+# [9] "OH2 in 2018" "OH2 in 1941" "OH3 in 2018" "OH3 in 1941"
+# odds are 2018, evens are 1941
+
+# OH_2009
+# Size in 2009, 2y after O'Harrell Fire
+# need to account for trees that were dead at the time, i.e. all logs Dec 1,2,3 were snags in 2009, logs Dec 4,5 were logs in 2009 (all snags were live trees in 2006)
+
+OH_trees2009 <- OH_trees %>% 
+  mutate(age2009 = 2009 - estab_est) %>% 
+  mutate(PIJE_2009 = (age2009 - 26.2246)/3.4328) %>% 
+  mutate(JUGR_2009 = exp((age2009 - 24.2)/39.9)) %>% 
+  mutate(ABCO_2009 = (age2009-65.8335)/0.7771) %>% 
+  mutate(PICO_2009 = (age2009-64.0018)/1.1501) %>% 
+  mutate(dbh2009 = case_when(Spec=="PIJE" ~ PIJE_2009,
+                             Spec=="JUGR" ~ JUGR_2009,
+                             Spec=="ABCO" ~ ABCO_2009,
+                             Spec=="PICO" ~ PICO_2009))  %>% 
+  # need to filter out rows with trees that have NaN or <5 DBH
+  filter(!is.na(dbh2009)) %>% # 
+  filter(dbh2009>=5)
+
+OH_snags2009 <- OH_trees2009 %>% 
+  filter(dec_correction > 9 & dec_correction < 20) # any logs with Dec 1,2,3 were 2009 snags (so dec_correction 10-15y)
+
+OH_trees2009 <- OH_trees2009 %>% 
+  filter(dec_correction < 9) # remove trees dead before O'Harrell Fire (snags Dec >1), but keep all live trees as of 2009
+#______________________________________________________________________________#
+
+# Prepping all OH sites in 2009
+OH1_2009 <- OH_trees2009[OH_trees2009$Plot == "OH1",]
+OH2_2009 <- OH_trees2009[OH_trees2009$Plot == "OH2",]
+OH3_2009 <- OH_trees2009[OH_trees2009$Plot == "OH3",]
+# Need to reassign dbh to 2009 value
+OH1_2009 <- rename(OH1_2009, "dbh2018" = "dbh", "dbh" = "dbh2009")
+OH2_2009 <- rename(OH2_2009, "dbh2018" = "dbh", "dbh" = "dbh2009")
+OH3_2009 <- rename(OH3_2009, "dbh2018" = "dbh", "dbh" = "dbh2009")
+
+
+# Try doing it one class at a time
+
+# there were 10 L4L5s at OH in 2018 (t0). 
+L4L5_t0 <- c(0,0,0,0,0,10)
+L4L5_tminus1 <- colSums((L4L5_t0 * pct_per)[,c(1:6)]) # how were they distributed in t-1 ?
+#       S1 S2S3 S4S5 L1 L2L3 L4L5 R
+# S1   0.0  0.0  0.0  0  0.0    0 0
+# S2S3 0.0  0.0  0.0  0  0.0    0 0
+# S4S5 0.0  0.0  0.0  0  0.0    0 0
+# L1   0.0  0.0  0.0  0  0.0    0 0
+# L2L3 0.0  0.0  0.0  0  0.0    0 0
+# L4L5 0.2  0.8  3.5  0  0.5    5 0
+# colSums of this output = starting vector in t - 1
+L4L5_tminus2 <- colSums((L4L5_tminus1 * pct_per)[,c(1:6)]) # how were they distributed in t-2 ?
+L4L5_tminus3 <- colSums((L4L5_tminus2 * pct_per)[,c(1:6)]) # how were they distributed in t-3 ?
+L4L5_tminus4 <- colSums((L4L5_tminus3 * pct_per)[,c(1:6)]) # how were they distributed in t-4 ?
+L4L5_tminus5 <- colSums((L4L5_tminus4 * pct_per)[,c(1:6)]) # how were they distributed in t-5 ?
+L4L5_tminus6 <- colSums((L4L5_tminus5 * pct_per)[,c(1:6)]) # how were they distributed in t-6 ?
+L4L5_tminus7 <- colSums((L4L5_tminus6 * pct_per)[,c(1:6)]) # how were they distributed in t-7 ?
+L4L5_tminus8 <- colSums((L4L5_tminus7 * pct_per)[,c(1:6)]) # how were they distributed in t-8 ?
+L4L5_tminus9 <- colSums((L4L5_tminus8 * pct_per)[,c(1:6)]) # how were they distributed in t-9 ?
+
+R1 <- sum((L4L5_t0 * pct_per)[,7]) # how many were recruited into t-1 ?
+R2 <- sum((L4L5_tminus1 * pct_per)[,7]) # how many were recruited into t-2 ?
+R3 <- sum((L4L5_tminus2 * pct_per)[,7]) # 
+R4 <- sum((L4L5_tminus3 * pct_per)[,7]) # 
+R5 <- sum((L4L5_tminus4 * pct_per)[,7]) # 
+R6 <- sum((L4L5_tminus5 * pct_per)[,7]) # 
+R7 <- sum((L4L5_tminus6 * pct_per)[,7]) # 
+R8 <- sum((L4L5_tminus7 * pct_per)[,7]) # 
+R9 <- sum((L4L5_tminus8 * pct_per)[,7]) # 
+
+sum(R1,R2,R3,R4,R5,R6,R7,R8,R9)
+recruits <- c(R1,R2,R3,R4,R5,R6,R7,R8,R9)
+L4L5 <- data.frame(recruits, c(1:9))
+names(L4L5) <- c("recruits", "timesteps")
+L4L5 <- L4L5 %>% 
+  mutate(years = 5*timesteps) %>% 
+  mutate(prob = recruits/sum(L4L5$recruits))
+###
+OH_tnext <- list((D %*% unlist(OH_tn[i-1])) + R)
+OH_tn[i] <- OH_tnext
+
+
+# 14 timesteps 
+prev_distn <- t0_bycat[[5]]*pct_per 
+ start_vec <- colSums((prev_distn)[,c(1:6)])
+ while(sum(start_vec >= 0.5)>=1){
+         start_vec <- colSums((prev_distn)[,c(1:6)]) # finds the start vector of previous timestep
+         recruits[j] <- sum(prev_distn[,7]) # finds the # recruited into the previous timestep
+         prev_distn <- start_vec*pct_per
+     j=j+1
+   }
+ t0_bycat[[5]]
+#[1]  0  0  0  0 30  0
+ catprob[[5]] <- data.frame(recruits, c(1:length(recruits)))
+ names(catprob[[5]]) <- c("recruits","timesteps")
+ catprob[[5]] <- catprob[[5]] %>% 
+     mutate(years = 5*timesteps) %>% 
+     mutate(prob = recruits/sum(catprob[[5]]$recruits))
+ catprob[[5]]
+# recruits timesteps years        prob
+# 1   0.0000000         1     5 0.000000000
+# 2   1.6663718         2    10 0.042836519
+# 3   2.1247577         3    15 0.054620000
+# 4   1.8421506         4    20 0.047355172
+# 5   1.3883955         5    25 0.035690734
+# 6   0.9820400         6    30 0.025244771
+# 7   0.6725018         7    35 0.017287640
+# 8   0.4523335         8    40 0.011627892
+# 9   0.3010052         9    45 0.007737779
+# 10  0.0000000        10    50 0.000000000
+# 11 16.9127613        11    55 0.434767225
+# 12  8.3413641        12    60 0.214426946
+# 13  3.1379214        13    65 0.080664852
+# 14  1.0791244        14    70 0.027740469
+
+# above problem was an indexing error, j was getting all excited by being 11
+ 
+# try the previous timestep for S1 category
+S1_t0 <- t0_bycat[[1]]
+ S1_tminus1 <- colSums((S1_t0 * pct_per)[,c(1:6)]) # how were they distributed in t-1 ?
+ sum((S1_t0*pct_per)[,7])
+ # need to add this info to the catprob table to reflect that S1 has a 100% probability of being alive the prev timestep, ie dc = 5
+ 
+ catprob[[2]][[1]] # recruits to S2S3 in past x timesteps
+ catprob[[2]][[2]] # number of timesteps
+ catprob[[2]][[3]] # number of years
+ catprob[[2]][[4]] # recruits/sum(catprob[[2]]$recruits)
+ 
+ catprob[[1]][[1]] <-  sum((t0_bycat[[1]]*pct_per)[,7]) # recruits to S1 in past x timesteps
+ catprob[[1]][[2]] <- length(catprob[[1]][[1]]) # number of timesteps
+ catprob[[1]][[3]] <- catprob[[1]][[2]]*5 # number of years
+ catprob[[1]][[4]] <-  catprob[[1]][[1]]/sum( catprob[[1]][[1]]) # recruits/sum(catprob[[2]]$recruits)
+ catprob[[1]] <- data.frame(sum((t0_bycat[[1]]*pct_per)[,7]), 1, 5, 1)
+ names(catprob[[1]]) <- c("recruits", "timesteps", "years", "prob")
+ 
+ sum((t0_bycat[[1]]*pct_per)[,7]) # recruits to S1 in past x timesteps
+# length(catprob[[1]][[1]]) # number of timesteps
+# catprob[[1]][[2]]*5 # number of years
+# catprob[[1]][[1]]/sum( catprob[[1]][[1]]) # recruits/sum(catprob[[2]]$recruits)
+#  data.frame(sum((t0_bycat[[1]]*pct_per)[,7]), 1, 5, 1)
+ names(catprob[[1]]) <- c("recruits", "timesteps", "years", "prob")
+ 
+ # catprob[[2]]
+ # recruits timesteps years       prob
+ # 1 38.639765         1     5 0.79285812
+ # 2  8.702598         2    10 0.17857058
+ # 3  1.392416         3    15 0.02857129
+ 
+ 
+ # try using this to create backwards paths for S2S3s
+ # in t0, N(S2S3) = 49  (OH_t0[2])
+ 49*pct_per[2,] # in t-1, those 49 trees were distributed like this:
+ #       S1      S2S3      S4S5        L1      L2L3      L4L5         R 
+ # 2.520235  7.840000  0.000000  0.000000  0.000000  0.000000 38.639765 
+ # interpret: at t-1, 38.6 were live trees (DONE w/ dc=5); 7.8 were S2S3; 2.5 were S1 
+ # the 2.5 from S1: in t-2, 100% live trees, so dc=10
+ # the 7.84 S2S3: in t-2:
+ 7.84*pct_per[2,]
+ #        S1      S2S3      S4S5        L1      L2L3      L4L5         R 
+ # 0.4032377 1.2544000 0.0000000 0.0000000 0.0000000 0.0000000 6.1823623 
+ # interpret: at t-2, 6.2 were live trees (dc = 10); 1.25 were S2S3; 0.4-->0 were S1 
+ # the 1.25 in S2S3:
+ 1.2544*pct_per[2,]
+ #        S1       S2S3       S4S5         L1       L2L3       L4L5          R 
+ #0.06451803 0.20070400 0.00000000 0.00000000 0.00000000 0.00000000 0.98917797 
+ # interpret: at t-3, 1 tree was live (dc=15)
+ 
+ # for the overall 49: 38.6 dc=5, 2.5+6.2 dc=10, 1 dc=15     38.6+2.5+6.2+1 = 48.3
+ 
+ # OH_t0 [1] 27 49  5 12 30 10
+ tminus1 <- OH_t0 * pct_per
+ # round((OH_t0 * pct_per),1)
+ #       S1 S2S3 S4S5 L1 L2L3 L4L5    R
+ # S1   0.0  0.0  0.0  0  0.0    0 27.0
+ # S2S3 2.5  7.8  0.0  0  0.0    0 38.6
+ # S4S5 0.1  0.4  3.2  0  0.0    0  1.2
+ # L1   0.0  0.0  0.0  0  0.0    0  0.0
+ # L2L3 3.9 16.5  0.0  0  9.6    0  0.0
+ # L4L5 0.2  0.8  3.5  0  0.5    5  0.0
+ 
+ OH_tminus1 <- colSums(tminus1[,c(1:6)])
+ tminus2 <- OH_tminus1 * pct_per
+ # round((OH_tminus1 * pct_per),1)
+ #       S1 S2S3 S4S5 L1 L2L3 L4L5    R
+ # S1   0.0  0.0  0.0  0  0.0  0.0  6.7
+ # S2S3 1.3  4.1  0.0  0  0.0  0.0 20.2
+ # S4S5 0.2  0.6  4.4  0  0.0  0.0  1.6
+ # L1   0.0  0.0  0.0  0  0.0  0.0  0.0
+ # L2L3 1.3  5.5  0.0  0  3.2  0.0  0.0
+ # L4L5 0.1  0.4  1.8  0  0.2  2.5  0.0
+ 
+ OH_tminus2 <- colSums(tminus2[,c(1:6)])
+ tminus3 <- OH_tminus2 * pct_per
+ 
+ OH_tminus3 <- colSums(tminus3[,c(1:6)])
+ tminus4 <- OH_tminus3 * pct_per
+ 
+ OH_tminus4 <- colSums(tminus4[,c(1:6)])
+ tminus5 <- OH_tminus4 * pct_per
+ 
+ OH_tminus5 <- colSums(tminus5[,c(1:6)])
+ tminus6 <- OH_tminus5 * pct_per
+ 
+ OH_tminus6 <- colSums(tminus6[,c(1:6)])
+ tminus7 <- OH_tminus6 * pct_per
+ 
+ OH_tminus7 <- colSums(tminus7[,c(1:6)])
+ tminus8 <- OH_tminus7 * pct_per
+ 
+ OH_tminus8 <- colSums(tminus8[,c(1:6)])
+ tminus9 <- OH_tminus8 * pct_per
+ 
+ 
+ # see what happens if you take the column sum of R from each timestep; I am hoping it will be equal to appx the starting number of trees from the t0 vector (N = 133)
+ sum(tminus1[,7], tminus2[,7], tminus3[,7], tminus4[,7], tminus5[,7], tminus6[,7], tminus7[,7], tminus8[,7], tminus9[,7]) # 120.3
+ 
+ 
+ 
+ 
+ # Try doing it one class at a time
+ 
+ # there were 10 L4L5s at OH in 2018 (t0). 
+ L4L5_t0 <- c(0,0,0,0,0,10)
+ L4L5_tminus1 <- colSums((L4L5_t0 * pct_per)[,c(1:6)]) # how were they distributed in t-1 ?
+ #       S1 S2S3 S4S5 L1 L2L3 L4L5 R
+ # S1   0.0  0.0  0.0  0  0.0    0 0
+ # S2S3 0.0  0.0  0.0  0  0.0    0 0
+ # S4S5 0.0  0.0  0.0  0  0.0    0 0
+ # L1   0.0  0.0  0.0  0  0.0    0 0
+ # L2L3 0.0  0.0  0.0  0  0.0    0 0
+ # L4L5 0.2  0.8  3.5  0  0.5    5 0
+ # colSums of this output = starting vector in t - 1
+ L4L5_tminus2 <- colSums((L4L5_tminus1 * pct_per)[,c(1:6)]) # how were they distributed in t-2 ?
+ L4L5_tminus3 <- colSums((L4L5_tminus2 * pct_per)[,c(1:6)]) # how were they distributed in t-3 ?
+ L4L5_tminus4 <- colSums((L4L5_tminus3 * pct_per)[,c(1:6)]) # how were they distributed in t-4 ?
+ L4L5_tminus5 <- colSums((L4L5_tminus4 * pct_per)[,c(1:6)]) # how were they distributed in t-5 ?
+ L4L5_tminus6 <- colSums((L4L5_tminus5 * pct_per)[,c(1:6)]) # how were they distributed in t-6 ?
+ L4L5_tminus7 <- colSums((L4L5_tminus6 * pct_per)[,c(1:6)]) # how were they distributed in t-7 ?
+ L4L5_tminus8 <- colSums((L4L5_tminus7 * pct_per)[,c(1:6)]) # how were they distributed in t-8 ?
+ L4L5_tminus9 <- colSums((L4L5_tminus8 * pct_per)[,c(1:6)]) # how were they distributed in t-9 ?
+ 
+ R1 <- sum((L4L5_t0 * pct_per)[,7]) # how many were recruited into t-1 ?
+ R2 <- sum((L4L5_tminus1 * pct_per)[,7]) # how many were recruited into t-2 ?
+ R3 <- sum((L4L5_tminus2 * pct_per)[,7]) # 
+ R4 <- sum((L4L5_tminus3 * pct_per)[,7]) # 
+ R5 <- sum((L4L5_tminus4 * pct_per)[,7]) # 
+ R6 <- sum((L4L5_tminus5 * pct_per)[,7]) # 
+ R7 <- sum((L4L5_tminus6 * pct_per)[,7]) # 
+ R8 <- sum((L4L5_tminus7 * pct_per)[,7]) # 
+ R9 <- sum((L4L5_tminus8 * pct_per)[,7]) # 
+ 
+ sum(R1,R2,R3,R4,R5,R6,R7,R8,R9)
+ recruits <- c(R1,R2,R3,R4,R5,R6,R7,R8,R9)
+ L4L5 <- data.frame(recruits, c(1:9))
+ names(L4L5) <- c("recruits", "timesteps")
+ L4L5 <- L4L5 %>% 
+   mutate(years = 5*timesteps) %>% 
+   mutate(prob = recruits/sum(L4L5$recruits))
+ 
+ 
+ # testing it without for loop
+ catprob <- vector("list", length(t0_bycat))
+ recruits <- vector()
+ j = 1 
+ prev_distn <- t0_bycat[[4]]*pct_per 
+ start_vec <- colSums((prev_distn)[,c(1:6)])
+ while(sum(start_vec >= 0.5)>=1){
+   start_vec <- colSums((prev_distn)[,c(1:6)]) # finds the start vector of previous timestep
+   recruits[j] <- sum(prev_distn[,7]) # finds the # recruited into the previous timestep
+   prev_distn <- start_vec*pct_per
+   j=j+1
+ }
+ 
+ catprob[[4]] <- data.frame(recruits, c(1:length(recruits)))
+ names(catprob[[4]]) <- c("recruits","timesteps")
+ catprob[[4]] <- catprob[[4]] %>% 
+   mutate(years = 5*timesteps) %>% 
+   mutate(prob = recruits/sum(catprob[[4]]$recruits))
+ 
 # NEVER NEVER GIVE UP
 
 # NEVER LET GO, NEVER SURRENDER
