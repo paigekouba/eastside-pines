@@ -10,15 +10,15 @@ allcrwn <- unlist(lapply(allcrwndf, function(x) x[[6]]))
 
 ggplot(as.data.frame(allcrwn), aes(x = allcrwn*2)) + # distribution of tree crown *diameters*
   geom_histogram() +
-  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.5384
-  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 8.04848
-  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.643106
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.560125
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 8.01368 
+  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.605576
   ggtitle("Crown Diameters, All Sites, All Years") +
   xlab("Crown Diamter (m)") + ylab("Frequency")
 
-sum(allcrwn < 1)*100/length(allcrwn) # 0.5416051
-sum(allcrwn > 5)*100/length(allcrwn) # 1.920236
-# sum(allcrwn > 4)*100/length(allcrwn) # 10.2905
+sum(allcrwn < 1)*100/length(allcrwn) # 0.4644682
+sum(allcrwn > 5)*100/length(allcrwn) # 1.857873
+# sum(allcrwn > 4)*100/length(allcrwn) # 10.03251
 
 min(allcrwn)*2 # 1.486 is the smallest tree crown across all the plots and both times
 max(allcrwn)*2 # 11.95104 is the biggest tree crown across all the plots and both times
@@ -27,50 +27,7 @@ max(allcrwn)*2 # 11.95104 is the biggest tree crown across all the plots and bot
 library(sf)
 #library(sp)
 library(terra)
-# prepare data: one plot (plot 4, IS3 in 1941) for testing
-## checking plot 9 (OH2 in 2018) because of the error at PM result stage
-pm_df <- data.frame(X=plots_out[[4]]$trees.noedge$x, Y=plots_out[[4]]$trees.noedge$y, crown=plots_out[[4]]$trees.noedge$crown)
-#pm_df <- data.frame(X=plots_out[[9]]$trees.noedge$x, Y=plots_out[[9]]$trees.noedge$y, crown=plots_out[[9]]$trees.noedge$crown)
-# reproducible example:
-#Xs <- plots_out[[4]]$trees.noedge$x
-# [1] -54.3 -53.6 -52.4 -48.5 -47.0 -45.8 -45.6 -40.6 -39.5 -39.2 -36.1 -35.2 -34.6 -34.1 -30.3 -28.2 -27.7 -26.0 -25.9
-# [20] -25.9 -23.1 -21.6 -21.2 -20.5 -17.9 -17.3 -15.9 -15.4 -14.6 -10.0  -5.5  -4.9  -2.3  -1.9   0.3   2.2   4.3   4.7
-# [39]   6.0   6.9   8.6   9.1  10.4  13.5  13.9  16.8  22.3  28.1  31.4  36.0  37.7  50.0  50.7   5.2  -3.3  27.4  26.6
-# [58]  -2.2  -5.4   0.6 -29.9
-#Ys <- plots_out[[4]]$trees.noedge$y
-# [1]   3.2  -5.1   7.2 -20.5 -25.3 -26.0 -21.3  -0.2  12.7 -34.4 -35.6  36.5  23.5  -9.3  -1.9  35.4  18.0 -37.6 -26.9
-# [20] -11.9 -41.0  24.3  12.2  30.0   5.4  32.9  -4.3 -28.8  24.1 -23.0 -55.7  14.4  12.2 -53.1  -7.1 -13.8 -13.2  48.1
-# [39]   6.5  35.5  10.4  41.7  16.7  53.4  52.0 -12.8 -30.8 -25.0 -40.9 -22.7  41.5 -21.3  12.3  20.3  23.6  40.1 -10.8
-# [58] -32.3 -34.9 -36.0  24.0
-#Cs <- plots_out[[4]]$trees.noedge$crown
-# [1] 1.4116 1.1624 1.2336 3.5476 2.4084 1.7676 2.7644 1.1268 3.7612 1.5540 1.2336 3.3340 1.1980 1.1624 2.2304 2.6220
-# [17] 3.6188 1.5540 3.4764 3.8324 1.5896 2.4440 1.1268 3.2272 3.7968 3.4764 3.5476 3.7256 4.1528 2.7644 1.5896 2.8000
-# [33] 4.2240 1.9812 4.4732 3.4408 2.8356 1.2336 3.6188 1.4828 3.9392 1.8744 5.1140 3.2984 3.5120 3.9748 3.4408 3.0136
-# [49] 4.1528 5.2208 4.0460 2.6932 4.3308 2.9424 1.5896 1.5540 4.0104 2.1236 2.2304 2.6576 1.5540
-# pm_df <- data.frame(X=Xs, Y=Ys, crown=Cs)
 
-ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
-bound = st_as_sf(ctr, coords = c("X", "Y")) |> st_buffer(sqrt(10000/pi)) # boundary of 1ha circle
-stems <- st_as_sf(pm_df, coords = c("X", "Y")) # points for each tree w/dbh attribute
-crowns = st_buffer(stems, dist = stems$crown) # each crown defined as a circle with r=crown radius
-notcrowns <- st_difference(bound, st_union(crowns)) # all area in non-crown space
-yescrowns <- st_difference(bound, st_union(notcrowns)) # all area in crown space
-
-#r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 1)) 
-r_notcrowns <- rasterize(notcrowns, rast(ext(bound), res = 0.1)) # AJSM edit
-
-#r_notcrowns <- rasterize(notcrowns, raster(extent(bound), res = 0.1)) # turns sf into a rasterlayer -- this one is for all non-crown areas
-# want now to make a raster with 1s for not-crown and 0s for crown
-#r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=1))
-# r_yescrowns <- rasterize(yescrowns, raster(extent(bound), res=0.1)) # sf --> rasterlayer, this time for all crown areas
-r_yescrowns <- rasterize(yescrowns, rast(ext(bound), res = 0.1)) # AJSM edit
-
-values(r_yescrowns)[values(r_yescrowns) == 1] <- 0 # reassign all values in crown areas to 0 ("unsuitable")
-
-r_test <- merge(r_notcrowns, r_yescrowns) # creates one rasterlayer with 0s in crown areas, 1s everywhere else
-#  sr_test <- rast(r_test) # makes into a spatRaster 
-#crs(sr_test) <- "local" # set crs to Cartesian plane in meters
-crs(r_test) <- "local" # set crs to Cartesian plane in meters
 # patchMorph code:
 # https://rdrr.io/github/bi0m3trics/patchwoRk/man/patchMorph.html
 
@@ -80,25 +37,6 @@ library(patchwoRk)
 # explanation of gap and spur, conceptually, from Girvetz and Greco 2007:
 # (1) land cover density threshold (suitThresh), (2) habitat gap maximum thickness (gapThresh), and (3) habitat patch minimum thickness (spurThresh)
 
-plot(r_test, col=c("white", "#FEC44F"), main="Starting SpatRaster") # 0s in crowns (white), 1s everywhere else (yellow)
-pm.rast <- patchMorph(r_test, buffer = 5, suitThresh = 1, gapThresh = 8, spurThresh = 4, verbose = TRUE) # 
-plot(pm.rast,  main="PatchMorph Results (Gap-8 & Spur-4)", col=c("#FEC44F", "forestgreen")) # now the areas near crowns are 1 and openings are 0! ## I did not get this on the most recent run but I don't think I've changed anything....except I was using plot 9! also focus for kernel looks like crowns now?
-plot(crowns, col="black", add=TRUE)
-
-# convert to polygons for area calculations and mapping
-pm.vect <- as.polygons(pm.rast, values = TRUE) # turns SpatRaster into SpatVector
-pm.sf <- st_as_sf(pm.vect) # turns SpatVector into sf with a multipolygon for 0 and for 1
-# # take the multipolygon for cells with "1" attribute and turn it into lots of polygons
-# pm.sf1 <- pm.sf %>% filter(focal_max == 1)
-# take the multipolygon for cells with "0" attribute and turn it into lots of polygons !! this because 0 and 1 are flipped !!
-pm.sf0 <- pm.sf %>% filter(focal_max == 0)
-# pm.sf1 <- pm.sf %>% filter(focal_max == 1)
-# pm.sfs <- st_cast(pm.sf1, "POLYGON")
-pm.sfs <- st_cast(pm.sf0, "POLYGON")
-pm.sfs$area <- st_area(pm.sfs)
-sum(pm.sfs$area) # 4887.83 
-
-# loop this over all plots!
 # fn to convert plot x,y coords to spatRaster
 # set up
 ctr = data.frame(X = 0, Y = 0) # plot center to draw boundary of 1ha circle
@@ -120,13 +58,13 @@ xy_sr <- function(plot){
   return(rastLayer)
 }
 # test
-plot(xy_sr(4)) # works!
+#plot(xy_sr(4)) # works!
 
 # for loop for openings spatrasters from plots, converted to sf polygons and filtered for "1" attribute
 
 opes_sr <- list()
 for (i in 1:length(plots_out)){
-  thingy <- patchMorph(xy_sr(i), buffer=5, suitThresh=1, gapThresh=8, spurThresh=4, verbose=FALSE) %>%
+  thingy <- patchMorph(xy_sr(i), buffer=5, suitThresh=1, gapThresh=9, spurThresh=7, verbose=FALSE) %>%
   as.polygons(values = TRUE) %>% 
   st_as_sf() %>% 
 # filter(focal_max == 1) %>% # this part could be a place I can fix the 1/0 issue
@@ -143,18 +81,6 @@ for (i in 1:length(plots_out)){
   opes_sr[[i]]$area <- st_area(opes_sr[[i]])
 }
 
-# step A: add opes_sr polygons to ICO maps # check!
-
-# step B: add opes_sr summed areas to pie charts (one per site per year = 4)
-
-# step C: make gap size distribution by year. Start with this one
-# opes_sr has 12 lists containing 1-10 polygons and their associated areas
-# break these out by (site and) year
-# names
-# [1] "IS1 in 2018" "IS1 in 1941" "IS2 in 2018" "IS2 in 1941" "IS3 in 2018" "IS3 in 1941" "OH1 in 2018" "OH1 in 1941"
-# [9] "OH2 in 2018" "OH2 in 1941" "OH3 in 2018" "OH3 in 1941"
-# odds are 2018, evens are 1941
-
 # ugly but functional?
 opes2018 <- c(as.vector(opes_sr[[1]]$area, mode = "numeric"), as.vector(opes_sr[[3]]$area, mode = "numeric"), as.vector(opes_sr[[5]]$area, mode = "numeric"), as.vector(opes_sr[[7]]$area, mode = "numeric"), as.vector(opes_sr[[9]]$area, mode = "numeric"), as.vector(opes_sr[[11]]$area, mode = "numeric"))
 
@@ -162,24 +88,40 @@ opes1941 <- c(as.vector(opes_sr[[2]]$area, mode = "numeric"), as.vector(opes_sr[
 
 opesPrefire <- c(as.vector(opes_sr[[13]]$area, mode = "numeric"), as.vector(opes_sr[[14]]$area, mode = "numeric"), as.vector(opes_sr[[15]]$area, mode = "numeric"), as.vector(opes_sr[[16]]$area, mode = "numeric"), as.vector(opes_sr[[17]]$area, mode = "numeric"), as.vector(opes_sr[[18]]$area, mode = "numeric"))
 
-opes_all <- data.frame(Opes = c(opes1941, opes2018, opesPrefire), Year = c(rep(1941, length(opes1941)), rep(2018, length(opes2018)), rep("PreFire", length(opesPrefire))))
+opes_all <- data.frame(Opes = c(opes1941, opes2018, opesPrefire), Year = c(rep(1941, length(opes1941)), rep(2018, length(opes2018)), rep("Prefire", length(opesPrefire))))
+
+# I am unhappy with these histograms but the gap sizes will probably change
+# when I come back, I will make sensible bins and change from a hist to a bar graph of the avg #/ha with error bars
 
 gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
-  geom_histogram(bins = 11, position="dodge") +
+  geom_histogram(bins = 15, position="dodge") +
   scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
-  stat_bin(geom="text", bins=11, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) + 
-           scale_x_continuous(breaks = round(seq(50, 7550, length.out = 11))) +
+  stat_bin(geom="text", bins=15, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) +
+           scale_x_continuous(breaks = round(seq(50, 5750, length.out = 15))) +
            scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
   theme_classic()
 
-min(opes_all[opes_all$Year==1941,]) # 32.01
-max(opes_all[opes_all$Year==1941,]) # 5727.85
-mean(sapply(opes_all[opes_all$Year==1941,], as.numeric)) # 1338.109
+# create breaks and labels
+brks <- c(seq(0, 2750, by=125), 5750)
+lbls <- c(as.character(seq(0, 2625, by=125)), "2760+", "")
 
-min(opes_all[opes_all$Year==2018,]) # 33.32
-max(opes_all[opes_all$Year==2018,]) # 5718.15
-mean(sapply(opes_all[opes_all$Year==2018,], as.numeric)) # 1302.589
+ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
+  scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
+  geom_histogram(breaks = brks, position="dodge") +
+ # stat_bin(geom="text", aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) + 
+  scale_x_continuous(breaks=c(seq(0, 2750, by=125), 5750), labels = lbls) +
+  scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
+  labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
+  theme_classic()
+
+# min(opes_all[opes_all$Year==1941,]) # 32.01
+# max(opes_all[opes_all$Year==1941,]) # 5727.85
+# mean(sapply(opes_all[opes_all$Year==1941,], as.numeric)) # 1338.109
+# 
+# min(opes_all[opes_all$Year==2018,]) # 33.32
+# max(opes_all[opes_all$Year==2018,]) # 5718.15
+# mean(sapply(opes_all[opes_all$Year==2018,], as.numeric)) # 1302.589
 
 
 
@@ -236,8 +178,8 @@ colnames(tpiebins) <- c(1:18)
 
 # ok we will try to make pie charts using piebins. Start with plot 9   
 library(RColorBrewer)
-my.cols <- brewer.pal(5, "YlGn")
-my.cols <- c("white", "#FEC44F", my.cols[2:5])
+pie.cols <- brewer.pal(5, "YlGn")
+pie.cols <- c("white", "#FEC44F", pie.cols[2:5])
 
 library(scales)
 blank_theme <- theme_minimal()+
@@ -247,7 +189,7 @@ blank_theme <- theme_minimal()+
     panel.border = element_blank(),
     panel.grid=element_blank(),
     axis.ticks = element_blank(),
-    plot.title=element_text(size=14, face="bold")
+    plot.title=element_text(size=10)
   )
 
 piefn <- function(plot) {
@@ -255,9 +197,12 @@ piefn <- function(plot) {
     geom_bar(width = 1, stat = "identity") +
     coord_polar("y", start=0) +
     # scale_fill_brewer(palette = "YlGn", name = "Cluster Size") 
-    scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
+    scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
     theme(axis.text.x=element_blank()) +
-    labs(title = paste("Spatial Composition, ", names[plot]))
+    labs(title = paste("Spatial Composition, ", names[plot])) +
+    guides(shape = guide_legend(override.aes = list(size = 1))) +
+    guides(color = guide_legend(override.aes = list(size = 1))) +
+    theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
 }
 # piefn(8) # works
 
@@ -278,63 +223,91 @@ bins_IS18 <- as.data.frame(sapply(rowSums(tpiebins[,c(1,3,5)]), as.numeric))
 bins_IS41 <- as.data.frame(sapply(rowSums(tpiebins[,c(2,4,6)]), as.numeric))
 bins_OH18 <- as.data.frame(sapply(rowSums(tpiebins[,c(7,9,11)]), as.numeric))
 bins_OH41 <- as.data.frame(sapply(rowSums(tpiebins[,c(8,10,12)]), as.numeric))
-bins_IS15 <- as.data.frame(sapply(rowSums(tpiebins[,c(13,14,15)]), as.numeric))
+bins_IS95 <- as.data.frame(sapply(rowSums(tpiebins[,c(13,14,15)]), as.numeric))
 bins_OH06 <- as.data.frame(sapply(rowSums(tpiebins[,c(16,17,18)]), as.numeric))
 
 # IS 2018
 pie_IS18 <- ggplot(bins_IS18, aes(x="", y=bins_IS18[,], fill=factor(rownames(bins_IS18), levels=c(rownames(bins_IS18))))) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
-  scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "Spatial Composition at IS, 2018")
+  scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
+  labs(title = "IS in 2018", size = 10) +
+  theme(legend.position = "none")
+  # guides(shape = guide_legend(override.aes = list(size = 1))) +
+  # guides(color = guide_legend(override.aes = list(size = 1))) +
+  # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
 
-# IS 2015
-pie_IS15 <- ggplot(bins_IS15, aes(x="", y=bins_IS15[,], fill=factor(rownames(bins_IS15), levels=c(rownames(bins_IS15))))) +
+# IS 1995
+pie_IS95 <- ggplot(bins_IS95, aes(x="", y=bins_IS95[,], fill=factor(rownames(bins_IS95), levels=c(rownames(bins_IS95))))) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
-  scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "Spatial Composition at IS, 2015")
+  scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
+  labs(title = "IS in 1995", size = 10) +
+  theme(legend.position = "none")
+# guides(shape = guide_legend(override.aes = list(size = 1))) +
+# guides(color = guide_legend(override.aes = list(size = 1))) +
+# theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
 
 # IS 1941
 pie_IS41 <- ggplot(bins_IS41, aes(x="", y=bins_IS41[,], fill=factor(rownames(bins_IS41), levels=c(rownames(bins_IS41))))) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
-  scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "Spatial Composition at IS, 1941")
+  scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
+  labs(title = "IS in 1941", size = 10) +
+  theme(legend.position = "none")
+# guides(shape = guide_legend(override.aes = list(size = 1))) +
+# guides(color = guide_legend(override.aes = list(size = 1))) +
+# theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
 
 # OH 2018
 pie_OH18 <- ggplot(bins_OH18, aes(x="", y=bins_OH18[,], fill=factor(rownames(bins_OH18), levels=c(rownames(bins_OH18))))) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
-  scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "Spatial Composition at OH, 2018")
+  scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
+  labs(title = "OH in 2018", size = 10) +
+  theme(legend.position = "none")
+# guides(shape = guide_legend(override.aes = list(size = 1))) +
+# guides(color = guide_legend(override.aes = list(size = 1))) +
+# theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
 
 # OH 2006
 pie_OH06 <- ggplot(bins_OH06, aes(x="", y=bins_OH06[,], fill=factor(rownames(bins_OH06), levels=c(rownames(bins_OH06))))) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
-  scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "Spatial Composition at OH, 2006")
+  scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
+  labs(title = "OH in 2006", size = 10) +
+  theme(legend.position = "none")
+# guides(shape = guide_legend(override.aes = list(size = 1))) +
+# guides(color = guide_legend(override.aes = list(size = 1))) +
+# theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
 
 # OH 1941
 pie_OH41 <- ggplot(bins_OH41, aes(x="", y=bins_OH41[,], fill=factor(rownames(bins_OH41), levels=c(rownames(bins_OH41))))) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
-  scale_fill_manual(values = my.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "Spatial Composition at OH, 1941")
+  scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
+  labs(title = "OH in 1941", size = 10) +
+  theme(legend.position = "none")
+# guides(shape = guide_legend(override.aes = list(size = 1))) +
+# guides(color = guide_legend(override.aes = list(size = 1))) +
+# theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
 
-grid.arrange(pie_IS41, pie_IS15, pie_IS18, ncol=3)
+grid.arrange(pie_IS41, pie_IS95, pie_IS18, ncol=3)
 grid.arrange(pie_OH41, pie_OH06, pie_OH18, ncol=3)
 
-grid.arrange(pie_IS41, pie_IS15, pie_IS18, pie_OH41, pie_OH06, pie_OH18, ncol=3)
+grid.arrange(pie_IS41, pie_IS95, pie_IS18, pie_OH41, pie_OH06, pie_OH18, ncol=3)
 
 # math on area in interst, gap, size bins
-IS_change <- cbind(bins_IS41, bins_IS18)
-names(IS_change) <- c("IS_1941", "IS_2018")
-IS_change <- IS_change %>% mutate(change = (IS_2018/3) - (IS_1941/3)) %>% 
-  mutate(pct_change = change*100/10000)
+IS_change <- cbind(bins_IS41, bins_IS95, bins_IS18)
+names(IS_change) <- c("IS_1941", "IS_1995","IS_2018")
+IS_change <- IS_change %>% mutate(change1 = (IS_1995/3) - (IS_1941/3)) %>% 
+  mutate(pct_change1 = change1*100/10000) %>% 
+  mutate(change2 = (IS_2018/3) - (IS_1995/3)) %>% 
+  mutate(pct_change2 = change2*100/10000)
 
-OH_change <- cbind(bins_OH41, bins_OH18)
-names(OH_change) <- c("OH_1941", "OH_2018")
-OH_change <- OH_change %>% mutate(change = (OH_2018/3) - (OH_1941/3)) %>% 
-  mutate(pct_change = change*100/10000)
+OH_change <- cbind(bins_OH41, bins_OH06, bins_OH18)
+names(OH_change) <- c("OH_1941","OH_2006", "OH_2018")
+OH_change <- OH_change %>% mutate(change1 = (OH_2006/3) - (OH_1941/3)) %>% 
+  mutate(pct_change1 = change1*100/10000) %>% 
+  mutate(change2 = (OH_2018/3) - (OH_2006/3)) %>% 
+  mutate(pct_change2 = change2*100/10000)
