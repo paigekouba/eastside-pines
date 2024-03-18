@@ -345,23 +345,21 @@ IS_trees1941 <- IS_trees %>%
 # hist(IS_livetrees$dbh, breaks = 10)
 # then we are ready to compare stand metrics in 1941 to 2018 using MANOVA
 #______________________________________________________________________________#
-# Size in 2015, before Clark Fire
-# need to account for trees that were dead *before* Clark Fire, i.e. Dec = ≥2 for snags and all logs
-# simpler way is to use dec_correction (in years) and filter for >2, <10y (snags)
+# Size in 1995, before Rx Fire
+# snag correction TBD
 
-IS_trees2015 <- IS_trees %>% 
-  mutate(age2015 = 2015 - estab_est) %>% 
-  mutate(dbh2015 = dbh - ((2018-2015)*2.889)) %>% # for this very recent forest, just subtract, not estimating size from age
-  # need to filter out rows with trees that have NaN or <5 DBH
-  filter(!is.na(dbh2015)) %>% # 
-  filter(dbh2015>=5)
+IS_trees1995 <- IS_trees %>% 
+  mutate(age1995 = 1995 - estab_est) %>% 
+  mutate(dbh1995 = round((age1995 - 9.178)/2.889)) %>% 
+  filter(!is.na(dbh1995)) %>%
+  filter(dbh1995>=5)
 
-IS_snags2015 <- IS_trees2015 %>% 
-  filter(dec_correction > 2 & dec_correction < 10) # 2015 snags will be those with >2 but <10y correction
-
-IS_trees2015 <- IS_trees2015 %>% 
-  filter(dec_correction < 3) # remove trees dead before Clark Fire, but keep all live trees as of 2015
-
+# snag removal TBD; at this point assume all were live trees in 1995
+# IS_snags1995 <- IS_trees1995 %>% 
+#   filter(
+# 
+# IS_trees1995 <- IS_trees1995 %>% 
+#   filter(
 
 #______________________________________________________________________________#
 # Prepping all IS sites in 2018
@@ -369,14 +367,14 @@ IS1_2018 <- IS_livetrees[IS_livetrees$Plot == "IS1",]
 IS2_2018 <- IS_livetrees[IS_livetrees$Plot == "IS2",]
 IS3_2018 <- IS_livetrees[IS_livetrees$Plot == "IS3",]
 
-# Prepping all IS sites in 2015
-IS1_2015 <- IS_trees2015[IS_trees2015$Plot == "IS1",]
-IS2_2015 <- IS_trees2015[IS_trees2015$Plot == "IS2",]
-IS3_2015 <- IS_trees2015[IS_trees2015$Plot == "IS3",]
-# Need to reassign dbh to 2015 value
-IS1_2015 <- rename(IS1_2015, "dbh2018" = "dbh", "dbh" = "dbh2015")
-IS2_2015 <- rename(IS2_2015, "dbh2018" = "dbh", "dbh" = "dbh2015")
-IS3_2015 <- rename(IS3_2015, "dbh2018" = "dbh", "dbh" = "dbh2015")
+# Prepping all IS sites in 1995
+IS1_1995 <- IS_trees1995[IS_trees1995$Plot == "IS1",]
+IS2_1995 <- IS_trees1995[IS_trees1995$Plot == "IS2",]
+IS3_1995 <- IS_trees1995[IS_trees1995$Plot == "IS3",]
+# Need to reassign dbh to 1995 value
+IS1_1995 <- rename(IS1_1995, "dbh2018" = "dbh", "dbh" = "dbh1995")
+IS2_1995 <- rename(IS2_1995, "dbh2018" = "dbh", "dbh" = "dbh1995")
+IS3_1995 <- rename(IS3_1995, "dbh2018" = "dbh", "dbh" = "dbh1995")
 
 # Prepping all IS sites in 1941
 IS1_1941 <- IS_trees1941[IS_trees1941$Plot == "IS1",]
