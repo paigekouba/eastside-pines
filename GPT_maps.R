@@ -26,13 +26,18 @@ for (i in 1:length(plots_out)){
           geom_sf(opes_sr[[i]], mapping = aes(), fill = "#FEC44F", alpha=0.3) +        
           guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
           #theme_classic(base_size=22) +
-          theme(plot.title=element_text(hjust=0.5)) +
-          labs(title = paste("Living Trees at", names[i], " (1-ha Plot)"),
-               x = "Distance in m",
+          theme(plot.title=element_text(size = 10, hjust=0.5)) +
+          labs(title = paste("Living Trees at", names[i]),
+               x = "",
                y = "",
-               size = "Crown (m)") +
-          guides(size = guide_legend(override.aes = list(color ="#addd8e"))) +
-          theme_light()#base_size = 22) )
+               size = 10) +
+               # size = "Crown (m)") +
+          theme(legend.position = "none")
+          # guides(shape = guide_legend(override.aes = list(size = 1))) +
+          # guides(color = guide_legend(override.aes = list(size = 1))) +
+          # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
+   #guides(size = guide_legend(override.aes = list(color ="#addd8e"))) +
+         # theme_light()#base_size = 22) )
   # dev.off()
  ICO_maps[[i]] <- p
 }
