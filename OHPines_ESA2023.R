@@ -248,7 +248,7 @@ OH_snags <- OH_snags %>%
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
-  mutate(dec_correction =
+  mutate(dec_correction =                                     # This is where the snag info goes           
            case_when(Dec == 1 ~ 2,
                      TRUE ~ 9)) %>%
   mutate(estab_est = round(2018 - (age_est+dec_correction),0))
@@ -393,14 +393,14 @@ OH_logs <- OH_logs %>%
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
-  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
+  mutate(estab_est = round(2018 - (age_est+dec_correction),0))          # this is where log info goes
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
 # names(OH_livetrees)
 # names(OH_snags)
 # names(OH_logs) 
-OH_trees <- rbind(OH_livetrees[,c(1:9,19,20,21)],OH_snags[,c(1:9,18,20,21)],OH_logs[,c(1:9,15,16,10)])
+OH_trees <- rbind(OH_livetrees[,c(1:9,19,20,21)],OH_snags[,c(1:9,18:20)],OH_logs[,c(1:9,15,16,10)])
 
 #______________________________________________________________________________#
 # find dbh from 1941 age
@@ -443,9 +443,9 @@ OH_snags2006 <- OH_trees2006 %>%
   filter(dec_correction > 14) # any logs with Dec >1 were 2006 snags (so dec_correction ≥15)
 
 OH_trees2006 <- OH_trees2006 %>% 
-  filter(dec_correction < 14) # remove trees dead before O'Harrell Fire, but keep all live trees as of 2015
-
+  filter(dec_correction < 14) # remove trees dead before O'Harrell Fire, but keep all live trees as of 2006
 #______________________________________________________________________________#
+
 # Prepping all OH sites in 2018
 OH1_2018 <- OH_livetrees[OH_livetrees$Plot == "OH1",]
 OH2_2018 <- OH_livetrees[OH_livetrees$Plot == "OH2",]
