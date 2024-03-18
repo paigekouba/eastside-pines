@@ -367,12 +367,18 @@ cut.index <- which(trees$x %in% edgefilter$x & trees$y %in% edgefilter$y)
 #ICO_out <- summarizeClusters.ppp(pointData, treeData, -1, -1, c(0,0,0,0), F, "OH2 1941")
 
 # for loop to prep all 12 plots for mapping and figures
+# plots <- list(IS1_2018, IS1_1941, IS2_2018, IS2_1941, IS3_2018, IS3_1941, 
+#            OH1_2018, OH1_1941, OH2_2018, OH2_1941, OH3_2018, OH3_1941,
+#            IS1_1995, IS2_1995, IS3_1995, OH1_2006, OH2_2006, OH3_2006) # new line for prefire analysis
+# names <- c("IS1 in 2018", "IS1 in 1941", "IS2 in 2018", "IS2 in 1941", "IS3 in 2018", "IS3 in 1941", 
+#               "OH1 in 2018", "OH1 in 1941", "OH2 in 2018", "OH2 in 1941", "OH3 in 2018", "OH3 in 1941",
+#            "IS1 in 1995", "IS2 in 1995", "IS3 in 1995", "OH1 in 2006", "OH2 in 2006", "OH3 in 2006") # new for prefire 
 plots <- list(IS1_2018, IS1_1941, IS2_2018, IS2_1941, IS3_2018, IS3_1941, 
-           OH1_2018, OH1_1941, OH2_2018, OH2_1941, OH3_2018, OH3_1941,
-           IS1_2015, IS2_2015, IS3_2015, OH1_2006, OH2_2006, OH3_2006) # new line for prefire analysis
+              OH1_2018, OH1_1941, OH2_2018, OH2_1941, OH3_2018, OH3_1941, 
+              IS1_1995, IS2_1995, IS3_1995, OH1_2006, OH2_2006, OH3_2006) # new line for prefire analysis
 names <- c("IS1 in 2018", "IS1 in 1941", "IS2 in 2018", "IS2 in 1941", "IS3 in 2018", "IS3 in 1941", 
-              "OH1 in 2018", "OH1 in 1941", "OH2 in 2018", "OH2 in 1941", "OH3 in 2018", "OH3 in 1941",
-           "IS1 in 2015", "IS2 in 2015", "IS3 in 2015", "OH1 in 2006", "OH2 in 2006", "OH3 in 2006") # new for prefire 
+           "OH1 in 2018", "OH1 in 1941", "OH2 in 2018", "OH2 in 1941", "OH3 in 2018", "OH3 in 1941",
+           "IS1 in 1995", "IS2 in 1995", "IS3 in 1995", "OH1 in 2006", "OH2 in 2006", "OH3 in 2006") # new for prefire 
 plots_out <- vector(mode='list',length=length(plots))
 
 for(i in 1:length(plots)){
@@ -407,11 +413,11 @@ summaries <- summaries %>%
 
 # make plot for IS
 summaries_IS <- filter(summaries, Site =="IS") # drop out OH
-dotplots_IS <- cbind(filter(summaries_IS, Year == 1941), filter(summaries_IS, Year == 2018), filter(summaries_IS, Year == 2015)) # arrange by year
-dotplots_ISn <- dotplots_IS[,c(3:7,12:16,21:25)] # selects just metrics columns: 3:7 for 1941, 12:16 for 2018, 21:25 for 2015
+dotplots_IS <- cbind(filter(summaries_IS, Year == 1941), filter(summaries_IS, Year == 2018), filter(summaries_IS, Year == 1995)) # arrange by year
+dotplots_ISn <- dotplots_IS[,c(3:7,12:16,21:25)] # selects just metrics columns: 3:7 for 1941, 12:16 for 2018, 21:25 for 1995
 #dpISn <- apply(dotplots_ISn,2,mean_se)
 dpISn <- as.data.frame(t(sapply(dotplots_ISn,mean_se))) # get mean and se of each column
-dpISn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', 'BAH15', 'TPH15', 'Mean.dbh15', 'QMD15', 'SDI15')) # add column indicating which metric/year is in each row
+dpISn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', 'BAH95', 'TPH95', 'Mean.dbh95', 'QMD95', 'SDI95')) # add column indicating which metric/year is in each row
 
 dpISn2 <- cbind(dpISn[1:5,],dpISn[6:10,1:3], dpISn[11:15,1:3]) # make wider, for plotting
 dpISn2$Metrics <- c("BAH","TPH","meanDBH","QMD","SDI") # metric labes w/o year, for plotting
@@ -454,29 +460,6 @@ dpOHn2 <- dpOHn2 %>%
   mutate(ymin.2N = 100*(ymin.2 - y)/y) %>% 
   mutate(ymax.2N = 100*(ymax.2 - y)/y)
 
-# Welch two-sample t-test, DBH
-t.test(IS_livetrees$dbh, IS_trees1941$dbh1941, var.equal=FALSE)
-# t = 6.9171, df = 696.99, p-value = 1.045e-11   difference in means is significant; 2018 trees are *bigger* at IS (+15.5 cm) 11.12942 19.95152
-t.test(OH_livetrees$dbh, OH_trees1941$dbh1941, var.equal=FALSE)
-# t = -0.41581, df = 407.26, p-value = 0.6778   difference in means not significant; *no change* in size at OH
-
-# TPH
-t.test(dotplots_ISn$TPH.1, dotplots_ISn$TPH)
-# t = 0.050903, df = 2.2087, p-value = 0.9636   no sig diff in TPH at IS
-t.test(dotplots_OHn$TPH.1, dotplots_OHn$TPH)
-# 1.8685, df = 2.0772, p-value = 0.1979    no sig diff in TPH at OH
-t.test(c(dotplots_ISn$TPH.1, dotplots_OHn$TPH.1), c(dotplots_ISn$TPH, dotplots_OHn$TPH))
-# t = 1.1292, df = 8.5435, p-value = 0.2895; 20.0 ( -20.39653  60.39653 95% CI) *no change* in TPH at p<0.05 level
-
-# BAH
-t.test(dotplots_ISn$BAH.1, dotplots_ISn$BAH)
-# t = 7.8478, df = 2.7517, p-value = 0.005828   sig diff in BAH at IS; 2018 value is higher
-t.test(dotplots_OHn$BAH.1, dotplots_OHn$BAH)
-# t = 2.6861, df = 2.3998, p-value = 0.09491    almost sig diff in BAH at OH; 2018 value is higher
-# t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BH.1), c(dotplots_ISn$baH, dotplots_OHn$BAH))
-t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BAH.1), c(dotplots_ISn$BAH, dotplots_OHn$BAH))
-# t = 3.8218, df = 6.7058, p-value = 0.00708; 9.0 (3.387807 14.645526) difference is significant; 2018 BAH is *higher*
-
 # here is the one with standardized values
 #install.packages("gridExtra")
 library(gridExtra)
@@ -496,110 +479,4 @@ OHdots <- ggplot() +
   ggtitle("Change in Nonspatial Forest Metrics \nat O'Harrell Canyon") +
   xlab("Metric") + ylab("Percent Change") +
   theme_bw()
-dotplots <- grid.arrange(ISdots, OHdots, ncol=2)
-
-#______________ ICO stats _______________# 
-
-# [1] "IS1 in 2018" [2]  "IS1 in 1941" [3]  "IS2 in 2018" [4]  "IS2 in 1941" 
-# [5] "IS3 in 2018" [6 ] "IS3 in 1941" [7]  "OH1 in 2018" [8]  "OH1 in 1941"
-# [9] "OH2 in 2018" [10] "OH2 in 1941" [11] "OH3 in 2018" [12] "OH3 in 1941"
-
-# what is average cluster size at IS in 1941 and 2018?
-# get average cluster size from plots c(2,4,6) [1941] and c(1,3,5) [2018]
-mean(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.515306 in 1941
-mean(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.340741 in 2018
-t.test(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size), c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size))
-# diff +  0.825435, 0.4248285 1.2260407, p-value = p-value = 7.144e-05
-
-# what is average cluster size at OH in 1941 and 2018?
-# get average cluster size from plots c(8,10,12) [1941] and c(7,9,11) [2018]
-mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 1.282443 in 1941
-mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)) # 1.906832 in 2018
-t.test(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size), c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size))
-# diff +  0.624389,  0.3131096 0.9356695, p-value = p-value = 0.0001055
-
-# what is average cluster size across both sites in 1941 and 2018?
-mean(c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size)) # 1.422018 in 1941
-mean(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size)) # 2.10473 in 2018
-t.test(c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size, plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size), c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size, plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size))
-# diff +  0.682712, 0.4296467 0.9357760, p-value = 1.869e-07
-
-# proportion of single trees, IS
-sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1) # 139 in 1941
-sum(c(plots_out[[2]]$n.pts, plots_out[[4]]$n.pts, plots_out[[6]]$n.pts)) # 292 trees in 1941
-139/292
-# [1] 0.4760274, 47.6% of trees are singletons in 1941
-sum(c(plots_out[[1]]$clusters$size==1), plots_out[[3]]$clusters$size==1, plots_out[[5]]$clusters$size==1) # 68 in 2018
-sum(c(plots_out[[1]]$n.pts, plots_out[[3]]$n.pts, plots_out[[5]]$n.pts)) # 295 trees in 2018
-# should it be single trees as a proportion of trees? or single trees as a proportion of clusters? I think the former
-68/295
-# [1] 0.2305085, 23.1% of trees are singletons in 2018
-
-# proportions of single trees, OH
-sum(c(plots_out[[8]]$clusters$size==1), plots_out[[10]]$clusters$size==1, plots_out[[12]]$clusters$size==1) # 112 in 1941
-sum(c(plots_out[[8]]$n.pts, plots_out[[10]]$n.pts, plots_out[[12]]$n.pts)) # 164 trees in 1941
-112/164
-# [1] 0.6829268, 68.3% of trees are singletons in 1941
-sum(c(plots_out[[7]]$clusters$size==1), plots_out[[9]]$clusters$size==1, plots_out[[11]]$clusters$size==1) # 101 in 2018
-sum(c(plots_out[[7]]$n.pts, plots_out[[9]]$n.pts, plots_out[[11]]$n.pts)) # 280 trees in 2018
-101/280
-# [1] 0.3607143, 36.1% of trees are singletons in 2018
-
-
-# proportions of (trees/)clusters in singletons, both sites
-# !! need to redo these as proportions of trees in each category -- will do in summary_tables
-sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1, plots_out[[8]]$clusters$size==1, plots_out[[10]]$clusters$size==1, plots_out[[12]]$clusters$size==1) # 239  in 1941
-# sum(c(plots_out[[2]]$n.pts, plots_out[[4]]$n.pts, plots_out[[6]]$n.pts, plots_out[[8]]$n.pts, plots_out[[10]]$n.pts, plots_out[[12]]$n.pts)) # 443 trees in 1941
-# 239/443
-# # [1] 0.5395034, 54.0% of trees are singletons in 1941
-length(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size, plots_out[[8]]$clusters$size)) # 352 clusters in 1941
-239/352 # 0.6789773, 67.9% of clusters are singletons in 1941
-
-sum(c(plots_out[[1]]$clusters$size==1, plots_out[[3]]$clusters$size==1, plots_out[[5]]$clusters$size==1, plots_out[[7]]$clusters$size==1, plots_out[[9]]$clusters$size==1, plots_out[[11]]$clusters$size==1)) # 148 in 2018
-# sum(c(plots_out[[7]]$n.pts, plots_out[[9]]$n.pts, plots_out[[11]]$n.pts)) # 280 trees in 2018
-# 94/280 # 0.3357143, 33.6% of trees are singletons in 2018
-length(c(plots_out[[1]]$clusters$size, plots_out[[3]]$clusters$size, plots_out[[5]]$clusters$size, plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)) # 268 clusters in 2018
-148/286 # 0.5174825, 51.7% of clusters are singletons in 2018
-
-# proportions of clusters in medium clusters (5-9)
-sum(c(plots_out[[2]]$clusters$bin=="5-9"), plots_out[[4]]$clusters$bin=="5-9", plots_out[[6]]$clusters$bin=="5-9", plots_out[[8]]$clusters$bin=="5-9", plots_out[[10]]$clusters$bin=="5-9", plots_out[[12]]$clusters$bin=="5-9") # 3 in 1941
-# 352 clusters in 1941
-3/352 # 0.008522727, 0.9% of clusters are 5-9s in 1941
-sum(c(plots_out[[1]]$clusters$bin=="5-9"), plots_out[[3]]$clusters$bin=="5-9", plots_out[[5]]$clusters$bin=="5-9", plots_out[[7]]$clusters$bin=="5-9", plots_out[[9]]$clusters$bin=="5-9", plots_out[[11]]$clusters$bin=="5-9") # 28 in 2018
-# 268 clusters in 2018
-28/268 # 0.1044776, 10.4% of clusters are 5-9s in 2018
-
-# proportions of clusters in medium-large clusters (10-15)
-sum(c(plots_out[[2]]$clusters$bin=="10-15"), plots_out[[4]]$clusters$bin=="10-15", plots_out[[6]]$clusters$bin=="10-15", plots_out[[8]]$clusters$bin=="10-15", plots_out[[10]]$clusters$bin=="10-15", plots_out[[12]]$clusters$bin=="10-15") # 0 in 1941
-# 352 clusters in 1941
-0/352 # 0, 0% of clusters are 10-15s in 1941
-sum(c(plots_out[[1]]$clusters$bin=="10-15"), plots_out[[3]]$clusters$bin=="10-15", plots_out[[5]]$clusters$bin=="10-15", plots_out[[7]]$clusters$bin=="10-15", plots_out[[9]]$clusters$bin=="10-15", plots_out[[11]]$clusters$bin=="10-15") # 5 in 2018
-# 268 clusters in 2018
-5/268 # 0.01865672, 1.9% of clusters are 10-15s in 2018
-
-# are trees found close to the edge more likely to be in small clusters?
-# get x,y coordinates and cluster size bin for all stems
-# group bins by <= 51m from center, > 51 m from center
-# if > 51 m group has higher proportion of [singles+2-4s], might be an issue
-
-edge_trees <- plots_out[[1]]$trees.noedge %>% dplyr::select(x, y, bin) %>% 
-  mutate(ctr_dist = sqrt((x^2)+(y^2))) %>% 
-  filter(ctr_dist > 51.4) 
-
-inner_trees <- plots_out[[1]]$trees.noedge %>% dplyr::select(x, y, bin) %>% 
-  mutate(ctr_dist = sqrt((x^2)+(y^2))) %>% 
-  filter(ctr_dist <= 51.4) 
-
-sum(inner_trees$bin=="1" | inner_trees$bin =="2-4")/length(inner_trees$bin) #
-sum(inner_trees$bin!="1" & inner_trees$bin !="2-4")/length(inner_trees$bin) #
-
-sum(edge_trees$bin=="1" | edge_trees$bin =="2-4")/length(edge_trees$bin) # 
-sum(edge_trees$bin!="1" & edge_trees$bin !="2-4")/length(edge_trees$bin) # 
-
-#       small/large,  in    vs   out              smaller bins over represented at edge?
-# plot 1:       0.710/0.290     0.353/0.647       N      
-# plot 3:       0.402/0.598     0.630/0.370       Y
-# plot 5:       0.491/0.509     0.952/0.048       Y
-# plot 7:       0.603/0.397     1.000/0.000       N
-# plot 9:       0.527/0.473     0.258/0.742       N
-# plot 11:      0.581/0.419     0.682/0.318       Y
+dotplots <- grid.arrange(ISdots, OHdots, ncol=1)
