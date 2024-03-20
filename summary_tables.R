@@ -1,6 +1,5 @@
 # 2/18/24
 # making summary tables code for Ch 1
-# start with Derek C's functions above, see if I can modify for gap area function
 
 # goal is a table with 5 rows (one per bin) and 6 columns (for now--IS 1941, OH 1941, 1941_all; IS_2018, OH_2018, 2018_all)
 # within each bin's row-grouping, 6 metrics: 
@@ -79,9 +78,9 @@ return(output)
 IS41 <- c(2,4,6)
 OH41 <- c(8,10,12)
 all41 <- c(IS41, OH41)
-ISpf <- c(13,14,15)
-OHpf <- c(16,17,18)
-allpf <- c(ISpf, OHpf)
+ISpre <- c(13,14,15)
+OHpre <- c(16,17,18)
+allpre <- c(ISpre, OHpre)
 IS18 <- c(1,3,5)
 OH18 <- c(7,9,11)
 all18 <- c(IS18, OH18)
@@ -91,7 +90,8 @@ mets_names <- c("n.clust.bin",  "p.trees.bin",  "mDBH.bin", "ba.bin",  "tph.bin"
 
            
 
-indices_list <- list(IS41, OH41, all41, ISpf, OHpf, allpf, IS18, OH18, all18)
+#indices_list <- list(IS41, OH41, all41, ISpre, OHpre, allpre, IS18, OH18, all18)
+indices_list <- list(IS41, ISpre, IS18, OH41, OHpre, OH18, all41, allpre, all18)
 summ.bins1 <- data.frame(matrix(0,length(indices_list),12))
 for (i in 1:length(indices_list)){
   summ.bins1[i,] <- summ.bin(indices_list[[i]],1)
@@ -131,9 +131,13 @@ summary_table <- rbind( cbind(t(summ.bins1)[1:6,], t(summ.bins1)[7:12,])[,c(1,10
                         cbind(t(summ.bins3)[1:6,], t(summ.bins3)[7:12,])[,c(1,10,2,11,3,12,4,13,5,14,6,15,7,16,8,17,9,18)],
                         cbind(t(summ.bins4)[1:6,], t(summ.bins4)[7:12,])[,c(1,10,2,11,3,12,4,13,5,14,6,15,7,16,8,17,9,18)])
 
-mets_names_final <- c("IS41", "IS41sd", "OH41", "OH41sd", "all41", "all41sd", 
-                      "ISpf", "ISpfsd", "OHpf", "OHpfsd", "allpf", "allpfsd",
-                      "IS18", "IS18sd", "OH18", "OH18sd", "all18", "all18sd")
+mets_names_final <- c("IS41", "IS41sd", "ISpre", "ISpresd", "IS18", "IS18sd",
+                      "OH41", "OH41sd", "OHpre", "OHpresd", "OH18", "OH18sd",
+                      "all41", "all41sd", "allpre", "allpresd", "all18", "all18sd")
+
+# mets_names_final <- c("IS41", "IS41sd", "OH41", "OH41sd", "all41", "all41sd",
+#                       "ISpf", "ISpfsd", "OHpf", "OHpfsd", "allpf", "allpfsd",
+#                       "ISpost", "ISpostsd", "OHpost", "OHpostsd", "allpost", "allpostsd")
 colnames(summary_table) <- mets_names_final
 
 ## stand-level metrics
@@ -201,8 +205,8 @@ rownames(summ.stands) <- c("tph.stand",  "ba.stand",  "mDBH.stand",  "mean.tpc",
 summ.all <- rbind(summary_table, summ.stands)
 library(reader)
 # write_csv(data.frame(summ.all), "Eastside_summary.csv")
-# write.table(data.frame(summ.all), file = 'Eastside_summary.txt', col.names = TRUE,
-#            row.names = TRUE, sep = "\t")
+write.table(data.frame(summ.all), file = 'Eastside_summary3.19.24.txt', col.names = TRUE,
+            row.names = TRUE, sep = "\t")
 
 # summary_table <- replace(summary_table, summary_table == "NaN", "-")
 # c("n.clust.bin", "n.clust.bin.sd", "p.trees.bin", "p.trees.bin.sd", "mDBH.bin", "mDBH.bin.sd",
