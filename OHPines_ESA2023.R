@@ -248,10 +248,16 @@ OH_snags <- OH_snags %>%
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
-  mutate(dec_correction =                                     # This is where the snag info goes           
-           case_when(Dec == 1 ~ 2,
-                     TRUE ~ 9)) %>%
-  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
+  mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(OH_snags), replace = TRUE)) %>% 
+  mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(OH_snags), replace = TRUE)) %>% 
+  mutate(dec_corr = case_when(Dec==1 ~ 5,
+                              Dec==2 | Dec==3 ~ S2S3_corr,
+                              Dec==4 | Dec==5 ~ S4S5_corr)) %>%
+  mutate(estab_est = round(2018 - (age_est+dec_corr),0)) 
+  # mutate(dec_correction =                                     # This is where the snag info goes           
+  #          case_when(Dec == 1 ~ 2,
+  #                    TRUE ~ 9)) %>%
+  # mutate(estab_est = round(2018 - (age_est+dec_correction),0))
 
 # SNAGS ARE READY AT O'HARRELL CANYON
 
@@ -356,7 +362,7 @@ OH_livetrees[which(OH_livetrees$Plot =="OH2" &
 OH_livetrees <- OH_livetrees %>%
   mutate(estab_est = round(2018 - age_est,0))
 
-OH_livetrees$dec_correction <- 0
+OH_livetrees$dec_corr <- 0
 
 # SO ARE LIVETREES
 
@@ -379,9 +385,9 @@ OH_logs$Spec[OH_logs$Spec=="UNK"] <- "PIJE"
 
 # 2018 - [Years since death (based on decay class) + age from DBH] = establishment year
 # I will do a *placeholder*/best guess age correction for the logs. 1 = 10y, 2-3 = 15y, 4-5 = 20y
-OH_logs$dec_correction[OH_logs$Dec == 1]=10
-OH_logs$dec_correction[OH_logs$Dec > 1 & OH_logs$Dec < 4]=15
-OH_logs$dec_correction[OH_logs$Dec > 3 & OH_logs$Dec <=5]=20
+# OH_logs$dec_correction[OH_logs$Dec == 1]=10
+# OH_logs$dec_correction[OH_logs$Dec > 1 & OH_logs$Dec < 4]=15
+# OH_logs$dec_correction[OH_logs$Dec > 3 & OH_logs$Dec <=5]=20
 OH_logs <- OH_logs %>%
   mutate(PIJE_est = predict(OH_lm, newdata = OH_logs)) %>% 
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
@@ -393,14 +399,21 @@ OH_logs <- OH_logs %>%
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
-  mutate(estab_est = round(2018 - (age_est+dec_correction),0))          # this is where log info goes
+  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(OH_logs), replace = TRUE)) %>% 
+  mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(OH_logs), replace = TRUE)) %>% 
+  mutate(dec_corr = case_when(Dec==1 ~ 4,
+                              Dec==2 | Dec==3 ~ L2L3_corr,
+                              Dec==4 | Dec==5 ~ L4L5_corr)) %>%
+  mutate(estab_est = round(2018 - (age_est+dec_corr),0)) 
+
+  #mutate(estab_est = round(2018 - (age_est+dec_correction),0))          # this is where log info goes
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
 # names(OH_livetrees)
 # names(OH_snags)
 # names(OH_logs) 
-OH_trees <- rbind(OH_livetrees[,c(1:9,19,20,21)],OH_snags[,c(1:9,18:20)],OH_logs[,c(1:9,15,16,10)])
+OH_trees <- rbind(OH_livetrees[,c(1:9,19,21,20)],OH_snags[,c(1:9,18,21,22)],OH_logs[,c(1:9,14,17,18)])
 
 #______________________________________________________________________________#
 # find dbh from 1941 age
@@ -439,11 +452,14 @@ OH_trees2006 <- OH_trees %>%
   filter(!is.na(dbh2006)) %>% # 
   filter(dbh2006>=5)
 
+# any tree whose years-since-death (dec_corr) is > 12 (years since 2006) is dead prior to 2006
 OH_snags2006 <- OH_trees2006 %>% 
-  filter(dec_correction > 14) # any logs with Dec >1 were 2006 snags (so dec_correction ≥15)
+  filter(dec_corr > 12 & dec_corr <= 15) # snags if they had been dead 3y in 2006
+OH_logs2006 <- OH_trees2006 %>% 
+  filter(dec_corr > 15) # logs if they had been dead 4-23y in 2006
 
 OH_trees2006 <- OH_trees2006 %>% 
-  filter(dec_correction < 14) # remove trees dead before O'Harrell Fire, but keep all live trees as of 2006
+  filter(dec_corr < 12) # remove trees dead before 2006, but keep all live trees as of 2006
 #______________________________________________________________________________#
 
 # Prepping all OH sites in 2018
