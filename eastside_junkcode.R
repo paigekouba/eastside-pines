@@ -2627,6 +2627,224 @@ S1_t0 <- t0_bycat[[1]]
    mutate(years = 5*timesteps) %>% 
    mutate(prob = recruits/sum(catprob[[4]]$recruits))
  
+ # example of case_when for multiple conditions
+ 
+ OH_logs <- OH_logs %>%
+   mutate(PIJE_est = predict(OH_lm, newdata = OH_logs)) %>% 
+   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
+   mutate(ABCO_est = predict(ABCO_lm, newdata = OH_logs)) %>% 
+   mutate(PICO_est = predict(PICO_lm, newdata = OH_logs)) %>% 
+   mutate(age_est = case_when(Spec=="PIJE*" ~ PIJE_est, # fixing these 2/17/24
+                              Spec=="UNK" ~ PIJE_est, # fixing these 2/17/24
+                              Spec=="PIJE" ~ PIJE_est,
+                              Spec=="JUGR" ~ JUGR_est,
+                              Spec=="ABCO" ~ ABCO_est,
+                              Spec=="PICO" ~ PICO_est)) %>%
+   mutate(estab_est = round(2018 - (age_est+dec_correction),0))   
+ 
+ # example of a nested for loop that worked
+ 
+ clust_areas_all <- list()
+ for (j in 1:length(plots_out)){
+   clust_area_df <- data.frame(X=plots_out[[j]]$trees.noedge$x, Y=plots_out[[j]]$trees.noedge$y, 
+                               crown=plots_out[[j]]$trees.noedge$crown, bin=plots_out[[j]]$trees.noedge$bin)
+   clust_areas <- list()
+   for (i in 1:length(bin_names)){ 
+     thingy <- clust_area_df %>% 
+       filter(bin==bin_names[i],) %>% 
+       st_as_sf(coords = c("X","Y")) %>% 
+       st_buffer(dist=clust_area_df$crown) %>% 
+       st_union() %>% 
+       #  st_cast("POLYGON") %>% 
+       st_intersection(bound) %>% 
+       st_area()
+     clust_areas[[i]] <- thingy
+   }
+   clust_areas_all[[j]] <- clust_areas 
+ }
+ 
+
+ # ignore this for now fix it in post
+ opes_bins[c(j:(j+3)),1] <- rep(plotyears[j],4)
+ opes_bins[c(j:(j+3)),2] <- rep(j,4)
+ opes_bins[c(j:(j+3)),3] <- gap_bins
+ 
+ # for (i in 1:length(plots_out)){
+ #   opes_bins[i,1] <- sum(opes_sr[[i]]$area < 500)
+ #   opes_bins[i,2] <- sum(opes_sr[[i]]$area >= 500 & opes_sr[[i]]$area <1500)
+ #   opes_bins[i,3] <- sum(opes_sr[[i]]$area >= 1500 & opes_sr[[i]]$area <2500)
+ #   opes_bins[i,4] <- sum(opes_sr[[i]]$area >= 2500)
+ #   opes_bins[i,5] <- plotyears[i]
+ # }
+ #names(opes_bins) <- c("82-500", "500-1500","1500-2500",">2500", "Year")
+ 
+ # ugly but functional?
+ opes2018 <- c(as.vector(opes_sr[[1]]$area, mode = "numeric"), as.vector(opes_sr[[3]]$area, mode = "numeric"), as.vector(opes_sr[[5]]$area, mode = "numeric"), as.vector(opes_sr[[7]]$area, mode = "numeric"), as.vector(opes_sr[[9]]$area, mode = "numeric"), as.vector(opes_sr[[11]]$area, mode = "numeric"))
+ 
+ opes1941 <- c(as.vector(opes_sr[[2]]$area, mode = "numeric"), as.vector(opes_sr[[4]]$area, mode = "numeric"), as.vector(opes_sr[[6]]$area, mode = "numeric"), as.vector(opes_sr[[8]]$area, mode = "numeric"), as.vector(opes_sr[[10]]$area, mode = "numeric"), as.vector(opes_sr[[12]]$area, mode = "numeric"))
+ 
+ opesPrefire <- c(as.vector(opes_sr[[13]]$area, mode = "numeric"), as.vector(opes_sr[[14]]$area, mode = "numeric"), as.vector(opes_sr[[15]]$area, mode = "numeric"), as.vector(opes_sr[[16]]$area, mode = "numeric"), as.vector(opes_sr[[17]]$area, mode = "numeric"), as.vector(opes_sr[[18]]$area, mode = "numeric"))
+ 
+ opes_all <- data.frame(Opes = c(opes1941, opes2018, opesPrefire), Year = c(rep(1941, length(opes1941)), rep(2018, length(opes2018)), rep("Prefire", length(opesPrefire))))
+ 
+ # I am unhappy with these histograms but the gap sizes will probably change
+ # when I come back, I will make sensible bins and change from a hist to a bar graph of the avg #/ha with error bars
+ 
+ ggplot(opes_bins,aes(x=gap_bin, y = countperha, fill=Year)) +
+   geom_bar(stat="identity", position="dodge") 
+ 
+ opes_bins2 <- opes_bins %>% 
+   group_by(Year, gap_bin) %>% 
+   summarise(mean_ct = mean(countperha), se_ct = sd(countperha)/sqrt(length(countperha)))
+ 
+ ggplot(opes_bins2,aes(x=gap_bin, y = mean_ct, fill=Year)) +
+   geom_bar(stat="identity", position="dodge") +
+   geom_errorbar(aes(ymin=mean_ct-se_ct, ymax=mean_ct+se_ct), width=0.2,position=position_dodge(.9))
+ 
+ gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
+   geom_histogram(bins = 15, position="dodge") +
+   scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
+   stat_bin(geom="text", bins=15, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) +
+   scale_x_continuous(breaks = round(seq(50, 5750, length.out = 15))) +
+   scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
+   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
+   theme_classic()
+ 
+ ggplot(data = opes_all, mapping = aes(x=as.factor(Year), y = Opes, color = as.factor(Year))) +
+   geom_boxplot() +
+   stat_compare_means(method = "anova") +
+   stat_compare_means(label = "p.signif", method = "anova")
+ 
+ # create breaks and labels
+ brks <- c(seq(0, 2750, by=125), 5750)
+ lbls <- c(as.character(seq(0, 2625, by=125)), "2760+", "")
+ 
+ ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
+   scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
+   geom_histogram(breaks = brks, position="dodge") +
+   # stat_bin(geom="text", aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) + 
+   scale_x_continuous(breaks=c(seq(0, 2750, by=125), 5750), labels = lbls) +
+   scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
+   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
+   theme_classic()
+ 
+ # trying lydersenfig3 for one site at a time, IS first
+ IS_bins <- data.frame(matrix(NA, nrow=36, ncol=4))
+opes_IS <- opes_sr[c(1:6,13:15)]
+ j=1
+ plotcounts <- list()
+ for (j in c(1:6,13:15)){
+   plotcounts[[j]] <- vector()
+   countperha <- vector()
+   for (i in 1:length(gap_bins)){
+     thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
+     countperha <- c(countperha, thingy)
+   }
+   plotcounts[[j]] <- countperha}
+ 
+IS_bins[,1] <- rep(plotyears[c(1:6,13:15)], each = 4)
+IS_bins[,2] <- rep(c(1:6,13:15), each = 4)
+IS_bins[,3] <- rep(gap_bins,length(opes_IS))
+IS_bins[,4] <- unlist(plotcounts)
+ names(IS_bins) <- c("Year", "Plot", "gap_bin", "countperha")
+ 
+ IS_bins$gap_bin <- factor(IS_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
+ IS_bins$Year <- factor(IS_bins$Year, levels = c("1941","Prefire","2018"))
+ 
+ #library(ggpubr)
+LydersenFig3_IS <- ggbarplot(IS_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
+   stat_compare_means(paired=TRUE) 
+
+# now OH
+OH_bins <- data.frame(matrix(NA, nrow=36, ncol=4))
+opes_OH <- opes_sr[c(7:12,16:18)]
+j=1
+plotcounts <- list()
+for (j in c(7:12,16:18)){
+  plotcounts[[j]] <- vector()
+  countperha <- vector()
+  for (i in 1:length(gap_bins)){
+    thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
+    countperha <- c(countperha, thingy)
+  }
+  plotcounts[[j]] <- countperha}
+
+OH_bins[,1] <- rep(plotyears[c(7:12,16:18)], each = 4)
+OH_bins[,2] <- rep(c(7:12,16:18), each = 4)
+OH_bins[,3] <- rep(gap_bins,length(opes_OH))
+OH_bins[,4] <- unlist(plotcounts)
+names(OH_bins) <- c("Year", "Plot", "gap_bin", "countperha")
+
+OH_bins$gap_bin <- factor(OH_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
+OH_bins$Year <- factor(OH_bins$Year, levels = c("1941","Prefire","2018"))
+
+LydersenFig3_OH <- ggbarplot(OH_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
+  stat_compare_means(paired=TRUE) 
+
+# first try of all gap distns combined
+# sensible bins: 82-500, 500-1500, 1500-2500, >2500
+# I want a df with one row for each count/ha, with Year, Plot, and Bin along with it
+plotyears <- c(rep(c(2018,1941),6),rep("Prefire",6))
+gap_bins <- c("82-500", "500-1500","1500-2500",">2500")
+bin_brks <- c(82,500,1500,2500,7000)
+opes_bins <- data.frame(matrix(NA, nrow=72, ncol=4))
+j=1
+plotcounts <- list()
+for (j in 1:length(plots_out)){
+  plotcounts[[j]] <- vector()
+  countperha <- vector()
+  for (i in 1:length(gap_bins)){
+    thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
+    countperha <- c(countperha, thingy)
+  }
+  plotcounts[[j]] <- countperha}
+
+opes_bins[,1] <- rep(plotyears, each = 4)
+opes_bins[,2] <- rep(1:18, each = 4)
+opes_bins[,3] <- rep(gap_bins,18)
+opes_bins[,4] <- unlist(plotcounts)
+names(opes_bins) <- c("Year", "Plot", "gap_bin", "countperha")
+
+opes_bins$gap_bin <- factor(opes_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
+opes_bins$Year <- factor(opes_bins$Year, levels = c("1941","Prefire","2018"))
+opes_bins$Plot <- as.character((opes_bins)[,2])
+library(ggpubr)
+
+# Fig3Lydersen <- 
+  ggbarplot(opes_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
+ stat_friedman_test(aes(wid=Plot, group=gap_bin), within = "x", label = "p = {p.format}")
+  #  stat_compare_means(paired=TRUE) # Kruskal-Wallis, p = 1.3e-05
+
+opes_bins %>% 
+  group_by(gap_bin, Year) %>% 
+  get_summary_stats(countperha, type = "mean_se")
+
+ggboxplot(opes_bins, x="gap_bin", y="countperha", color="Year")
+
+opes_bins %>% 
+  group_by(gap_bin, Year) %>% 
+  identify_outliers(countperha) # 6 outliers, 3 are extreme
+
+opes_bins %>%  # data are not normally distributed; the countperha is not normally distributed in each year
+  group_by(gap_bin, Year) %>% 
+  shapiro_test(countperha) 
+
+ggqqplot(opes_bins, "countperha") + facet_grid(Year ~ gap_bin, labeller="label_both")
+
+# S3 method for default
+#friedman.test(y, groups, blocks, …)
+
+# S3 method for formula
+#friedman.test(formula, data, subset, na.action, …)
+friedman.test(countperha ~ Year | Plot, data = opes_bins, na.action = na.pass)
+friedman.test(opes_bins$countperha, opes_bins$gap_bin, opes_bins$Plot)
+library(ARTool)
+model = art(countperha ~ Year + gap_bin + Year:gap_bin + (1|Plot), data=opes_bins)
+model
+
+anova(model)
+
 # NEVER NEVER GIVE UP
 
 # NEVER LET GO, NEVER SURRENDER
+  
