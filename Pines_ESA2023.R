@@ -254,11 +254,19 @@ IS_livetrees <- IS_trees[is.na(IS_trees$Dec),] # later I will do stand metrics o
 # Need to add column for age estimate:
 IS_snags <- IS_snags %>%
   mutate(age_est = predict(IS_lm, newdata = IS_snags)) %>% 
+    mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(IS_snags), replace = TRUE)) %>% 
+    mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(IS_snags), replace = TRUE)) %>% 
+        mutate(dec_corr = case_when(Dec==1 ~ 2,
+                                     Dec==2 | Dec==3 ~ S2S3_corr,
+                                     Dec==4 | Dec==5 ~ S4S5_corr)) %>%
+    mutate(estab_est = round(2018 - (age_est+dec_corr),0)) 
+
+
 # mutate(age_est = DBH/0.307204)%>%  # Old method based on straight-line regression; now need to use predict
-  mutate(dec_correction =
-           case_when(Dec == 1 ~ 2,
-                     TRUE ~ 9)) %>%
-  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
+#  mutate(dec_correction =
+#           case_when(Dec == 1 ~ 2,
+#                     TRUE ~ 9)) %>%
+#  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
 
 # SNAGS ARE READY AT INDIANA SUMMIT
 
@@ -282,7 +290,7 @@ for(i in 1:length(goodcodes)){
 IS_livetrees <- IS_livetrees %>%
   mutate(estab_est = round(2018 - age_est,0))
 
-IS_livetrees$dec_correction <- 0
+IS_livetrees$dec_corr <- 0
 
 # SO ARE LIVETREES
 
@@ -300,14 +308,24 @@ colnames(log_data)[1] = "Site"
 IS_logs <- log_data[log_data$Site=="IS",]
 unique(IS_logs$Spec) 
 # [1] "PIJE"  "PICO"  "PIJE*"
-# 2018 - [Years since death (based on decay class) + age from DBH] = establishment year
-# I will do a *placeholder*/best guess age correction for the logs. 1 = 10y, 2-3 = 15y, 4-5 = 20y
-IS_logs$dec_correction[IS_logs$Dec == 1]=10
-IS_logs$dec_correction[IS_logs$Dec > 1 & IS_logs$Dec < 4]=15
-IS_logs$dec_correction[IS_logs$Dec > 3 & IS_logs$Dec <=5]=20
+
 IS_logs <- IS_logs %>%
   mutate(age_est = predict(IS_lm, newdata = IS_logs)) %>% 
-  mutate(estab_est = round(2018 - (age_est+dec_correction),0))
+  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(IS_logs), replace = TRUE)) %>% 
+  mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(IS_logs), replace = TRUE)) %>% 
+  mutate(dec_corr = case_when(Dec==1 ~ 4,
+                              Dec==2 | Dec==3 ~ L2L3_corr,
+                              Dec==4 | Dec==5 ~ L4L5_corr)) %>%
+  mutate(estab_est = round(2018 - (age_est+dec_corr),0)) 
+
+# 2018 - [Years since death (based on decay class) + age from DBH] = establishment year
+# I will do a *placeholder*/best guess age correction for the logs. 1 = 10y, 2-3 = 15y, 4-5 = 20y
+# IS_logs$dec_correction[IS_logs$Dec == 1]=10
+# IS_logs$dec_correction[IS_logs$Dec > 1 & IS_logs$Dec < 4]=15
+# IS_logs$dec_correction[IS_logs$Dec > 3 & IS_logs$Dec <=5]=20
+# IS_logs <- IS_logs %>%
+#   mutate(age_est = predict(IS_lm, newdata = IS_logs)) %>% 
+#   mutate(estab_est = round(2018 - (age_est+dec_correction),0))
 
 #______________________________________________________________________________#
 # rbind livetrees, logs, and snags to get complete tree dataset for all times and peoples:
@@ -315,7 +333,7 @@ IS_logs <- IS_logs %>%
 # names(IS_snags)
 # names(IS_logs) 
 
-IS_trees <- rbind(IS_livetrees[,c(1:9,15,16,17)],IS_snags[,c(1:9,14,16,15)],IS_logs[,c(1:9,11,12,10)])
+IS_trees <- rbind(IS_livetrees[,c(1:9,15,17,16)],IS_snags[,c(1:9,14,17,18)],IS_logs[,c(1:9,10,13,14)])
 unique(IS_trees$Spec)
 # [1] "PIJE"  "PICO" "PIJE*"
 IS_trees$Spec[IS_trees$Spec=="PIJE*"] <- "PIJE"
@@ -355,11 +373,11 @@ IS_trees1995 <- IS_trees %>%
   filter(dbh1995>=5)
 
 # snag removal TBD; at this point assume all were live trees in 1995
-# IS_snags1995 <- IS_trees1995 %>% 
-#   filter(
+IS_snags1995 <- IS_trees1995 %>% 
+   filter(dec_corr > 23) # any trees whose years-since-death (dec_corr) is > 23 (years since 1995) is dead prior to 1995
 # 
-# IS_trees1995 <- IS_trees1995 %>% 
-#   filter(
+IS_trees1995 <- IS_trees1995 %>% 
+   filter(dec_corr < 23) # only removes 9 trees, ok
 
 #______________________________________________________________________________#
 # Prepping all IS sites in 2018
