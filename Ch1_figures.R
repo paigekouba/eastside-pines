@@ -1,7 +1,7 @@
 # Figures for Paper -- Eastside Pines ICO
 # Thu 2/15/24
 
-pdf(file = "Ch1_figures.pdf")
+pdf(file = "Ch1_figures_3.19.24.pdf")
 
 plot(dotplots) # percent change in nonspatial metrics, by site. 1941 in red, 2018 in black, with mean and se
 
@@ -12,16 +12,17 @@ grid.arrange(ICO_maps[[8]], ICO_maps[[16]], ICO_maps[[7]], ICO_maps[[10]], ICO_m
 
 # grid.arrange(pie_IS41, pie_IS18, ncol=2)
 # grid.arrange(pie_OH41, pie_OH18, ncol=2) 
-grid.arrange(pie_IS41, pie_IS15, pie_IS18, pie_OH41, pie_OH06, pie_OH09, ncol=3)
+grid.arrange(pie_IS41, pie_IS95, pie_IS18, pie_OH41, pie_OH06, pie_OH18, ncol=3)
 # before-and-after pie charts of all structural categories, by site
 
 # summ.all # per-bin and stand-level summary metrics for IS41, OH41, all41, IS18, OH18, and all18
 
 (gap_distn) # gap size histogram, combined
+grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 2) # bar plots of binned gaps mean and se
 
-(location_fit) # brms model with cluster counts per cluster size
+#(location_fit) # brms model with cluster counts per cluster size
 # model_coeffs # inset with model coefficients from brms model
-caterplot(pines3nb_mcmc, parms = c("b_clust.sz", "b_YearPrefire", "b_clust.sz:YearPostfire"), pch=5, cex=1.5, lwd = c(4,8), labels = c("Cluster Size:Year","Year", "Cluster Size"), labels.loc="above", style = "plain")
+#caterplot(pines3nb_mcmc, parms = c("b_clust.sz", "b_YearPrefire", "b_clust.sz:YearPrefire"), pch=5, cex=1.5, lwd = c(4,8), labels = c("Cluster Size:Year","Year", "Cluster Size"), labels.loc="above", style = "plain")
 
 #Supplementary
 
