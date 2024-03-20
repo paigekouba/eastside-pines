@@ -2,8 +2,8 @@
 
 library(dplyr)
 df <- OH_snags %>% 
-  filter(Dec > 1) %>% 
-  dplyr::select("dbh", "Dec", "age_est", "dec_correction", "estab_est")
+  filter(Dec > 1) #%>% 
+  #dplyr::select("dbh", "Dec", "age_est", "dec_correction", "estab_est")
 
 df2 <- OH_logs %>% 
   filter(Dec > 1) %>% 
@@ -46,7 +46,7 @@ R <- as.vector(c(23,67,84,0,0,0))
 D <- matrix(c(0.00,	0.00,	0.00,	0.00,	0.00,	0.00,
               0.19,	0.16,	0.00,	0.00,	0.00,	0.00,
               0.39,	0.35,	0.65,	0.00,	0.00,	0.00,
-              0.00,	0.00,	0.00,	0.00,	0.00,	0.00, # I have qualms about this; shouldn't S1 --> L1?
+              0.00,	0.00,	0.00,	0.00,	0.00,	0.00, # I have qualms about this; shouldn't S1 --> L1? # no it's ok because L1s can just be assumed live as of 4ya
               0.14,	0.16,	0.00,	0.33,	0.32,	0.00,
               0.28,	0.33,	0.35,	0.67,	0.68,	0.50), nrow = 6, ncol = 6, byrow = TRUE)
 
@@ -104,7 +104,7 @@ colnames(pct_per)[7] <- "R"
 
 # This table shows the percent of trees in [row] that were [column] one timestep before. E.g. 65% of the S4S5s in t0 were S4S5s in t-1, and 4.71% of the L4L5s in t0 were L2L3 in t-1
 # use this to create backwards paths for one decay class (S2S3s was test case)
-# then do for one class at a time in an interable way (S4S5 as test)
+# then do for one class at a time in an iterable way (S4S5 as test)
 
 # make that a loop!
 
@@ -122,7 +122,6 @@ for (i in 2:length(t0_bycat)){ # for each category, get number of timesteps to r
   while(sum(start_vec >= 0.5)>=1){ # while at least one decay class at t-n has tree # >= 0.5, do this
         start_vec <- colSums((prev_distn)[,c(1:6)]) # finds start vector of previous timestep
         recruits[j] <- sum(prev_distn[,7]) # finds # recruited into the previous timestep
-        print(recruits)
         prev_distn <- start_vec*pct_per
         j=j+1  } # advance to next iteration: one more timestep backwards
   catprob[[i]] <- data.frame(recruits, c(1:length(recruits))) # store recruitment totals per timestep
@@ -141,23 +140,46 @@ catprob[[4]]$recruits <- 0
 catprob[[4]]$timesteps <- 0.8
 catprob[[4]]$years <- 4
 catprob[[4]]$prob <- 1
-#catprob[[4]] <- data.frame(0, 0.8, 4, 1)
-#names(catprob[[4]]) <- c("recruits", "timesteps", "years", "prob")
 
-plot(catprob[[1]]$years,catprob[[1]]$prob)
-plot(catprob[[2]]$years,catprob[[2]]$prob)
-plot(catprob[[3]]$years,catprob[[3]]$prob)
-plot(catprob[[4]]$years,catprob[[4]]$prob)
-plot(catprob[[5]]$years,catprob[[5]]$prob)
-plot(catprob[[6]]$years,catprob[[6]]$prob)
+# plot(catprob[[1]]$years,catprob[[1]]$prob)
+# plot(catprob[[2]]$years,catprob[[2]]$prob)
+# plot(catprob[[3]]$years,catprob[[3]]$prob)
+# plot(catprob[[4]]$years,catprob[[4]]$prob)
+# plot(catprob[[5]]$years,catprob[[5]]$prob)
+# plot(catprob[[6]]$years,catprob[[6]]$prob)
 
 # use these distributions to assign time-since-death (dec_correction) for logs and snags
 # test on df and df2 (OH snags and logs, minus Dec = 1)
 
-catdistn 
-for(i in 1:length(catprob)){
-  catdistn[i] <- sample(seq(5,max(catprob[[i]]$years),5),replace=TRUE,prob=catprob[[i]]$prob) # I don't think this does what I want
+catdistn <- list()
+for(i in c(2,3,5,6)){
+  catdistn[[i]] <- sample(seq(5,max(catprob[[i]]$years),5),1000,replace=TRUE,prob=catprob[[i]]$prob)
 }
 
+# now I need to assign a random draw from this catdistn[[i]] to each snag in class i
 df %>% 
-  mutate(snag_corr = )
+  mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(df), replace = TRUE)) %>% 
+  mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(df), replace = TRUE)) %>% 
+  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(df), replace = TRUE)) %>% 
+  mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(df), replace = TRUE)) %>% 
+  mutate(snag_corr = case_when(Dec==1 ~ 5,
+                               Dec==2 | Dec==3 ~ S2S3_corr,
+                               Dec==4 | Dec==5 ~ S4S5_corr)) %>%
+  mutate(estab_est2 = round(2018 - (age_est+snag_corr),0)) #%>% 
+  #mutate(diff = estab_est - estab_est2)
+
+# do the same for logs
+df2 %>% 
+  mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(df2))) %>% 
+  mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(df2))) %>% 
+  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(df2))) %>% 
+  mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(df2))) %>% 
+  mutate(log_corr = case_when(Dec==1 ~ 4,
+                               Dec==2 | Dec==3 ~ L2L3_corr,
+                               Dec==4 | Dec==5 ~ L4L5_corr)) %>%
+  mutate(estab_est2 = round(2018 - (age_est+log_corr),0)) %>% 
+  mutate(diff = estab_est - estab_est2)
+    
+
+
+
