@@ -10,22 +10,20 @@ allcrwn <- unlist(lapply(allcrwndf, function(x) x[[6]]))
 
 ggplot(as.data.frame(allcrwn), aes(x = allcrwn*2)) + # distribution of tree crown *diameters*
   geom_histogram() +
-  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.560125
-  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 8.01368 
-  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.605576
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.1)), color = "grey", size = 0.5) + # 2.574679 
+  geom_vline(aes(xintercept = quantile(allcrwn*2, 0.9)),  color="grey", size=0.5) + # 7.97808 
+  geom_vline(aes(xintercept = mean(allcrwn*2, na.rm = TRUE)),  color="red", size=0.5) +# 4.596546
   ggtitle("Crown Diameters, All Sites, All Years") +
   xlab("Crown Diamter (m)") + ylab("Frequency")
 
-sum(allcrwn < 1)*100/length(allcrwn) # 0.4644682
-sum(allcrwn > 5)*100/length(allcrwn) # 1.857873
-# sum(allcrwn > 4)*100/length(allcrwn) # 10.03251
+sum(allcrwn < 1)*100/length(allcrwn) # 0.5085529
+sum(allcrwn > 5)*100/length(allcrwn) # 1.849283
+# sum(allcrwn > 4)*100/length(allcrwn) # 9.98613
 
 min(allcrwn)*2 # 1.486 is the smallest tree crown across all the plots and both times
 max(allcrwn)*2 # 11.95104 is the biggest tree crown across all the plots and both times
 
-#library(raster)
 library(sf)
-#library(sp)
 library(terra)
 
 # patchMorph code:
@@ -64,7 +62,7 @@ xy_sr <- function(plot){
 
 opes_sr <- list()
 for (i in 1:length(plots_out)){
-  thingy <- patchMorph(xy_sr(i), buffer=5, suitThresh=1, gapThresh=9, spurThresh=7, verbose=FALSE) %>%
+  thingy <- patchMorph(xy_sr(i), buffer=5, suitThresh=1, gapThresh=12, spurThresh=10, verbose=FALSE) %>%
   as.polygons(values = TRUE) %>% 
   st_as_sf() %>% 
 # filter(focal_max == 1) %>% # this part could be a place I can fix the 1/0 issue
@@ -81,39 +79,114 @@ for (i in 1:length(plots_out)){
   opes_sr[[i]]$area <- st_area(opes_sr[[i]])
 }
 
-# ugly but functional?
-opes2018 <- c(as.vector(opes_sr[[1]]$area, mode = "numeric"), as.vector(opes_sr[[3]]$area, mode = "numeric"), as.vector(opes_sr[[5]]$area, mode = "numeric"), as.vector(opes_sr[[7]]$area, mode = "numeric"), as.vector(opes_sr[[9]]$area, mode = "numeric"), as.vector(opes_sr[[11]]$area, mode = "numeric"))
-
-opes1941 <- c(as.vector(opes_sr[[2]]$area, mode = "numeric"), as.vector(opes_sr[[4]]$area, mode = "numeric"), as.vector(opes_sr[[6]]$area, mode = "numeric"), as.vector(opes_sr[[8]]$area, mode = "numeric"), as.vector(opes_sr[[10]]$area, mode = "numeric"), as.vector(opes_sr[[12]]$area, mode = "numeric"))
-
-opesPrefire <- c(as.vector(opes_sr[[13]]$area, mode = "numeric"), as.vector(opes_sr[[14]]$area, mode = "numeric"), as.vector(opes_sr[[15]]$area, mode = "numeric"), as.vector(opes_sr[[16]]$area, mode = "numeric"), as.vector(opes_sr[[17]]$area, mode = "numeric"), as.vector(opes_sr[[18]]$area, mode = "numeric"))
-
-opes_all <- data.frame(Opes = c(opes1941, opes2018, opesPrefire), Year = c(rep(1941, length(opes1941)), rep(2018, length(opes2018)), rep("Prefire", length(opesPrefire))))
-
-# I am unhappy with these histograms but the gap sizes will probably change
-# when I come back, I will make sensible bins and change from a hist to a bar graph of the avg #/ha with error bars
-
+# first try at gap distn histogram
 gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
   geom_histogram(bins = 15, position="dodge") +
   scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
   stat_bin(geom="text", bins=15, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) +
-           scale_x_continuous(breaks = round(seq(50, 5750, length.out = 15))) +
-           scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
-  labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
-  theme_classic()
-
-# create breaks and labels
-brks <- c(seq(0, 2750, by=125), 5750)
-lbls <- c(as.character(seq(0, 2625, by=125)), "2760+", "")
-
-ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
-  scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
-  geom_histogram(breaks = brks, position="dodge") +
- # stat_bin(geom="text", aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) + 
-  scale_x_continuous(breaks=c(seq(0, 2750, by=125), 5750), labels = lbls) +
+  scale_x_continuous(breaks = round(seq(50, 5750, length.out = 15))) +
   scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
   theme_classic()
+
+
+# first try of all gap distns combined
+# sensible bins: 82-500, 500-1500, 1500-2500, >2500
+# I want a df with one row for each count/ha, with Year, Plot, and Bin along with it
+plotyears <- c(rep(c(2018,1941),6),rep("Prefire",6))
+gap_bins <- c("82-500", "500-1500","1500-2500",">2500")
+bin_brks <- c(82,500,1500,2500,7000)
+opes_bins <- data.frame(matrix(NA, nrow=72, ncol=4))
+j=1
+plotcounts <- list()
+for (j in 1:length(plots_out)){
+  plotcounts[[j]] <- vector()
+  countperha <- vector()
+  for (i in 1:length(gap_bins)){
+    thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
+    countperha <- c(countperha, thingy)
+  }
+  plotcounts[[j]] <- countperha}
+
+opes_bins[,1] <- rep(plotyears, each = 4)
+opes_bins[,2] <- rep(1:18, each = 4)
+opes_bins[,3] <- rep(gap_bins,18)
+opes_bins[,4] <- unlist(plotcounts)
+names(opes_bins) <- c("Year", "Plot", "gap_bin", "countperha")
+
+opes_bins$gap_bin <- factor(opes_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
+opes_bins$Year <- factor(opes_bins$Year, levels = c("1941","Prefire","2018"))
+opes_bins$Plot <- as.character((opes_bins)[,2])
+library(ggpubr)
+
+LydersenFig3 <- 
+ggbarplot(opes_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
+  stat_friedman_test(aes(wid=Plot, group=gap_bin), within = "x", label = "p = {p.format}") +
+  labs(title = "Gaps at Both Sites",
+       x = "Gap Size (m2)",
+       y = "Frequency / ha")
+
+# trying lydersenfig3 for one site at a time, IS first
+IS_bins <- data.frame(matrix(NA, nrow=36, ncol=4))
+opes_IS <- opes_sr[c(1:6,13:15)]
+j=1
+plotcounts <- list()
+for (j in c(1:6,13:15)){
+  plotcounts[[j]] <- vector()
+  countperha <- vector()
+  for (i in 1:length(gap_bins)){
+    thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
+    countperha <- c(countperha, thingy)
+  }
+  plotcounts[[j]] <- countperha}
+
+IS_bins[,1] <- rep(plotyears[c(1:6,13:15)], each = 4)
+IS_bins[,2] <- rep(c(1:6,13:15), each = 4)
+IS_bins[,3] <- rep(gap_bins,length(opes_IS))
+IS_bins[,4] <- unlist(plotcounts)
+names(IS_bins) <- c("Year", "Plot", "gap_bin", "countperha")
+
+IS_bins$gap_bin <- factor(IS_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
+IS_bins$Year <- factor(IS_bins$Year, levels = c("1941","Prefire","2018"))
+
+#library(ggpubr)
+LydersenFig3_IS <- ggbarplot(IS_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
+  stat_compare_means(paired=TRUE) +
+  labs(title = "Gaps at Indiana Summit",
+       x = "Gap Size (m2)",
+       y = "Frequency / ha")
+
+# now OH
+OH_bins <- data.frame(matrix(NA, nrow=36, ncol=4))
+opes_OH <- opes_sr[c(7:12,16:18)]
+j=1
+plotcounts <- list()
+for (j in c(7:12,16:18)){
+  plotcounts[[j]] <- vector()
+  countperha <- vector()
+  for (i in 1:length(gap_bins)){
+    thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
+    countperha <- c(countperha, thingy)
+  }
+  plotcounts[[j]] <- countperha}
+
+OH_bins[,1] <- rep(plotyears[c(7:12,16:18)], each = 4)
+OH_bins[,2] <- rep(c(7:12,16:18), each = 4)
+OH_bins[,3] <- rep(gap_bins,length(opes_OH))
+OH_bins[,4] <- unlist(plotcounts)
+names(OH_bins) <- c("Year", "Plot", "gap_bin", "countperha")
+
+OH_bins$gap_bin <- factor(OH_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
+OH_bins$Year <- factor(OH_bins$Year, levels = c("1941","Prefire","2018"))
+
+LydersenFig3_OH <- ggbarplot(OH_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
+  stat_compare_means(paired=TRUE) +
+  labs(title = "Gaps at O'Harrell Canyon",
+       x = "Gap Size (m2)",
+       y = "Frequency / ha")
+
+grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 1)
+
 
 # min(opes_all[opes_all$Year==1941,]) # 32.01
 # max(opes_all[opes_all$Year==1941,]) # 5727.85
@@ -122,7 +195,6 @@ ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
 # min(opes_all[opes_all$Year==2018,]) # 33.32
 # max(opes_all[opes_all$Year==2018,]) # 5718.15
 # mean(sapply(opes_all[opes_all$Year==2018,], as.numeric)) # 1302.589
-
 
 
 # Pie Charts -- IS (1941, 2018) and OH (1941, 2018)
@@ -206,13 +278,13 @@ piefn <- function(plot) {
 }
 # piefn(8) # works
 
-ICO_pies <- list()
-for (i in 1:length(plots_out)){
-  #jpeg(paste("ICO_Pie_",names[i]),700,630)
-  p <- piefn(i)
-  ICO_pies[[i]] <- p
-  #dev.off()
-}
+# ICO_pies <- list()
+# for (i in 1:length(plots_out)){
+#   #jpeg(paste("ICO_Pie_",names[i]),700,630)
+#   p <- piefn(i)
+#   ICO_pies[[i]] <- p
+#   #dev.off()
+# }
 #library(gridExtra)
 #grid.arrange(ICO_pies[[1]], ICO_pies[[3]], ICO_pies[[5]], ICO_pies[[2]], ICO_pies[[4]], ICO_pies[[6]], ncol=3) #IS
 #grid.arrange(ICO_pies[[7]], ICO_pies[[9]], ICO_pies[[11]], ICO_pies[[8]], ICO_pies[[10]], ICO_pies[[12]], ncol=3) #OH
