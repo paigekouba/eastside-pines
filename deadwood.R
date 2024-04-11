@@ -1,37 +1,37 @@
 # trying to get logs and snags modeled based on transition matrix in Raphael and Morrison 1987
 
 library(dplyr)
-df <- OH_snags %>% 
-  filter(Dec > 1) #%>% 
-  #dplyr::select("dbh", "Dec", "age_est", "dec_correction", "estab_est")
-
-df2 <- OH_logs %>% 
-  filter(Dec > 1) %>% 
-  dplyr::select("dbh", "Dec", "age_est", "dec_correction", "estab_est")
-
-IS_snags %>% 
-  group_by(Dec) %>% 
-  tally()
-
-IS_logs %>% 
-  group_by(Dec) %>% 
-  tally()
-
-OH_snags %>% 
-  group_by(Dec) %>% 
-  tally()
-
-OH_logs %>% 
-  group_by(Dec) %>% 
-  tally()
-
-ggplot(OH_snags, mapping = aes(x=Dec, y=dbh)) +
-  geom_violin(aes(fill = as.factor(Dec)), draw_quantiles = c(0.25, 0.5, 0.75)) +
-  geom_boxplot(aes(fill = as.factor(Dec)))
-
-ggplot(IS_snags, mapping = aes(x=Dec, y=dbh)) +
-  geom_violin(aes(fill = as.factor(Dec)), draw_quantiles = c(0.25, 0.5, 0.75)) +
-  geom_boxplot(aes(fill = as.factor(Dec)))
+# df <- OH_snags %>% 
+#   filter(Dec > 1) #%>% 
+#   #dplyr::select("dbh", "Dec", "age_est", "dec_correction", "estab_est")
+# 
+# df2 <- OH_logs %>% 
+#   filter(Dec > 1) %>% 
+#   dplyr::select("dbh", "Dec", "age_est", "dec_correction", "estab_est")
+# 
+# IS_snags %>% 
+#   group_by(Dec) %>% 
+#   tally()
+# 
+# IS_logs %>% 
+#   group_by(Dec) %>% 
+#   tally()
+# 
+# OH_snags %>% 
+#   group_by(Dec) %>% 
+#   tally()
+# 
+# OH_logs %>% 
+#   group_by(Dec) %>% 
+#   tally()
+# 
+# ggplot(OH_snags, mapping = aes(x=Dec, y=dbh)) +
+#   geom_violin(aes(fill = as.factor(Dec)), draw_quantiles = c(0.25, 0.5, 0.75)) +
+#   geom_boxplot(aes(fill = as.factor(Dec)))
+# 
+# ggplot(IS_snags, mapping = aes(x=Dec, y=dbh)) +
+#   geom_violin(aes(fill = as.factor(Dec)), draw_quantiles = c(0.25, 0.5, 0.75)) +
+#   geom_boxplot(aes(fill = as.factor(Dec)))
 
 OH_t0 <- as.vector(c(27.00, 49.00,5.00, 12.00,30.00, 10.00))
 # tm1 <- matrix(c(0,0,0,0,0,0,
@@ -157,28 +157,28 @@ for(i in c(2,3,5,6)){
 }
 
 # now I need to assign a random draw from this catdistn[[i]] to each snag in class i
-df %>% 
-  mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(df), replace = TRUE)) %>% 
-  mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(df), replace = TRUE)) %>% 
-  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(df), replace = TRUE)) %>% 
-  mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(df), replace = TRUE)) %>% 
-  mutate(snag_corr = case_when(Dec==1 ~ 5,
-                               Dec==2 | Dec==3 ~ S2S3_corr,
-                               Dec==4 | Dec==5 ~ S4S5_corr)) %>%
-  mutate(estab_est2 = round(2018 - (age_est+snag_corr),0)) #%>% 
-  #mutate(diff = estab_est - estab_est2)
-
-# do the same for logs
-df2 %>% 
-  mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(df2))) %>% 
-  mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(df2))) %>% 
-  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(df2))) %>% 
-  mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(df2))) %>% 
-  mutate(log_corr = case_when(Dec==1 ~ 4,
-                               Dec==2 | Dec==3 ~ L2L3_corr,
-                               Dec==4 | Dec==5 ~ L4L5_corr)) %>%
-  mutate(estab_est2 = round(2018 - (age_est+log_corr),0)) %>% 
-  mutate(diff = estab_est - estab_est2)
+# df %>% 
+#   mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(df), replace = TRUE)) %>% 
+#   mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(df), replace = TRUE)) %>% 
+#   mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(df), replace = TRUE)) %>% 
+#   mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(df), replace = TRUE)) %>% 
+#   mutate(snag_corr = case_when(Dec==1 ~ 5,
+#                                Dec==2 | Dec==3 ~ S2S3_corr,
+#                                Dec==4 | Dec==5 ~ S4S5_corr)) %>%
+#   mutate(estab_est2 = round(2018 - (age_est+snag_corr),0)) #%>% 
+#   #mutate(diff = estab_est - estab_est2)
+# 
+# # do the same for logs
+# df2 %>% 
+#   mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(df2))) %>% 
+#   mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(df2))) %>% 
+#   mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(df2))) %>% 
+#   mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(df2))) %>% 
+#   mutate(log_corr = case_when(Dec==1 ~ 4,
+#                                Dec==2 | Dec==3 ~ L2L3_corr,
+#                                Dec==4 | Dec==5 ~ L4L5_corr)) %>%
+#   mutate(estab_est2 = round(2018 - (age_est+log_corr),0)) %>% 
+#   mutate(diff = estab_est - estab_est2)
     
 
 

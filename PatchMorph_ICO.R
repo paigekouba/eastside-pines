@@ -58,11 +58,80 @@ xy_sr <- function(plot){
 # test
 #plot(xy_sr(4)) # works!
 
+# Need to define patchMorph functions because this version of R ("Innocent and Trusting") doesn't work with the new update
+getCircleKernel <- function(radius)
+{
+  kernel_side <- 2 * as.integer(radius) + 1
+  kernel_y <- matrix(rep(radius:-radius, kernel_side), ncol=kernel_side)
+  kernel_x <- -t(kernel_y)
+  kernel   <- matrix(as.matrix(dist(cbind(as.vector(kernel_x), as.vector(kernel_y))))[as.integer((kernel_side^2) / 2) + 1,], ncol=kernel_side)
+  kernel[kernel <= radius] <- 0
+  kernel[kernel > 0]  <- 1
+  kernel <- 1 - kernel
+  return(kernel)
+}
+
+patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh = 2, spurThresh = 2, verbose = TRUE)
+{
+  if(!is.numeric(c(suitThresh, gapThresh, spurThresh)))
+    stop("suitThresh, gapThresh, and spurThresh must be numeric!!")
+  if(gapThresh < max(terra::res(data_in)) | spurThresh < max(terra::res(data_in)))
+    stop("Gap/Spur threshold is too small!! Must be at least twice the maximum resolution of the provided raster.")
+  if (is.na(crs(data_in)) || crs(data_in) == "")
+    stop("CRS is NULL or blank!!")
+  
+  ## Set up the crs, the extent, and a NA mask for the original raster
+  r.crs <- terra::crs(data_in)
+  r.e <- terra::ext(data_in)
+  e.mask <- terra::mask(data_in, subst(data_in, 0:1, 1))
+  
+  ## Extend the raster by the buffer (cropped before return)
+  data_in <- terra::extend(data_in, buffer, fill=NA)
+  
+  ## Get the associated kernels
+  gapKernel  <- getCircleKernel(ceiling((gapThresh / 2)))
+  spurKernel <- getCircleKernel(ceiling((spurThresh / 2)))
+  
+  ## Get the euclidean distances to suitable habitat, and ensure the extent is the same as original
+  data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
+  
+  ## Apply a focal maximum
+  data_in <- terra::focal(data_in, gapKernel, fun="max", na.policy="omit", na.rm=TRUE)
+  # data_in <- terra::mask(data_in, e.mask)
+  
+  if(verbose == TRUE)
+    cat("Processing gap threshold diameter:", ncol(gapKernel)-1, terra::units(data_in), "\n")
+  ## Reclassify based on the gap threshold
+  data_in[data_in <= (ncol(gapKernel)+1)/2] <- 1
+  data_in[data_in > (ncol(gapKernel)+1)/2] <- 0
+  
+  ## Check to make sure there's still non-suitable pixels in the raster, othwewise return data_in
+  if( (sum(data_in[terra::values(data_in)==1]) + sum(is.na(terra::values(data_in))) ) == ( nrow(data_in)*ncol(data_in)) ) return(data_in)
+  
+  ## Get the euclidean distances to non-suitable habitat, and ensure the extent is the same as original
+  data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
+  
+  ## Apply a focal maximum
+  data_in <- terra::focal(data_in, spurKernel, fun="max", na.policy="omit", na.rm=TRUE)
+  # data_in <- terra::mask(data_in, e.mask)
+  
+  
+  if(verbose == TRUE)
+    cat("Processing spur threshold diameter:",ncol(spurKernel)-1, terra::units(data_in), "\n")
+  ## Reclassify based on the spur threshold
+  data_in[data_in <= (ncol(spurKernel)+1)/2] <- 0
+  data_in[data_in > (ncol(spurKernel)+1)/2] <- 1
+  
+  data_in <- terra::crop(data_in, e.mask, mask=TRUE)
+  
+  return(data_in)
+}
+
 # for loop for openings spatrasters from plots, converted to sf polygons and filtered for "1" attribute
 
 opes_sr <- list()
 for (i in 1:length(plots_out)){
-  thingy <- patchMorph(xy_sr(i), buffer=5, suitThresh=1, gapThresh=12, spurThresh=10, verbose=FALSE) %>%
+  thingy <- patchMorph.SpatRaster(xy_sr(i), buffer=5, suitThresh=1, gapThresh=12, spurThresh=10, verbose=FALSE) %>%
   as.polygons(values = TRUE) %>% 
   st_as_sf() %>% 
 # filter(focal_max == 1) %>% # this part could be a place I can fix the 1/0 issue
@@ -79,21 +148,22 @@ for (i in 1:length(plots_out)){
   opes_sr[[i]]$area <- st_area(opes_sr[[i]])
 }
 
-# first try at gap distn histogram
-gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
-  geom_histogram(bins = 15, position="dodge") +
-  scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
-  stat_bin(geom="text", bins=15, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) +
-  scale_x_continuous(breaks = round(seq(50, 5750, length.out = 15))) +
-  scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
-  labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
-  theme_classic()
+# first try at gap distn histogram # missing opes_all? :(
+# gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
+#   geom_histogram(bins = 15, position="dodge") +
+#   scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
+#   stat_bin(geom="text", bins=15, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) +
+#   scale_x_continuous(breaks = round(seq(50, 5750, length.out = 15))) +
+#   scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
+#   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
+#   theme_classic()
 
 
 # first try of all gap distns combined
 # sensible bins: 82-500, 500-1500, 1500-2500, >2500
 # I want a df with one row for each count/ha, with Year, Plot, and Bin along with it
-plotyears <- c(rep(c(2018,1941),6),rep("Prefire",6))
+plotnames <- c("IS1", "IS1", "IS2", "IS2", "IS3", "IS3", "OH1", "OH1", "OH2", "OH2", "OH3", "OH3", "IS1", "IS2", "IS3", "OH1", "OH2", "OH3")
+plotyears <- c(rep(c(2018,1941),6),rep("Fire Excluded",6))
 gap_bins <- c("82-500", "500-1500","1500-2500",">2500")
 bin_brks <- c(82,500,1500,2500,7000)
 opes_bins <- data.frame(matrix(NA, nrow=72, ncol=4))
@@ -109,22 +179,26 @@ for (j in 1:length(plots_out)){
   plotcounts[[j]] <- countperha}
 
 opes_bins[,1] <- rep(plotyears, each = 4)
-opes_bins[,2] <- rep(1:18, each = 4)
+opes_bins[,2] <- rep(plotnames, each = 4)
 opes_bins[,3] <- rep(gap_bins,18)
 opes_bins[,4] <- unlist(plotcounts)
 names(opes_bins) <- c("Year", "Plot", "gap_bin", "countperha")
 
 opes_bins$gap_bin <- factor(opes_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
-opes_bins$Year <- factor(opes_bins$Year, levels = c("1941","Prefire","2018"))
+opes_bins$Year <- factor(opes_bins$Year, levels = c("1941","Fire Excluded","2018"))
 opes_bins$Plot <- as.character((opes_bins)[,2])
 library(ggpubr)
 
 LydersenFig3 <- 
 ggbarplot(opes_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
-  stat_friedman_test(aes(wid=Plot, group=gap_bin), within = "x", label = "p = {p.format}") +
+  scale_fill_manual(values=c("#d8b365", "#5ab4ac", "black")) +
+  #stat_friedman_test(aes(wid=Plot, group=Year), within = "group", label = "p = {p.format}") +
   labs(title = "Gaps at Both Sites",
        x = "Gap Size (m2)",
        y = "Frequency / ha")
+
+
+
 
 # trying lydersenfig3 for one site at a time, IS first
 IS_bins <- data.frame(matrix(NA, nrow=36, ncol=4))
@@ -141,17 +215,19 @@ for (j in c(1:6,13:15)){
   plotcounts[[j]] <- countperha}
 
 IS_bins[,1] <- rep(plotyears[c(1:6,13:15)], each = 4)
-IS_bins[,2] <- rep(c(1:6,13:15), each = 4)
+IS_bins[,2] <- rep(plotnames[c(1:6,13:15)], each = 4)
 IS_bins[,3] <- rep(gap_bins,length(opes_IS))
 IS_bins[,4] <- unlist(plotcounts)
 names(IS_bins) <- c("Year", "Plot", "gap_bin", "countperha")
 
 IS_bins$gap_bin <- factor(IS_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
-IS_bins$Year <- factor(IS_bins$Year, levels = c("1941","Prefire","2018"))
+IS_bins$Year <- factor(IS_bins$Year, levels = c("1941","Fire Excluded","2018"))
 
 #library(ggpubr)
 LydersenFig3_IS <- ggbarplot(IS_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
-  stat_compare_means(paired=TRUE) +
+  scale_fill_manual(values=c("#d8b365", "#5ab4ac", "black")) +
+  #stat_friedman_test(aes(wid=Plot, group=Year), within = "group", label = "p = {p.format}") +
+  #stat_compare_means(paired=TRUE) +
   labs(title = "Gaps at Indiana Summit",
        x = "Gap Size (m2)",
        y = "Frequency / ha")
@@ -171,22 +247,90 @@ for (j in c(7:12,16:18)){
   plotcounts[[j]] <- countperha}
 
 OH_bins[,1] <- rep(plotyears[c(7:12,16:18)], each = 4)
-OH_bins[,2] <- rep(c(7:12,16:18), each = 4)
+OH_bins[,2] <- rep(plotnames[c(7:12,16:18)], each = 4)
 OH_bins[,3] <- rep(gap_bins,length(opes_OH))
 OH_bins[,4] <- unlist(plotcounts)
 names(OH_bins) <- c("Year", "Plot", "gap_bin", "countperha")
 
 OH_bins$gap_bin <- factor(OH_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
-OH_bins$Year <- factor(OH_bins$Year, levels = c("1941","Prefire","2018"))
+OH_bins$Year <- factor(OH_bins$Year, levels = c("1941","Fire Excluded","2018"))
 
 LydersenFig3_OH <- ggbarplot(OH_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
-  stat_compare_means(paired=TRUE) +
+  scale_fill_manual(values=c("#d8b365", "#5ab4ac", "black")) +
+  #stat_friedman_test(aes(wid=Plot, group=Year), within = "group", label = "p = {p.format}") +
+  #stat_compare_means(paired=TRUE) +
   labs(title = "Gaps at O'Harrell Canyon",
        x = "Gap Size (m2)",
        y = "Frequency / ha")
 
-grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 1)
+#grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 1)
 
+# PERMANOVA
+library(PERMANOVA)
+# first get opes_bins (which now has Year, Plot, gap_bin, countperha) into wide format 
+# (Year, Plot, Bin1_ct, Bin2_ct, Bin3_ct, Bin4_ct)
+opes_bins_wide <- opes_bins %>% 
+  pivot_wider(names_from = "gap_bin", values_from = "countperha") #%>% 
+  #filter(Plot %in% c("IS1","IS2","IS3"))
+  #filter(Plot %in% c("OH1","OH2","OH3"))
+
+# one df for comparing 1941 to fire-excluded, one for comparing fire-excluded to 2018
+
+# df for comparing 1941 to fire-excluded
+obw_1 <- filter(opes_bins_wide, Year %in% c(1941, "Fire Excluded"))
+# df for comparing fire-excluded to 2018
+obw_2 <- filter(opes_bins_wide, Year %in% c("Fire Excluded", 2018))
+
+# create a multivariate response variable w/ only the columns of the data from that include the counts in bins
+mv_counts_response1 = obw_1[, gap_bins]
+mv_counts_response2 = obw_2[, gap_bins]
+# create an explanatory variable that is the Year column of the data frame 
+mv_counts_explan1 = droplevels(obw_1$Year)
+mv_counts_explan2 = droplevels(obw_2$Year)
+# run PERMANOVA on that response variable, using Year as the explanatory variable
+PERMANOVA(DistContinuous(mv_counts_response1),mv_counts_explan1) # difference from 1941 to fire-excluded?
+# MANOVA
+# Explained Residual df Num df Denom     F-exp       p-value      p-value adj.
+# Total  7.416667 39.16667      2        9 0.8521277 0.1728272    0.1728272
+
+PERMANOVA(DistContinuous(mv_counts_response2),mv_counts_explan2) # difference from fire-excluded to 2018?
+# MANOVA
+# Explained Residual df Num df Denom     F-exp       p-value      p-value adj.
+# Total         4 43.33333      2        9 0.4153846 0.3696304    0.3696304
+
+library(vegan)
+response_matrix <- obw_1[, gap_bins]
+adonis2(response_matrix ~ Year, obw_1, strata = obw_1$Plot)
+
+response_matrix <- obw_2[, gap_bins]
+adonis2(response_matrix ~ Year, obw_2, strata = obw_2$Plot)
+
+
+sum(opes_bins[opes_bins$Year==1941,]$countperha)
+#[1] 26
+sum(opes_bins[opes_bins$Year=="Fire Excluded",]$countperha)
+#[1] 32
+sum(opes_bins[opes_bins$Year==2018,]$countperha)
+#[1] 21
+
+# mean openings in 1941
+mean(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 1068.277
+min(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 133.29
+max(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 5661.48
+
+# mean openings in Fire Excluded
+mean(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 460.1491
+min(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 122.37
+max(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 1934.69 # 3615.6 (re ran, a couple trees gone because of the random assignment of age to snags and logs)
+t.test(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area)), unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area)))
+# p-value = 0.05432
+
+# mean openings in 2018
+mean(unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # 1014.161
+min(unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # 121.35
+max(unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # 5910.23
+t.test(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area)), unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) 
+# p-value = 0.09446
 
 # min(opes_all[opes_all$Year==1941,]) # 32.01
 # max(opes_all[opes_all$Year==1941,]) # 5727.85
@@ -251,7 +395,7 @@ colnames(tpiebins) <- c(1:18)
 # ok we will try to make pie charts using piebins. Start with plot 9   
 library(RColorBrewer)
 pie.cols <- brewer.pal(5, "YlGn")
-pie.cols <- c("white", "#FEC44F", pie.cols[2:5])
+pie.cols <- c("white", "#FFFAB2", pie.cols[2:5])
 
 library(scales)
 blank_theme <- theme_minimal()+
@@ -364,10 +508,10 @@ pie_OH41 <- ggplot(bins_OH41, aes(x="", y=bins_OH41[,], fill=factor(rownames(bin
 # guides(color = guide_legend(override.aes = list(size = 1))) +
 # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
 
-grid.arrange(pie_IS41, pie_IS95, pie_IS18, ncol=3)
-grid.arrange(pie_OH41, pie_OH06, pie_OH18, ncol=3)
-
-grid.arrange(pie_IS41, pie_IS95, pie_IS18, pie_OH41, pie_OH06, pie_OH18, ncol=3)
+# grid.arrange(pie_IS41, pie_IS95, pie_IS18, ncol=3)
+# grid.arrange(pie_OH41, pie_OH06, pie_OH18, ncol=3)
+# 
+# grid.arrange(pie_IS41, pie_IS95, pie_IS18, pie_OH41, pie_OH06, pie_OH18, ncol=3)
 
 # math on area in interst, gap, size bins
 IS_change <- cbind(bins_IS41, bins_IS95, bins_IS18)

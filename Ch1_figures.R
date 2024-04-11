@@ -1,7 +1,7 @@
 # Figures for Paper -- Eastside Pines ICO
 # Thu 2/15/24
 
-pdf(file = "Ch1_figures_3.19.24.pdf")
+pdf(file = "Ch1_figures_3.20.24.pdf")
 
 plot(dotplots) # percent change in nonspatial metrics, by site. 1941 in red, 2018 in black, with mean and se
 
@@ -17,7 +17,7 @@ grid.arrange(pie_IS41, pie_IS95, pie_IS18, pie_OH41, pie_OH06, pie_OH18, ncol=3)
 
 # summ.all # per-bin and stand-level summary metrics for IS41, OH41, all41, IS18, OH18, and all18
 
-(gap_distn) # gap size histogram, combined
+#(gap_distn) # gap size histogram, combined
 grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 2) # bar plots of binned gaps mean and se
 
 #(location_fit) # brms model with cluster counts per cluster size

@@ -5,7 +5,6 @@ library(ggplot2)
 library(ggforce)
 library(RColorBrewer)
 
-# saving each ggplot object produced, for easier comparison
 my.cols <- brewer.pal(5, "YlGn")
 my.cols <- my.cols[2:5]
 
@@ -23,7 +22,7 @@ for (i in 1:length(plots_out)){
           scale_fill_manual(values = my.cols, name = "Cluster Size") +
           scale_color_manual(values = my.cols, name = "Cluster Size") +
 # no gaps for now    # geom_sf(data=results[[i]], col="white", linewidth = 0.7, fill= "purple", alpha=0.3) +
-          geom_sf(opes_sr[[i]], mapping = aes(), fill = "#FEC44F", alpha=0.3) +        
+          geom_sf(opes_sr[[i]], mapping = aes(), fill = "#FFFAB2", color= "#FCE879") +        
           guides(size = guide_legend(override.aes = list(color ="burlywood4"))) +
           #theme_classic(base_size=22) +
           theme(plot.title=element_text(size = 10, hjust=0.5)) +

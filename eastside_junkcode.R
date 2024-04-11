@@ -2386,465 +2386,155 @@ OH2_2009 <- rename(OH2_2009, "dbh2018" = "dbh", "dbh" = "dbh2009")
 OH3_2009 <- rename(OH3_2009, "dbh2018" = "dbh", "dbh" = "dbh2009")
 
 
-# Try doing it one class at a time
+# non-pooled TPH 
 
-# there were 10 L4L5s at OH in 2018 (t0). 
-L4L5_t0 <- c(0,0,0,0,0,10)
-L4L5_tminus1 <- colSums((L4L5_t0 * pct_per)[,c(1:6)]) # how were they distributed in t-1 ?
-#       S1 S2S3 S4S5 L1 L2L3 L4L5 R
-# S1   0.0  0.0  0.0  0  0.0    0 0
-# S2S3 0.0  0.0  0.0  0  0.0    0 0
-# S4S5 0.0  0.0  0.0  0  0.0    0 0
-# L1   0.0  0.0  0.0  0  0.0    0 0
-# L2L3 0.0  0.0  0.0  0  0.0    0 0
-# L4L5 0.2  0.8  3.5  0  0.5    5 0
-# colSums of this output = starting vector in t - 1
-L4L5_tminus2 <- colSums((L4L5_tminus1 * pct_per)[,c(1:6)]) # how were they distributed in t-2 ?
-L4L5_tminus3 <- colSums((L4L5_tminus2 * pct_per)[,c(1:6)]) # how were they distributed in t-3 ?
-L4L5_tminus4 <- colSums((L4L5_tminus3 * pct_per)[,c(1:6)]) # how were they distributed in t-4 ?
-L4L5_tminus5 <- colSums((L4L5_tminus4 * pct_per)[,c(1:6)]) # how were they distributed in t-5 ?
-L4L5_tminus6 <- colSums((L4L5_tminus5 * pct_per)[,c(1:6)]) # how were they distributed in t-6 ?
-L4L5_tminus7 <- colSums((L4L5_tminus6 * pct_per)[,c(1:6)]) # how were they distributed in t-7 ?
-L4L5_tminus8 <- colSums((L4L5_tminus7 * pct_per)[,c(1:6)]) # how were they distributed in t-8 ?
-L4L5_tminus9 <- colSums((L4L5_tminus8 * pct_per)[,c(1:6)]) # how were they distributed in t-9 ?
+t.test(dotplots_ISn$TPH.2, dotplots_ISn$TPH) # 1995 v 1941
+# t = 0.050903, df = 2.2087, p-value = 0.9636   no sig diff in TPH at IS
+t.test(dotplots_OHn$TPH.1, dotplots_OHn$TPH)
+# 1.8685, df = 2.0772, p-value = 0.1979    no sig diff in TPH at OH
+t.test(c(dotplots_ISn$TPH.1, dotplots_OHn$TPH.1), c(dotplots_ISn$TPH, dotplots_OHn$TPH))
+# t = 1.1292, df = 8.5435, p-value = 0.2895; 20.0 ( -20.39653  60.39653 95% CI) *no change* in TPH at p<0.05 level
 
-R1 <- sum((L4L5_t0 * pct_per)[,7]) # how many were recruited into t-1 ?
-R2 <- sum((L4L5_tminus1 * pct_per)[,7]) # how many were recruited into t-2 ?
-R3 <- sum((L4L5_tminus2 * pct_per)[,7]) # 
-R4 <- sum((L4L5_tminus3 * pct_per)[,7]) # 
-R5 <- sum((L4L5_tminus4 * pct_per)[,7]) # 
-R6 <- sum((L4L5_tminus5 * pct_per)[,7]) # 
-R7 <- sum((L4L5_tminus6 * pct_per)[,7]) # 
-R8 <- sum((L4L5_tminus7 * pct_per)[,7]) # 
-R9 <- sum((L4L5_tminus8 * pct_per)[,7]) # 
+t.test(dotplots_ISn$BAH.1, dotplots_ISn$BAH)
+# t = 7.8478, df = 2.7517, p-value = 0.005828   sig diff in BAH at IS; 2018 value is higher
+t.test(dotplots_OHn$BAH.1, dotplots_OHn$BAH)
+# t = 2.6861, df = 2.3998, p-value = 0.09491    almost sig diff in BAH at OH; 2018 value is higher
+# t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BH.1), c(dotplots_ISn$baH, dotplots_OHn$BAH))
+t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BAH.1), c(dotplots_ISn$BAH, dotplots_OHn$BAH))
+# t = 3.8218, df = 6.7058, p-value = 0.00708; 9.0 (3.387807 14.645526) difference is significant; 2018 BAH is *higher*
 
-sum(R1,R2,R3,R4,R5,R6,R7,R8,R9)
-recruits <- c(R1,R2,R3,R4,R5,R6,R7,R8,R9)
-L4L5 <- data.frame(recruits, c(1:9))
-names(L4L5) <- c("recruits", "timesteps")
-L4L5 <- L4L5 %>% 
-  mutate(years = 5*timesteps) %>% 
-  mutate(prob = recruits/sum(L4L5$recruits))
 ###
-OH_tnext <- list((D %*% unlist(OH_tn[i-1])) + R)
-OH_tn[i] <- OH_tnext
+
+bin_tests <- vector(mode='list',length=length(plots_out))
+for(i in 1:length(plots_out)) {
+  df <- data.frame(bin = plots_out[[i]]$clusters$bin, Site = plots_out[[i]]$plot.name) # 'IS1 in 2018'
+  df <- df %>% 
+    separate(Site, into = c("Site","Plot","Year"), sep=c(2,7)) %>% 
+    mutate(Plot = str_remove(Plot, " in "))
+  bin_tests[[i]] <- df
+}
+bin_tests_df <- list.rbind(bin_tests)
+
+## FOR 1941 V PRE-FIRE
+# singletons
+fisher.test(matrix(c(sum(bin_tests_41[1,3]), sum(bin_tests_41[-1,3]), 
+                     sum(bin_tests_prefire[1,3]), sum(bin_tests_prefire[-1,3])), byrow=TRUE, 2, 2))
+# p-value = 1.949e-06
+
+# 2-4
+fisher.test(matrix(c(sum(bin_tests_41[2,3]), sum(bin_tests_41[-2,3]), 
+                     sum(bin_tests_prefire[2,3]), sum(bin_tests_prefire[-2,3])), byrow=TRUE, 2, 2))
+# p-value = 0.01042
+
+# 5-9
+fisher.test(matrix(c(sum(bin_tests_41[3,3]), sum(bin_tests_41[-3,3]), 
+                     sum(bin_tests_prefire[3,3]), sum(bin_tests_prefire[-3,3])), byrow=TRUE, 2, 2))
+# p-value = 7.481e-06
+
+# 10+
+fisher.test(matrix(c(sum(bin_tests_41[4,3], na.rm = TRUE), sum(bin_tests_41[,3]), sum(bin_tests_prefire[4,3]), sum(bin_tests_prefire[-4,3])), byrow=TRUE, 2, 2))
+#fisher.test(matrix(c(0, sum(bin_tests_41[,3]), sum(bin_tests_prefire[4,3]), sum(bin_tests_prefire[-4,3])), byrow=TRUE, 2, 2))
+# p-value = 0.01047
+
+# Bonferroni correction: significance level
+# 0.05/5 = 0.01
 
 
-# 14 timesteps 
-prev_distn <- t0_bycat[[5]]*pct_per 
- start_vec <- colSums((prev_distn)[,c(1:6)])
- while(sum(start_vec >= 0.5)>=1){
-         start_vec <- colSums((prev_distn)[,c(1:6)]) # finds the start vector of previous timestep
-         recruits[j] <- sum(prev_distn[,7]) # finds the # recruited into the previous timestep
-         prev_distn <- start_vec*pct_per
-     j=j+1
-   }
- t0_bycat[[5]]
-#[1]  0  0  0  0 30  0
- catprob[[5]] <- data.frame(recruits, c(1:length(recruits)))
- names(catprob[[5]]) <- c("recruits","timesteps")
- catprob[[5]] <- catprob[[5]] %>% 
-     mutate(years = 5*timesteps) %>% 
-     mutate(prob = recruits/sum(catprob[[5]]$recruits))
- catprob[[5]]
-# recruits timesteps years        prob
-# 1   0.0000000         1     5 0.000000000
-# 2   1.6663718         2    10 0.042836519
-# 3   2.1247577         3    15 0.054620000
-# 4   1.8421506         4    20 0.047355172
-# 5   1.3883955         5    25 0.035690734
-# 6   0.9820400         6    30 0.025244771
-# 7   0.6725018         7    35 0.017287640
-# 8   0.4523335         8    40 0.011627892
-# 9   0.3010052         9    45 0.007737779
-# 10  0.0000000        10    50 0.000000000
-# 11 16.9127613        11    55 0.434767225
-# 12  8.3413641        12    60 0.214426946
-# 13  3.1379214        13    65 0.080664852
-# 14  1.0791244        14    70 0.027740469
+ISdots <- ggplot(dpISn2) +
+  geom_pointrange(aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 23, color="#d8b365", fill="#d8b365", linewidth=1.5, size=1.75) + 
+  geom_pointrange(aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), position=position_nudge(0.2,0),linewidth=1.5, size=1.75) + 
+  geom_pointrange(aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), position=position_nudge(0.1,0), shape = 23, color = "#5ab4ac", fill= "#5ab4ac",linewidth=1.5, size=1.75) +
+  coord_flip() +
+  ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
+  xlab("Metric") + ylab("Percent Change") +
+  theme_bw()
 
-# above problem was an indexing error, j was getting all excited by being 11
- 
-# try the previous timestep for S1 category
-S1_t0 <- t0_bycat[[1]]
- S1_tminus1 <- colSums((S1_t0 * pct_per)[,c(1:6)]) # how were they distributed in t-1 ?
- sum((S1_t0*pct_per)[,7])
- # need to add this info to the catprob table to reflect that S1 has a 100% probability of being alive the prev timestep, ie dc = 5
- 
- catprob[[2]][[1]] # recruits to S2S3 in past x timesteps
- catprob[[2]][[2]] # number of timesteps
- catprob[[2]][[3]] # number of years
- catprob[[2]][[4]] # recruits/sum(catprob[[2]]$recruits)
- 
- catprob[[1]][[1]] <-  sum((t0_bycat[[1]]*pct_per)[,7]) # recruits to S1 in past x timesteps
- catprob[[1]][[2]] <- length(catprob[[1]][[1]]) # number of timesteps
- catprob[[1]][[3]] <- catprob[[1]][[2]]*5 # number of years
- catprob[[1]][[4]] <-  catprob[[1]][[1]]/sum( catprob[[1]][[1]]) # recruits/sum(catprob[[2]]$recruits)
- catprob[[1]] <- data.frame(sum((t0_bycat[[1]]*pct_per)[,7]), 1, 5, 1)
- names(catprob[[1]]) <- c("recruits", "timesteps", "years", "prob")
- 
- sum((t0_bycat[[1]]*pct_per)[,7]) # recruits to S1 in past x timesteps
-# length(catprob[[1]][[1]]) # number of timesteps
-# catprob[[1]][[2]]*5 # number of years
-# catprob[[1]][[1]]/sum( catprob[[1]][[1]]) # recruits/sum(catprob[[2]]$recruits)
-#  data.frame(sum((t0_bycat[[1]]*pct_per)[,7]), 1, 5, 1)
- names(catprob[[1]]) <- c("recruits", "timesteps", "years", "prob")
- 
- # catprob[[2]]
- # recruits timesteps years       prob
- # 1 38.639765         1     5 0.79285812
- # 2  8.702598         2    10 0.17857058
- # 3  1.392416         3    15 0.02857129
- 
- 
- # try using this to create backwards paths for S2S3s
- # in t0, N(S2S3) = 49  (OH_t0[2])
- 49*pct_per[2,] # in t-1, those 49 trees were distributed like this:
- #       S1      S2S3      S4S5        L1      L2L3      L4L5         R 
- # 2.520235  7.840000  0.000000  0.000000  0.000000  0.000000 38.639765 
- # interpret: at t-1, 38.6 were live trees (DONE w/ dc=5); 7.8 were S2S3; 2.5 were S1 
- # the 2.5 from S1: in t-2, 100% live trees, so dc=10
- # the 7.84 S2S3: in t-2:
- 7.84*pct_per[2,]
- #        S1      S2S3      S4S5        L1      L2L3      L4L5         R 
- # 0.4032377 1.2544000 0.0000000 0.0000000 0.0000000 0.0000000 6.1823623 
- # interpret: at t-2, 6.2 were live trees (dc = 10); 1.25 were S2S3; 0.4-->0 were S1 
- # the 1.25 in S2S3:
- 1.2544*pct_per[2,]
- #        S1       S2S3       S4S5         L1       L2L3       L4L5          R 
- #0.06451803 0.20070400 0.00000000 0.00000000 0.00000000 0.00000000 0.98917797 
- # interpret: at t-3, 1 tree was live (dc=15)
- 
- # for the overall 49: 38.6 dc=5, 2.5+6.2 dc=10, 1 dc=15     38.6+2.5+6.2+1 = 48.3
- 
- # OH_t0 [1] 27 49  5 12 30 10
- tminus1 <- OH_t0 * pct_per
- # round((OH_t0 * pct_per),1)
- #       S1 S2S3 S4S5 L1 L2L3 L4L5    R
- # S1   0.0  0.0  0.0  0  0.0    0 27.0
- # S2S3 2.5  7.8  0.0  0  0.0    0 38.6
- # S4S5 0.1  0.4  3.2  0  0.0    0  1.2
- # L1   0.0  0.0  0.0  0  0.0    0  0.0
- # L2L3 3.9 16.5  0.0  0  9.6    0  0.0
- # L4L5 0.2  0.8  3.5  0  0.5    5  0.0
- 
- OH_tminus1 <- colSums(tminus1[,c(1:6)])
- tminus2 <- OH_tminus1 * pct_per
- # round((OH_tminus1 * pct_per),1)
- #       S1 S2S3 S4S5 L1 L2L3 L4L5    R
- # S1   0.0  0.0  0.0  0  0.0  0.0  6.7
- # S2S3 1.3  4.1  0.0  0  0.0  0.0 20.2
- # S4S5 0.2  0.6  4.4  0  0.0  0.0  1.6
- # L1   0.0  0.0  0.0  0  0.0  0.0  0.0
- # L2L3 1.3  5.5  0.0  0  3.2  0.0  0.0
- # L4L5 0.1  0.4  1.8  0  0.2  2.5  0.0
- 
- OH_tminus2 <- colSums(tminus2[,c(1:6)])
- tminus3 <- OH_tminus2 * pct_per
- 
- OH_tminus3 <- colSums(tminus3[,c(1:6)])
- tminus4 <- OH_tminus3 * pct_per
- 
- OH_tminus4 <- colSums(tminus4[,c(1:6)])
- tminus5 <- OH_tminus4 * pct_per
- 
- OH_tminus5 <- colSums(tminus5[,c(1:6)])
- tminus6 <- OH_tminus5 * pct_per
- 
- OH_tminus6 <- colSums(tminus6[,c(1:6)])
- tminus7 <- OH_tminus6 * pct_per
- 
- OH_tminus7 <- colSums(tminus7[,c(1:6)])
- tminus8 <- OH_tminus7 * pct_per
- 
- OH_tminus8 <- colSums(tminus8[,c(1:6)])
- tminus9 <- OH_tminus8 * pct_per
- 
- 
- # see what happens if you take the column sum of R from each timestep; I am hoping it will be equal to appx the starting number of trees from the t0 vector (N = 133)
- sum(tminus1[,7], tminus2[,7], tminus3[,7], tminus4[,7], tminus5[,7], tminus6[,7], tminus7[,7], tminus8[,7], tminus9[,7]) # 120.3
- 
- 
- 
- 
- # Try doing it one class at a time
- 
- # there were 10 L4L5s at OH in 2018 (t0). 
- L4L5_t0 <- c(0,0,0,0,0,10)
- L4L5_tminus1 <- colSums((L4L5_t0 * pct_per)[,c(1:6)]) # how were they distributed in t-1 ?
- #       S1 S2S3 S4S5 L1 L2L3 L4L5 R
- # S1   0.0  0.0  0.0  0  0.0    0 0
- # S2S3 0.0  0.0  0.0  0  0.0    0 0
- # S4S5 0.0  0.0  0.0  0  0.0    0 0
- # L1   0.0  0.0  0.0  0  0.0    0 0
- # L2L3 0.0  0.0  0.0  0  0.0    0 0
- # L4L5 0.2  0.8  3.5  0  0.5    5 0
- # colSums of this output = starting vector in t - 1
- L4L5_tminus2 <- colSums((L4L5_tminus1 * pct_per)[,c(1:6)]) # how were they distributed in t-2 ?
- L4L5_tminus3 <- colSums((L4L5_tminus2 * pct_per)[,c(1:6)]) # how were they distributed in t-3 ?
- L4L5_tminus4 <- colSums((L4L5_tminus3 * pct_per)[,c(1:6)]) # how were they distributed in t-4 ?
- L4L5_tminus5 <- colSums((L4L5_tminus4 * pct_per)[,c(1:6)]) # how were they distributed in t-5 ?
- L4L5_tminus6 <- colSums((L4L5_tminus5 * pct_per)[,c(1:6)]) # how were they distributed in t-6 ?
- L4L5_tminus7 <- colSums((L4L5_tminus6 * pct_per)[,c(1:6)]) # how were they distributed in t-7 ?
- L4L5_tminus8 <- colSums((L4L5_tminus7 * pct_per)[,c(1:6)]) # how were they distributed in t-8 ?
- L4L5_tminus9 <- colSums((L4L5_tminus8 * pct_per)[,c(1:6)]) # how were they distributed in t-9 ?
- 
- R1 <- sum((L4L5_t0 * pct_per)[,7]) # how many were recruited into t-1 ?
- R2 <- sum((L4L5_tminus1 * pct_per)[,7]) # how many were recruited into t-2 ?
- R3 <- sum((L4L5_tminus2 * pct_per)[,7]) # 
- R4 <- sum((L4L5_tminus3 * pct_per)[,7]) # 
- R5 <- sum((L4L5_tminus4 * pct_per)[,7]) # 
- R6 <- sum((L4L5_tminus5 * pct_per)[,7]) # 
- R7 <- sum((L4L5_tminus6 * pct_per)[,7]) # 
- R8 <- sum((L4L5_tminus7 * pct_per)[,7]) # 
- R9 <- sum((L4L5_tminus8 * pct_per)[,7]) # 
- 
- sum(R1,R2,R3,R4,R5,R6,R7,R8,R9)
- recruits <- c(R1,R2,R3,R4,R5,R6,R7,R8,R9)
- L4L5 <- data.frame(recruits, c(1:9))
- names(L4L5) <- c("recruits", "timesteps")
- L4L5 <- L4L5 %>% 
-   mutate(years = 5*timesteps) %>% 
-   mutate(prob = recruits/sum(L4L5$recruits))
- 
- 
- # testing it without for loop
- catprob <- vector("list", length(t0_bycat))
- recruits <- vector()
- j = 1 
- prev_distn <- t0_bycat[[4]]*pct_per 
- start_vec <- colSums((prev_distn)[,c(1:6)])
- while(sum(start_vec >= 0.5)>=1){
-   start_vec <- colSums((prev_distn)[,c(1:6)]) # finds the start vector of previous timestep
-   recruits[j] <- sum(prev_distn[,7]) # finds the # recruited into the previous timestep
-   prev_distn <- start_vec*pct_per
-   j=j+1
- }
- 
- catprob[[4]] <- data.frame(recruits, c(1:length(recruits)))
- names(catprob[[4]]) <- c("recruits","timesteps")
- catprob[[4]] <- catprob[[4]] %>% 
-   mutate(years = 5*timesteps) %>% 
-   mutate(prob = recruits/sum(catprob[[4]]$recruits))
- 
- # example of case_when for multiple conditions
- 
- OH_logs <- OH_logs %>%
-   mutate(PIJE_est = predict(OH_lm, newdata = OH_logs)) %>% 
-   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
-   mutate(ABCO_est = predict(ABCO_lm, newdata = OH_logs)) %>% 
-   mutate(PICO_est = predict(PICO_lm, newdata = OH_logs)) %>% 
-   mutate(age_est = case_when(Spec=="PIJE*" ~ PIJE_est, # fixing these 2/17/24
-                              Spec=="UNK" ~ PIJE_est, # fixing these 2/17/24
-                              Spec=="PIJE" ~ PIJE_est,
-                              Spec=="JUGR" ~ JUGR_est,
-                              Spec=="ABCO" ~ ABCO_est,
-                              Spec=="PICO" ~ PICO_est)) %>%
-   mutate(estab_est = round(2018 - (age_est+dec_correction),0))   
- 
- # example of a nested for loop that worked
- 
- clust_areas_all <- list()
- for (j in 1:length(plots_out)){
-   clust_area_df <- data.frame(X=plots_out[[j]]$trees.noedge$x, Y=plots_out[[j]]$trees.noedge$y, 
-                               crown=plots_out[[j]]$trees.noedge$crown, bin=plots_out[[j]]$trees.noedge$bin)
-   clust_areas <- list()
-   for (i in 1:length(bin_names)){ 
-     thingy <- clust_area_df %>% 
-       filter(bin==bin_names[i],) %>% 
-       st_as_sf(coords = c("X","Y")) %>% 
-       st_buffer(dist=clust_area_df$crown) %>% 
-       st_union() %>% 
-       #  st_cast("POLYGON") %>% 
-       st_intersection(bound) %>% 
-       st_area()
-     clust_areas[[i]] <- thingy
-   }
-   clust_areas_all[[j]] <- clust_areas 
- }
- 
+# testing new patchMorph code for one plot
 
- # ignore this for now fix it in post
- opes_bins[c(j:(j+3)),1] <- rep(plotyears[j],4)
- opes_bins[c(j:(j+3)),2] <- rep(j,4)
- opes_bins[c(j:(j+3)),3] <- gap_bins
- 
- # for (i in 1:length(plots_out)){
- #   opes_bins[i,1] <- sum(opes_sr[[i]]$area < 500)
- #   opes_bins[i,2] <- sum(opes_sr[[i]]$area >= 500 & opes_sr[[i]]$area <1500)
- #   opes_bins[i,3] <- sum(opes_sr[[i]]$area >= 1500 & opes_sr[[i]]$area <2500)
- #   opes_bins[i,4] <- sum(opes_sr[[i]]$area >= 2500)
- #   opes_bins[i,5] <- plotyears[i]
- # }
- #names(opes_bins) <- c("82-500", "500-1500","1500-2500",">2500", "Year")
- 
- # ugly but functional?
- opes2018 <- c(as.vector(opes_sr[[1]]$area, mode = "numeric"), as.vector(opes_sr[[3]]$area, mode = "numeric"), as.vector(opes_sr[[5]]$area, mode = "numeric"), as.vector(opes_sr[[7]]$area, mode = "numeric"), as.vector(opes_sr[[9]]$area, mode = "numeric"), as.vector(opes_sr[[11]]$area, mode = "numeric"))
- 
- opes1941 <- c(as.vector(opes_sr[[2]]$area, mode = "numeric"), as.vector(opes_sr[[4]]$area, mode = "numeric"), as.vector(opes_sr[[6]]$area, mode = "numeric"), as.vector(opes_sr[[8]]$area, mode = "numeric"), as.vector(opes_sr[[10]]$area, mode = "numeric"), as.vector(opes_sr[[12]]$area, mode = "numeric"))
- 
- opesPrefire <- c(as.vector(opes_sr[[13]]$area, mode = "numeric"), as.vector(opes_sr[[14]]$area, mode = "numeric"), as.vector(opes_sr[[15]]$area, mode = "numeric"), as.vector(opes_sr[[16]]$area, mode = "numeric"), as.vector(opes_sr[[17]]$area, mode = "numeric"), as.vector(opes_sr[[18]]$area, mode = "numeric"))
- 
- opes_all <- data.frame(Opes = c(opes1941, opes2018, opesPrefire), Year = c(rep(1941, length(opes1941)), rep(2018, length(opes2018)), rep("Prefire", length(opesPrefire))))
- 
- # I am unhappy with these histograms but the gap sizes will probably change
- # when I come back, I will make sensible bins and change from a hist to a bar graph of the avg #/ha with error bars
- 
- ggplot(opes_bins,aes(x=gap_bin, y = countperha, fill=Year)) +
-   geom_bar(stat="identity", position="dodge") 
- 
- opes_bins2 <- opes_bins %>% 
-   group_by(Year, gap_bin) %>% 
-   summarise(mean_ct = mean(countperha), se_ct = sd(countperha)/sqrt(length(countperha)))
- 
- ggplot(opes_bins2,aes(x=gap_bin, y = mean_ct, fill=Year)) +
-   geom_bar(stat="identity", position="dodge") +
-   geom_errorbar(aes(ymin=mean_ct-se_ct, ymax=mean_ct+se_ct), width=0.2,position=position_dodge(.9))
- 
- gap_distn <- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
-   geom_histogram(bins = 15, position="dodge") +
-   scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
-   stat_bin(geom="text", bins=15, aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) +
-   scale_x_continuous(breaks = round(seq(50, 5750, length.out = 15))) +
-   scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
-   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
-   theme_classic()
- 
- ggplot(data = opes_all, mapping = aes(x=as.factor(Year), y = Opes, color = as.factor(Year))) +
-   geom_boxplot() +
-   stat_compare_means(method = "anova") +
-   stat_compare_means(label = "p.signif", method = "anova")
- 
- # create breaks and labels
- brks <- c(seq(0, 2750, by=125), 5750)
- lbls <- c(as.character(seq(0, 2625, by=125)), "2760+", "")
- 
- ggplot(opes_all, aes(x=Opes, fill=as.factor(Year))) +
-   scale_fill_manual(values = c("#cf4411", "black", "darkgray")) +
-   geom_histogram(breaks = brks, position="dodge") +
-   # stat_bin(geom="text", aes(label=after_stat(count), group=as.factor(Year)), vjust = -0.5, position = position_dodge()) + 
-   scale_x_continuous(breaks=c(seq(0, 2750, by=125), 5750), labels = lbls) +
-   scale_y_continuous(expand=expansion(mult=c(0,0.05))) +
-   labs(title = "Gap Size Distribution", hjust = 5, x = "Forest Canopy Gaps (m^2)", y = "Count", fill="Year") +
-   theme_classic()
- 
- # trying lydersenfig3 for one site at a time, IS first
- IS_bins <- data.frame(matrix(NA, nrow=36, ncol=4))
-opes_IS <- opes_sr[c(1:6,13:15)]
- j=1
- plotcounts <- list()
- for (j in c(1:6,13:15)){
-   plotcounts[[j]] <- vector()
-   countperha <- vector()
-   for (i in 1:length(gap_bins)){
-     thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
-     countperha <- c(countperha, thingy)
-   }
-   plotcounts[[j]] <- countperha}
- 
-IS_bins[,1] <- rep(plotyears[c(1:6,13:15)], each = 4)
-IS_bins[,2] <- rep(c(1:6,13:15), each = 4)
-IS_bins[,3] <- rep(gap_bins,length(opes_IS))
-IS_bins[,4] <- unlist(plotcounts)
- names(IS_bins) <- c("Year", "Plot", "gap_bin", "countperha")
- 
- IS_bins$gap_bin <- factor(IS_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
- IS_bins$Year <- factor(IS_bins$Year, levels = c("1941","Prefire","2018"))
- 
- #library(ggpubr)
-LydersenFig3_IS <- ggbarplot(IS_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
-   stat_compare_means(paired=TRUE) 
+getCircleKernel <- function(radius)
+{
+  kernel_side <- 2 * as.integer(radius) + 1
+  kernel_y <- matrix(rep(radius:-radius, kernel_side), ncol=kernel_side)
+  kernel_x <- -t(kernel_y)
+  kernel   <- matrix(as.matrix(dist(cbind(as.vector(kernel_x), as.vector(kernel_y))))[as.integer((kernel_side^2) / 2) + 1,], ncol=kernel_side)
+  kernel[kernel <= radius] <- 0
+  kernel[kernel > 0]  <- 1
+  kernel <- 1 - kernel
+  return(kernel)
+}
 
-# now OH
-OH_bins <- data.frame(matrix(NA, nrow=36, ncol=4))
-opes_OH <- opes_sr[c(7:12,16:18)]
-j=1
-plotcounts <- list()
-for (j in c(7:12,16:18)){
-  plotcounts[[j]] <- vector()
-  countperha <- vector()
-  for (i in 1:length(gap_bins)){
-    thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
-    countperha <- c(countperha, thingy)
-  }
-  plotcounts[[j]] <- countperha}
+patchMorph.SpatRaster <- function(data_in, buffer = 2, suitThresh = 1, gapThresh = 2, spurThresh = 2, verbose = TRUE)
+{
+  if(!is.numeric(c(suitThresh, gapThresh, spurThresh)))
+    stop("suitThresh, gapThresh, and spurThresh must be numeric!!")
+  if(gapThresh < max(terra::res(data_in)) | spurThresh < max(terra::res(data_in)))
+    stop("Gap/Spur threshold is too small!! Must be at least twice the maximum resolution of the provided raster.")
+  if (is.na(crs(data_in)) || crs(data_in) == "")
+    stop("CRS is NULL or blank!!")
+  
+  ## Set up the crs, the extent, and a NA mask for the original raster
+  r.crs <- terra::crs(data_in)
+  r.e <- terra::ext(data_in)
+  e.mask <- terra::mask(data_in, subst(data_in, 0:1, 1))
+  
+  ## Extend the raster by the buffer (cropped before return)
+  data_in <- terra::extend(data_in, buffer, fill=NA)
+  
+  ## Get the associated kernels
+  gapKernel  <- getCircleKernel(ceiling((gapThresh / 2)))
+  spurKernel <- getCircleKernel(ceiling((spurThresh / 2)))
+  
+  ## Get the euclidean distances to suitable habitat, and ensure the extent is the same as original
+  data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
+  
+  ## Apply a focal maximum
+  data_in <- terra::focal(data_in, gapKernel, fun="max", na.policy="omit", na.rm=TRUE)
+  # data_in <- terra::mask(data_in, e.mask)
+  
+  if(verbose == TRUE)
+    cat("Processing gap threshold diameter:", ncol(gapKernel)-1, terra::units(data_in), "\n")
+  ## Reclassify based on the gap threshold
+  data_in[data_in <= (ncol(gapKernel)+1)/2] <- 1
+  data_in[data_in > (ncol(gapKernel)+1)/2] <- 0
+  
+  ## Check to make sure there's still non-suitable pixels in the raster, othwewise return data_in
+  if( (sum(data_in[terra::values(data_in)==1]) + sum(is.na(terra::values(data_in))) ) == ( nrow(data_in)*ncol(data_in)) ) return(data_in)
+  
+  ## Get the euclidean distances to non-suitable habitat, and ensure the extent is the same as original
+  data_in <- terra::distance(data_in, target = data_in[data_in <= suitThresh])
+  
+  ## Apply a focal maximum
+  data_in <- terra::focal(data_in, spurKernel, fun="max", na.policy="omit", na.rm=TRUE)
+  # data_in <- terra::mask(data_in, e.mask)
+  
+  
+  if(verbose == TRUE)
+    cat("Processing spur threshold diameter:",ncol(spurKernel)-1, terra::units(data_in), "\n")
+  ## Reclassify based on the spur threshold
+  data_in[data_in <= (ncol(spurKernel)+1)/2] <- 0
+  data_in[data_in > (ncol(spurKernel)+1)/2] <- 1
+  
+  data_in <- terra::crop(data_in, e.mask, mask=TRUE)
+  
+  return(data_in)
+}
 
-OH_bins[,1] <- rep(plotyears[c(7:12,16:18)], each = 4)
-OH_bins[,2] <- rep(c(7:12,16:18), each = 4)
-OH_bins[,3] <- rep(gap_bins,length(opes_OH))
-OH_bins[,4] <- unlist(plotcounts)
-names(OH_bins) <- c("Year", "Plot", "gap_bin", "countperha")
+plot(patchMorph.SpatRaster(xy_sr(4)))
 
-OH_bins$gap_bin <- factor(OH_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
-OH_bins$Year <- factor(OH_bins$Year, levels = c("1941","Prefire","2018"))
+# Assuming 'data' is your data frame with columns: 'Year', 'Plot', 'Bin1_ct', 'Bin2_ct', 'Bin3_ct', 'Bin4_ct'
 
-LydersenFig3_OH <- ggbarplot(OH_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
-  stat_compare_means(paired=TRUE) 
+# Create a multivariate response matrix
+#response_matrix <- data[, c("Bin1_ct", "Bin2_ct", "Bin3_ct", "Bin4_ct")]
+response_matrix <- obw_1[, gap_bins]
+formula <- formula(response_matrix ~ Year)
 
-# first try of all gap distns combined
-# sensible bins: 82-500, 500-1500, 1500-2500, >2500
-# I want a df with one row for each count/ha, with Year, Plot, and Bin along with it
-plotyears <- c(rep(c(2018,1941),6),rep("Prefire",6))
-gap_bins <- c("82-500", "500-1500","1500-2500",">2500")
-bin_brks <- c(82,500,1500,2500,7000)
-opes_bins <- data.frame(matrix(NA, nrow=72, ncol=4))
-j=1
-plotcounts <- list()
-for (j in 1:length(plots_out)){
-  plotcounts[[j]] <- vector()
-  countperha <- vector()
-  for (i in 1:length(gap_bins)){
-    thingy <- sum(opes_sr[[j]]$area < bin_brks[i+1] & opes_sr[[j]]$area > bin_brks[i])
-    countperha <- c(countperha, thingy)
-  }
-  plotcounts[[j]] <- countperha}
+# Specify the strata for repeated measures (Plot in this case)
+strata <- obw_1$Plot
+Year <- obw_1$Year
 
-opes_bins[,1] <- rep(plotyears, each = 4)
-opes_bins[,2] <- rep(1:18, each = 4)
-opes_bins[,3] <- rep(gap_bins,18)
-opes_bins[,4] <- unlist(plotcounts)
-names(opes_bins) <- c("Year", "Plot", "gap_bin", "countperha")
-
-opes_bins$gap_bin <- factor(opes_bins$gap_bin, levels = c("82-500", "500-1500","1500-2500",">2500"))
-opes_bins$Year <- factor(opes_bins$Year, levels = c("1941","Prefire","2018"))
-opes_bins$Plot <- as.character((opes_bins)[,2])
-library(ggpubr)
-
-# Fig3Lydersen <- 
-  ggbarplot(opes_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
- stat_friedman_test(aes(wid=Plot, group=gap_bin), within = "x", label = "p = {p.format}")
-  #  stat_compare_means(paired=TRUE) # Kruskal-Wallis, p = 1.3e-05
-
-opes_bins %>% 
-  group_by(gap_bin, Year) %>% 
-  get_summary_stats(countperha, type = "mean_se")
-
-ggboxplot(opes_bins, x="gap_bin", y="countperha", color="Year")
-
-opes_bins %>% 
-  group_by(gap_bin, Year) %>% 
-  identify_outliers(countperha) # 6 outliers, 3 are extreme
-
-opes_bins %>%  # data are not normally distributed; the countperha is not normally distributed in each year
-  group_by(gap_bin, Year) %>% 
-  shapiro_test(countperha) 
-
-ggqqplot(opes_bins, "countperha") + facet_grid(Year ~ gap_bin, labeller="label_both")
-
-# S3 method for default
-#friedman.test(y, groups, blocks, …)
-
-# S3 method for formula
-#friedman.test(formula, data, subset, na.action, …)
-friedman.test(countperha ~ Year | Plot, data = opes_bins, na.action = na.pass)
-friedman.test(opes_bins$countperha, opes_bins$gap_bin, opes_bins$Plot)
-library(ARTool)
-model = art(countperha ~ Year + gap_bin + Year:gap_bin + (1|Plot), data=opes_bins)
-model
-
-anova(model)
+# Perform PERMANOVA using adonis with repeated measures
+permanova_result <- adonis(formula, strata = strata)
 
 # NEVER NEVER GIVE UP
 
 # NEVER LET GO, NEVER SURRENDER
-  

@@ -169,7 +169,9 @@ summarizeClusters.ppp <- function(pointData, treeData, distThreshold=-1, max.bin
   tree.cluster.membership <- as.matrix(tree.cluster.membership[as.character(sort(as.integer(names(tree.cluster.membership))))])
   tree.dbh <- as.matrix(treeData$dbh)
   tree.ba  <- as.matrix(pi * (tree.dbh / 200)^2)
-  tree.sdi <- as.matrix((tree.dbh / 25)^1.7) # is this right? I found this online: sdi = tpa * (qmd / 25.4) ^ 1.605
+ # tree.sdi <- as.matrix((tree.dbh / 25)^1.7) # is this right? I found this online: sdi = tpha * (qmd / 25.4) ^ 1.605
+  # where tpha is TPH, qmd is quadratic mean diameter in cm
+  tree.sdi <- as.matrix((tree.dbh / 25.4) ^ 1.605)
   tree.clust.sz = cluster.size[tree.cluster.membership]
   tree.bin = lut(c("1","2-4","5-9","10+"),breaks=c(0,2,5,10,200))(tree.clust.sz)
   tree.bin = factor(tree.bin,levels=c("1","2-4","5-9","10+"),order=T)
@@ -348,7 +350,8 @@ cut.index <- which(trees$x %in% edgefilter$x & trees$y %in% edgefilter$y)
   TPH = nrow(trees)/hectares
   Mean.dbh = mean(trees$dbh)
   QMD = (((BA/TPH)/pi)^.5)*200
-  SDI = TPH*(QMD/25)^1.7
+ # SDI = TPH*(QMD/25)^1.7 # produces weird results; too high
+  SDI = TPH*(QMD/25.4)^1.605
   sum.met = cbind(BA,TPH,Mean.dbh,QMD,SDI,hectares)
   sum.eng = cbind(BA*4.356,TPH/2.47,Mean.dbh/2.54,QMD/2.54,SDI/2.47,hectares*2.47)
   summary = cbind(sum.met,sum.eng)
@@ -463,18 +466,19 @@ dpOHn2 <- dpOHn2 %>%
 # here is the one with standardized values
 #install.packages("gridExtra")
 library(gridExtra)
+
 ISdots <- ggplot() +
-  geom_pointrange(data = dpISn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 1, color="red", size=1) + 
-  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
-  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), shape = 16, color = "darkgray",size=1) + 
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 23, color="#d8b365", fill="#d8b365", linewidth=1.5, size=1.75) + 
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), position=position_nudge(0.2,0), shape = 16, linewidth=1.5, size=1.75) + 
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), position=position_nudge(0.1,0), shape = 23, color = "#5ab4ac", fill = "#5ab4ac",linewidth=1.5, size=1.75) + 
   coord_flip() +
   ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
   xlab("Metric") + ylab("Percent Change") +
   theme_bw()
 OHdots <- ggplot() +
-  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 1, color="red", size=1) + 
-  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), shape = 16, size=1) + 
-  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), shape = 16, color = "darkgray",size=1) +
+  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 23, color="#d8b365", fill="#d8b365", linewidth=1.5, size=1.75) + 
+  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), position=position_nudge(0.2,0),linewidth=1.5, size=1.75) + 
+  geom_pointrange(data = dpOHn2, aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), position=position_nudge(0.1,0), shape = 23, color="#5ab4ac", fill="#5ab4ac", linewidth=1.5, size=1.75) +
   coord_flip() +
   ggtitle("Change in Nonspatial Forest Metrics \nat O'Harrell Canyon") +
   xlab("Metric") + ylab("Percent Change") +
