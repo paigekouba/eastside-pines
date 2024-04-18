@@ -30,7 +30,7 @@ library(terra)
 # https://rdrr.io/github/bi0m3trics/patchwoRk/man/patchMorph.html
 
 #devtools::install_github("bi0m3trics/patchwoRk")
-library(patchwoRk)
+#library(patchwoRk)
 
 # explanation of gap and spur, conceptually, from Girvetz and Greco 2007:
 # (1) land cover density threshold (suitThresh), (2) habitat gap maximum thickness (gapThresh), and (3) habitat patch minimum thickness (spurThresh)
@@ -265,6 +265,43 @@ LydersenFig3_OH <- ggbarplot(OH_bins, x="gap_bin", y = "countperha",  add = "mea
 
 #grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 1)
 
+# same figure again, but for binned clusters
+# I want a df with one row for each count/ha, with Year, Plot, and Bin along with it
+plotnames <- c("IS1", "IS1", "IS2", "IS2", "IS3", "IS3", "OH1", "OH1", "OH2", "OH2", "OH3", "OH3", "IS1", "IS2", "IS3", "OH1", "OH2", "OH3")
+plotyears <- c(rep(c(2018,1941),6),rep("Fire Excluded",6))
+bin_names # "1"   "2-4" "5-9" "10+"
+clust_bins <- data.frame(matrix(NA, nrow=72, ncol=4))
+j=1
+plotClustCounts <- list()
+for (j in 1:length(plots_out)){
+  plotClustCounts[[j]] <- vector()
+  clustperha <- vector()
+  for (i in 1:length(bin_names)){
+    thingy <- sum(plots_out[[j]][[12]][9] == bin_names[i])
+    clustperha <- c(clustperha, thingy)
+  }
+  plotClustCounts[[j]] <- clustperha}
+
+clust_bins[,1] <- rep(plotyears, each = 4)
+clust_bins[,2] <- rep(plotnames, each = 4)
+clust_bins[,3] <- rep(bin_names,18)
+clust_bins[,4] <- unlist(plotClustCounts2)
+names(clust_bins) <- c("Year", "Plot", "clust_bin", "clustperha")
+
+clust_bins$clust_bin <- factor(clust_bins$clust_bin, levels = bin_names)
+clust_bins$Year <- factor(clust_bins$Year, levels = c("1941","Fire Excluded","2018"))
+clust_bins$Plot <- as.character((clust_bins)[,2])
+library(ggpubr)
+
+LydersenFig3_clusters <- 
+  ggbarplot(clust_bins, x="clust_bin", y = "clustperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
+  scale_fill_manual(values=c("#d8b365", "#5ab4ac", "black")) +
+  #stat_friedman_test(aes(wid=Plot, group=Year), within = "group", label = "p = {p.format}") +
+  labs(title = "Clusters at Both Sites",
+       x = "Cluster Bin",
+       y = "Frequency / ha")
+
+
 # PERMANOVA
 library(PERMANOVA)
 # first get opes_bins (which now has Year, Plot, gap_bin, countperha) into wide format 
@@ -305,6 +342,25 @@ adonis2(response_matrix ~ Year, obw_1, strata = obw_1$Plot)
 response_matrix <- obw_2[, gap_bins]
 adonis2(response_matrix ~ Year, obw_2, strata = obw_2$Plot)
 
+
+# PERMANOVA on gaps *and* clusters
+# first get clusters into wide format
+# (Year, Plot, Bin1_ct, Bin2_ct, Bin3_ct, Bin4_ct)
+clust_bins_wide <- clust_bins %>% 
+  pivot_wider(names_from = "clust_bin", values_from = "clustperha") 
+# combine opes_bins_wide and clust_bins_wide ?
+
+all_stx <- cbind(opes_bins_wide, clust_bins_wide[,3:6])
+# df for comparing 1941 to fire-excluded
+all_stx1 <- filter(all_stx, Year %in% c(1941, "Fire Excluded"))
+# df for comparing fire-excluded to 2018
+all_stx2 <- filter(all_stx, Year %in% c("Fire Excluded", 2018))
+
+response_matrix <- all_stx1[, c(gap_bins, bin_names)]
+adonis2(response_matrix ~ Year, all_stx1, strata = all_stx1$Plot) #  p = 0.03125
+
+response_matrix <- all_stx2[, c(gap_bins, bin_names)]
+adonis2(response_matrix ~ Year, all_stx2, strata = all_stx2$Plot) # p = 0.0625
 
 sum(opes_bins[opes_bins$Year==1941,]$countperha)
 #[1] 26
