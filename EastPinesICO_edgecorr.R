@@ -1,6 +1,7 @@
 # Using D Churchill's ICO code, minus extras and in runnable order
 # 8/2/23
 # 12/14/23 update, edge correction
+# 4/17/24 update, checking cluster size bin assignment
 
 # Want to end up with a for loop that runs below functions for all 12 plots:
 # (IS1_2018, IS1_1941, IS2_2018, IS2_1941, IS3_2018, IS3_1941, 
