@@ -91,7 +91,8 @@ gini = function(dbh.vec){
 ###################
 clusterByCrown <- function(pointData, treeData, distThreshold=-1)
 {
-  IDs <- rownames(treeData)
+#  IDs <- rownames(treeData)
+  IDs <- c(1:nrow(treeData))
   radii <- ifelse(rep(distThreshold == -1, nrow(treeData)), treeData$crown, rep(distThreshold / 2, nrow(treeData)))
   
   # Make the output list big enough for the theoretical case that every point is a singleton
@@ -101,9 +102,11 @@ clusterByCrown <- function(pointData, treeData, distThreshold=-1)
   distMat <- as.matrix(dist(matrix(c(pointData$x, pointData$y), ncol=2, dimnames=list(IDs))))
   distMat <- t(apply(distMat, 1, function(x) x - radii))
   distMat <- apply(distMat, 2, function(x) x - radii)
+  # this creates a matrix of the pairwise distances, then buffers those by the radius from each point, and then to each point
   
   # Set aside the onesies
   singles <- which((nrow(distMat) - apply(distMat, 2, function(x) sum(x > 0))) == 1)
+  # for all [132] points, if all but one of them have a non-negative (radius-corrected)distance to all other points, it's a single
   if(length(singles) > 0)
   {
     cluster.list[1:length(singles)] <- colnames(distMat)[singles]
