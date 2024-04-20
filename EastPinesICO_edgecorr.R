@@ -427,7 +427,7 @@ dpISn <- as.data.frame(t(sapply(dotplots_ISn,mean_se))) # get mean and se of eac
 dpISn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', 'BAH95', 'TPH95', 'Mean.dbh95', 'QMD95', 'SDI95')) # add column indicating which metric/year is in each row
 
 dpISn2 <- cbind(dpISn[1:5,],dpISn[6:10,1:3], dpISn[11:15,1:3]) # make wider, for plotting
-dpISn2$Metrics <- c("BAH","TPH","meanDBH","QMD","SDI") # metric labes w/o year, for plotting
+dpISn2$Metrics <- c("BA","TPH","meanDBH","QMD","SDI") # metric labels w/o year, for plotting
 colnames(dpISn2) <- c("y", "ymin", "ymax", "Metrics", "y.1", "ymin.1", "ymax.1", "y.2", "ymin.2", "ymax.2")
 
 dpISn2 <- dpISn2 %>% mutate_at(c("y","ymin","ymax","y.1","ymin.1","ymax.1", "y.2","ymin.2","ymax.2"), as.numeric) 
@@ -451,7 +451,7 @@ dpOHn <- as.data.frame(t(sapply(dotplots_OHn,mean_se)))
 dpOHn$Metrics <- as.factor(c('BAH41', 'TPH41', 'Mean.dbh41', 'QMD41', 'SDI41', 'BAH18', 'TPH18', 'Mean.dbh18', 'QMD18', 'SDI18', 'BAH06', 'TPH06', 'Mean.dbh06', 'QMD06', 'SDI06'))
 
 dpOHn2 <- cbind(dpOHn[1:5,],dpOHn[6:10,1:3], dpOHn[11:15,1:3])
-dpOHn2$Metrics <- c("BAH","TPH","meanDBH","QMD","SDI")
+dpOHn2$Metrics <- c("BA","TPH","meanDBH","QMD","SDI")
 colnames(dpOHn2) <- c("y","ymin","ymax","Metrics","y.1","ymin.1","ymax.1", "y.2","ymin.2","ymax.2")
 
 dpOHn2 <- dpOHn2 %>% mutate_at(c("y","ymin","ymax","y.1","ymin.1","ymax.1", "y.2","ymin.2","ymax.2"), as.numeric)
@@ -474,7 +474,7 @@ library(gridExtra)
 ISdots <- ggplot() +
   geom_pointrange(data = dpISn2, aes(x=Metrics, y=yN, ymin=yminN, ymax=ymaxN), shape = 23, color="#d8b365", fill="#d8b365", linewidth=1.5, size=1.75) + 
   geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.1N, ymin=ymin.1N, ymax=ymax.1N), position=position_nudge(0.2,0), shape = 16, linewidth=1.5, size=1.75) + 
-  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), position=position_nudge(0.1,0), shape = 23, color = "#5ab4ac", fill = "#5ab4ac",linewidth=1.5, size=1.75) + 
+  geom_pointrange(data = dpISn2, aes(x=Metrics, y=y.2N, ymin=ymin.2N, ymax=ymax.2N), position=position_nudge(0.1,0), shape = 23, color = "#5ab4ac", fill = "#5ab4ac",linewidth=1.2, size=1.5) + 
   coord_flip() +
   ggtitle("Change in Nonspatial Forest Metrics \nat Indiana Summit") +
   xlab("Metric") + ylab("Percent Change") +
