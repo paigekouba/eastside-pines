@@ -198,8 +198,6 @@ ggbarplot(opes_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Ye
        y = "Frequency / ha")
 
 
-
-
 # trying lydersenfig3 for one site at a time, IS first
 IS_bins <- data.frame(matrix(NA, nrow=36, ncol=4))
 opes_IS <- opes_sr[c(1:6,13:15)]
@@ -297,8 +295,8 @@ LydersenFig3_clusters <-
   ggbarplot(clust_bins, x="clust_bin", y = "clustperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
   scale_fill_manual(values=c("#d8b365", "#5ab4ac", "black")) +
   #stat_friedman_test(aes(wid=Plot, group=Year), within = "group", label = "p = {p.format}") +
-  labs(title = "Clusters at Both Sites",
-       x = "Cluster Bin",
+  labs(title = "Clumps at Both Sites",
+       x = "Clump Bin",
        y = "Frequency / ha")
 
 
@@ -337,10 +335,10 @@ PERMANOVA(DistContinuous(mv_counts_response2),mv_counts_explan2) # difference fr
 
 library(vegan)
 response_matrix <- obw_1[, gap_bins]
-adonis2(response_matrix ~ Year, obw_1, strata = obw_1$Plot)
+adonis2(response_matrix ~ Year, obw_1, strata = obw_1$Plot) # Pr(>F) 0.03125 
 
 response_matrix <- obw_2[, gap_bins]
-adonis2(response_matrix ~ Year, obw_2, strata = obw_2$Plot)
+adonis2(response_matrix ~ Year, obw_2, strata = obw_2$Plot) # Pr(>F) 0.25
 
 
 # PERMANOVA on gaps *and* clusters
@@ -370,23 +368,23 @@ sum(opes_bins[opes_bins$Year==2018,]$countperha)
 #[1] 21
 
 # mean openings in 1941
-mean(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 1068.277
-min(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 133.29
-max(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 5661.48
+mean(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 1109.351
+min(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 121.46
+max(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 5665.3
 
 # mean openings in Fire Excluded
-mean(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 460.1491
-min(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 122.37
-max(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 1934.69 # 3615.6 (re ran, a couple trees gone because of the random assignment of age to snags and logs)
+mean(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 496.544
+min(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 117.52
+max(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 3380.15
 t.test(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area)), unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area)))
-# p-value = 0.05432
+# p-value = 0.06904
 
 # mean openings in 2018
 mean(unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # 1014.161
 min(unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # 121.35
 max(unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # 5910.23
 t.test(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area)), unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) 
-# p-value = 0.09446
+# p-value =  0.1297
 
 # min(opes_all[opes_all$Year==1941,]) # 32.01
 # max(opes_all[opes_all$Year==1941,]) # 5727.85
