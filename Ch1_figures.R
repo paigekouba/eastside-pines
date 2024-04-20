@@ -1,7 +1,7 @@
 # Figures for Paper -- Eastside Pines ICO
 # Thu 2/15/24
 
-pdf(file = "Ch1_figures_3.20.24.pdf")
+pdf(file = "Ch1_figures_4.19.24.pdf")
 
 plot(dotplots) # percent change in nonspatial metrics, by site. 1941 in red, 2018 in black, with mean and se
 
@@ -18,7 +18,8 @@ grid.arrange(pie_IS41, pie_IS95, pie_IS18, pie_OH41, pie_OH06, pie_OH18, ncol=3)
 # summ.all # per-bin and stand-level summary metrics for IS41, OH41, all41, IS18, OH18, and all18
 
 #(gap_distn) # gap size histogram, combined
-grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 2) # bar plots of binned gaps mean and se
+#grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 2) # bar plots of binned gaps mean and se
+grid.arrange(LydersenFig3, LydersenFig3_clusters, ncol = 1)
 
 #(location_fit) # brms model with cluster counts per cluster size
 # model_coeffs # inset with model coefficients from brms model
@@ -26,19 +27,19 @@ grid.arrange(LydersenFig3, LydersenFig3_IS, LydersenFig3_OH, ncol = 2) # bar plo
 
 #Supplementary
 
-plot(OH_estab_cores) # establishment date distribution based on N = 81 cored trees
-plot(OH_estab_trees) # establishment date distribution based on N = 470 trees, using age-size regression
-plot(IS_estab_cores) # establishment date distribution based on N = 90 cored trees
-plot(IS_estab_trees) # establishment date distribution based on N = 648 trees, using age-size regression
-
-# size class distn (dbh)
-plot(IS_2018_hist)
-plot(IS_1941_hist)
-plot(OH_2018_hist)
-plot(OH_1941_hist)
-
-model_v_cores_IS # compares regression-based ages with core-based ages
-model_v_cores_OH
+# plot(OH_estab_cores) # establishment date distribution based on N = 81 cored trees
+# plot(OH_estab_trees) # establishment date distribution based on N = 470 trees, using age-size regression
+# plot(IS_estab_cores) # establishment date distribution based on N = 90 cored trees
+# plot(IS_estab_trees) # establishment date distribution based on N = 648 trees, using age-size regression
+# 
+# # size class distn (dbh)
+# plot(IS_2018_hist)
+# plot(IS_1941_hist)
+# plot(OH_2018_hist)
+# plot(OH_1941_hist)
+# 
+# model_v_cores_IS # compares regression-based ages with core-based ages
+# model_v_cores_OH
 
 # math on area in interst, gap, size bins
 # IS_change
