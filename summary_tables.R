@@ -44,9 +44,9 @@ mDBH <- lapply(indices, function(i) { # mDBH.bin
   trees.bin <- plots_out[[i]][[11]] %>% 
     filter(bin == bin_names[bin.i])
   dbh <- trees.bin[,3]
-  return(dbh) })
-mDBH.bin <- round(mean(unlist(lapply(c(1:length(indices)), function(x) mean(mDBH[[x]])))),1) # 51.4 cm mean DBH
-mDBH.bin.sd <- round(sd(unlist(lapply(c(1:length(indices)), function(x) mean(mDBH[[x]])))),1)
+  return(dbh) })            ### !!!! see if this fixes NAs in mDBH row
+mDBH.bin <- round(mean(unlist(lapply(c(1:length(indices)), function(x) mean(mDBH[[x]], na.rm = TRUE))), na.rm = TRUE),1) # 51.4 cm mean DBH
+mDBH.bin.sd <- round(sd(unlist(lapply(c(1:length(indices)), function(x) mean(mDBH[[x]], na.rm = TRUE))), na.rm =TRUE),1)
 
 ba <- lapply(indices, function(i) { # ba.bin
   clusters <- plots_out[[i]][[12]] %>% 
@@ -205,7 +205,7 @@ rownames(summ.stands) <- c("tph.stand",  "ba.stand",  "mDBH.stand",  "mean.tpc",
 summ.all <- rbind(summary_table, summ.stands)
 library(reader)
 # write_csv(data.frame(summ.all), "Eastside_summary.csv")
-write.table(data.frame(summ.all), file = 'Eastside_summary3.19.24.txt', col.names = TRUE,
+write.table(data.frame(summ.all), file = 'Eastside_summary4.19.24.txt', col.names = TRUE,
             row.names = TRUE, sep = "\t")
 
 # summary_table <- replace(summary_table, summary_table == "NaN", "-")
