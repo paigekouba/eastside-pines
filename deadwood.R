@@ -33,6 +33,18 @@ library(dplyr)
 #   geom_violin(aes(fill = as.factor(Dec)), draw_quantiles = c(0.25, 0.5, 0.75)) +
 #   geom_boxplot(aes(fill = as.factor(Dec)))
 
+# sum(OH_snags$Dec == 1)
+# [1] 27
+# > sum(OH_snags$Dec == 2)
+# [1] 39
+# > sum(OH_snags$Dec == 3)
+# [1] 10
+# > sum(OH_snags$Dec == 4)
+# [1] 2
+# > sum(OH_snags$Dec == 5)
+# [1] 3
+
+# starting vector is from OH totals: S1, S2+3, S4+5; L1, L2+3, L4+5 (all 3 ha)
 OH_t0 <- as.vector(c(27.00, 49.00,5.00, 12.00,30.00, 10.00))
 # tm1 <- matrix(c(0,0,0,0,0,0,
 #               0.19,0.16,0,0,0,0,
@@ -41,29 +53,37 @@ OH_t0 <- as.vector(c(27.00, 49.00,5.00, 12.00,30.00, 10.00))
 #               0.14,0.16,0,0.33,0.32,0,
 #               0.28,0.33,0.35,0.67,0.68,0.5), nrow = 6, ncol = 6, byrow = TRUE)
 
-R <- as.vector(c(23,67,84,0,0,0))
+R <- as.vector(c(23,67,84,0,0,0)) # recruitment vector is from SAD for category x -(rowSums of x transitions from other categories) -- if they didn't transition from an earlier category, must have come from live trees i.e. recruited
 
-D <- matrix(c(0.00,	0.00,	0.00,	0.00,	0.00,	0.00,
-              0.19,	0.16,	0.00,	0.00,	0.00,	0.00,
-              0.39,	0.35,	0.65,	0.00,	0.00,	0.00,
-              0.00,	0.00,	0.00,	0.00,	0.00,	0.00, # I have qualms about this; shouldn't S1 --> L1? # no it's ok because L1s can just be assumed live as of 4ya
-              0.14,	0.16,	0.00,	0.33,	0.32,	0.00,
-              0.28,	0.33,	0.35,	0.67,	0.68,	0.50), nrow = 6, ncol = 6, byrow = TRUE)
+# D <- matrix(c(0.00,	0.00,	0.00,	0.00,	0.00,	0.00, # transition matrix is modified from the table in R&M 1987 
+#               0.19,	0.16,	0.00,	0.00,	0.00,	0.00,
+#               0.39,	0.35,	0.65,	0.00,	0.00,	0.00,
+#               0.00,	0.00,	0.00,	0.00,	0.00,	0.00, # I have qualms about this; shouldn't S1 --> L1? # no it's ok because L1s can just be assumed live as of 4ya
+#               0.14,	0.16,	0.00,	0.33,	0.32,	0.00,
+#               0.28,	0.33,	0.35,	0.67,	0.68,	0.50), nrow = 6, ncol = 6, byrow = TRUE)
+# ^ this one has typos
+
+D <- matrix(c(0.00,	0.00,	0.00,	0.00,	0.00,	0.00, # transition matrix is modified from the table in R&M 1987 
+              0.19,	0.17,	0.00,	0.00,	0.00,	0.00, # all 10 categories; snag-to-snag rates, then inferred log-to-log
+              0.41,	0.34,	0.62,	0.00,	0.00,	0.00, # by applying same proportions to 1-colSums (fall rate). Collapse to 6 categories
+              0.00,	0.00,	0.00,	0.00,	0.00,	0.00, # no S1-->S1, so no L1-->L1 L1s can just be assumed live as of 4ya
+              0.13,	0.17,	0.00,	0.32,	0.33,	0.00,
+              0.27,	0.33,	0.38,	0.68,	0.67,	0.95), nrow = 6, ncol = 6, byrow = TRUE)
 
 categories <- c("S1", "S2S3", "S4S5", "L1", "L2L3","L4L5")
 
 # (D %*% OH_t0) + R
 # (D %*% ((D %*% OH_t0) + R)) + R
 
-OH_tn <- vector("list",20)
-OH_tn[[1]] <- as.vector(c(27.00, 49.00,5.00, 12.00,30.00, 10.00))
+OH_tn <- vector("list",1000)
+OH_tn[[1]] <- as.vector(c(27.00, 49.00,5.00, 12.00,30.00, 10.00)) # starting vector of Snags and Logs at OH in 2018
 
 for (i in 2:(length(OH_tn))) {
   OH_tnext <- list((D %*% unlist(OH_tn[i-1])) + R)
   OH_tn[i] <- OH_tnext
 }
 
-SAD <- as.vector(unlist(OH_tn[[20]]))
+SAD <- as.vector(unlist(OH_tn[[1000]]))
 
 # now use D, R, and SAD to calculate backward path probabilities
 # in excel this looked like making a table of the ways you get from one stage to another,
@@ -77,6 +97,7 @@ for (i in 1:nrow(N_per)) {
 colnames(N_per) <- categories
 rownames(N_per) <- categories
 
+#  old one before updating L4L5 --> L4L5 transition probability
 #       S1     S2S3     S4S5 L1      L2L3     L4L5
 # S1   0.00  0.00000   0.0000  0  0.000000   0.0000
 # S2S3 4.37 13.59429   0.0000  0  0.000000   0.0000
@@ -84,6 +105,14 @@ rownames(N_per) <- categories
 # L1   0.00  0.00000   0.0000  0  0.000000   0.0000
 # L2L3 3.22 13.59429   0.0000  0  7.912605   0.0000
 # L4L5 6.44 28.03821 122.6716  0 16.814286 173.8808
+
+#        S1     S2S3     S4S5 L1      L2L3     L4L5
+# S1   0.00  0.00000   0.0000  0  0.000000    0.000
+# S2S3 4.37 14.61795   0.0000  0  0.000000    0.000
+# S4S5 9.43 29.23590 200.1391  0  0.000000    0.000
+# L1   0.00  0.00000   0.0000  0  0.000000    0.000
+# L2L3 2.99 14.61795   0.0000  0  8.672573    0.000
+# L4L5 6.21 28.37602 122.6659  0 17.607952 1572.926
 
 # then turning each # into a proportion of the total trees that came from that stage
 
@@ -93,7 +122,7 @@ pct_per <- cbind(pct_per, (R/SAD))
 pct_per[4,] <- 0
 colnames(pct_per)[7] <- "R"
 
-# round(pct_per,3)
+# round(pct_per,3)        # old one no longer using
 #          S1  S2S3  S4S5 L1  L2L3 L4L5    R   
 # S1   0.000 0.000 0.000  0 0.000  0.0 1.000
 # S2S3 0.051 0.160 0.000  0 0.000  0.0 0.789
@@ -102,7 +131,15 @@ colnames(pct_per)[7] <- "R"
 # L2L3 0.130 0.550 0.000  0 0.320  0.0 0.000
 # L4L5 0.019 0.081 0.353  0 0.048  0.5 0.000
 
-# This table shows the percent of trees in [row] that were [column] one timestep before. E.g. 65% of the S4S5s in t0 were S4S5s in t-1, and 4.71% of the L4L5s in t0 were L2L3 in t-1
+#         S1  S2S3  S4S5 L1  L2L3 L4L5     R
+# S1   0.000 0.000 0.000  0 0.000 0.00 1.000
+# S2S3 0.051 0.170 0.000  0 0.000 0.00 0.779
+# S4S5 0.029 0.091 0.620  0 0.000 0.00 0.260
+# L1   0.000 0.000 0.000  0 0.000 0.00 0.000
+# L2L3 0.114 0.556 0.000  0 0.330 0.00 0.000
+# L4L5 0.002 0.008 0.035  0 0.005 0.95 0.000
+
+# This table shows the percent of trees in [row] that were [column] one timestep before. E.g. 62% of the S4S5s in t0 were S4S5s in t-1, and 1% of the L4L5s in t0 were L2L3 in t-1
 # use this to create backwards paths for one decay class (S2S3s was test case)
 # then do for one class at a time in an iterable way (S4S5 as test)
 
@@ -150,7 +187,7 @@ catprob[[4]]$prob <- 1
 
 # use these distributions to assign time-since-death (dec_correction) for logs and snags
 # test on df and df2 (OH snags and logs, minus Dec = 1)
-
+set.seed(1)
 catdistn <- list()
 for(i in c(2,3,5,6)){
   catdistn[[i]] <- sample(seq(5,max(catprob[[i]]$years),5),1000,replace=TRUE,prob=catprob[[i]]$prob)
@@ -181,5 +218,5 @@ for(i in c(2,3,5,6)){
 #   mutate(diff = estab_est - estab_est2)
     
 
-
+# The upshot of the 95% persistence update for L4L5 was not that big; any trees that were S4S5 in 2018 mostly got assigned > 77 decay corrections, so don't show up in 1941 maps anyway.
 
