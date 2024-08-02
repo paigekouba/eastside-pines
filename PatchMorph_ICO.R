@@ -283,7 +283,7 @@ for (j in 1:length(plots_out)){
 clust_bins[,1] <- rep(plotyears, each = 4)
 clust_bins[,2] <- rep(plotnames, each = 4)
 clust_bins[,3] <- rep(bin_names,18)
-clust_bins[,4] <- unlist(plotClustCounts2)
+clust_bins[,4] <- unlist(plotClustCounts) # clust_bins[,4] <- unlist(plotClustCounts2)
 names(clust_bins) <- c("Year", "Plot", "clust_bin", "clustperha")
 
 clust_bins$clust_bin <- factor(clust_bins$clust_bin, levels = bin_names)
