@@ -237,6 +237,7 @@ OH_livetrees <- OH_trees[is.na(OH_trees$Dec),] # later I will do stand metrics o
 #NOTE! Age estimate inferred from DBH should not change for standing dead trees; the establishment date is the number that will change. 
 #Example: Tree of diameter 23.7 is still 77 years old at IS, but if decay class is 4, then establishment date = 2018-(77+10)
 # Need to add column for age estimate:
+set.seed(1)
 OH_snags <- OH_snags %>%
   mutate(PIJE_est = predict(OH_lm, newdata = OH_snags)) %>% 
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
@@ -248,7 +249,10 @@ OH_snags <- OH_snags %>%
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
-  mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(OH_snags), replace = TRUE)) %>% 
+  mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(OH_snags), replace = TRUE)) 
+
+set.seed(1)
+OH_snags <- OH_snags %>%
   mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(OH_snags), replace = TRUE)) %>% 
   mutate(dec_corr = case_when(Dec==1 ~ 5,
                               Dec==2 | Dec==3 ~ S2S3_corr,
@@ -388,6 +392,7 @@ OH_logs$Spec[OH_logs$Spec=="UNK"] <- "PIJE"
 # OH_logs$dec_correction[OH_logs$Dec == 1]=10
 # OH_logs$dec_correction[OH_logs$Dec > 1 & OH_logs$Dec < 4]=15
 # OH_logs$dec_correction[OH_logs$Dec > 3 & OH_logs$Dec <=5]=20
+set.seed(1)
 OH_logs <- OH_logs %>%
   mutate(PIJE_est = predict(OH_lm, newdata = OH_logs)) %>% 
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
@@ -399,7 +404,10 @@ OH_logs <- OH_logs %>%
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
                              Spec=="PICO" ~ PICO_est)) %>%
-  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(OH_logs), replace = TRUE)) %>% 
+  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(OH_logs), replace = TRUE)) 
+
+set.seed(1)
+OH_logs <- OH_logs %>%
   mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(OH_logs), replace = TRUE)) %>% 
   mutate(dec_corr = case_when(Dec==1 ~ 4,
                               Dec==2 | Dec==3 ~ L2L3_corr,
@@ -433,6 +441,8 @@ OH_trees1941 <- OH_trees %>%
 #hist(OH_trees1941$dbh1941, breaks = 10)
 #hist(OH_livetrees$dbh, breaks = 10)
 # then we are ready to compare stand metrics in 1941 to 2018
+OH_trees1941 <- OH_trees1941 %>% 
+  filter(dec_corr < 77) # =2018-1941; exclude trees that were dead already in 1941
 
 #______________________________________________________________________________#
 # Size in 2006, before O'Harrell Fire
