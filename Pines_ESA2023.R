@@ -252,9 +252,12 @@ IS_livetrees <- IS_trees[is.na(IS_trees$Dec),] # later I will do stand metrics o
 #NOTE! Age estimate inferred from DBH should not change for standing dead trees; the establishment date is the number that will change. 
 #Example: Tree of diameter 23.7 is still 77 years old at IS, but if decay class is 4, then establishment date = 2018-(77+10)
 # Need to add column for age estimate:
+set.seed(1)
 IS_snags <- IS_snags %>%
   mutate(age_est = predict(IS_lm, newdata = IS_snags)) %>% 
-    mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(IS_snags), replace = TRUE)) %>% 
+    mutate(S2S3_corr = sample(unlist(catdistn[[2]]),nrow(IS_snags), replace = TRUE)) 
+set.seed(1)
+IS_snags <- IS_snags %>%
     mutate(S4S5_corr = sample(unlist(catdistn[[3]]),nrow(IS_snags), replace = TRUE)) %>% 
         mutate(dec_corr = case_when(Dec==1 ~ 2,
                                      Dec==2 | Dec==3 ~ S2S3_corr,
@@ -309,9 +312,13 @@ IS_logs <- log_data[log_data$Site=="IS",]
 unique(IS_logs$Spec) 
 # [1] "PIJE"  "PICO"  "PIJE*"
 
+set.seed(1) # set seed so the random sample gets the same result each time
 IS_logs <- IS_logs %>%
   mutate(age_est = predict(IS_lm, newdata = IS_logs)) %>% 
-  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(IS_logs), replace = TRUE)) %>% 
+  mutate(L2L3_corr = sample(unlist(catdistn[[5]]),nrow(IS_logs), replace = TRUE)) 
+  
+set.seed(1)
+IS_logs <- IS_logs %>%
   mutate(L4L5_corr = sample(unlist(catdistn[[6]]),nrow(IS_logs), replace = TRUE)) %>% 
   mutate(dec_corr = case_when(Dec==1 ~ 4,
                               Dec==2 | Dec==3 ~ L2L3_corr,
@@ -362,6 +369,9 @@ IS_trees1941 <- IS_trees %>%
 # hist(IS_trees1941$dbh1941, breaks = 10)
 # hist(IS_livetrees$dbh, breaks = 10)
 # then we are ready to compare stand metrics in 1941 to 2018 using MANOVA
+
+IS_trees1941 <- IS_trees1941 %>% 
+  filter(dec_corr < 77) # =2018-1941; exclude trees that were dead already in 1941
 #______________________________________________________________________________#
 # Size in 1995, before Rx Fire
 # snag correction TBD
@@ -377,7 +387,7 @@ IS_snags1995 <- IS_trees1995 %>%
    filter(dec_corr > 23) # any trees whose years-since-death (dec_corr) is > 23 (years since 1995) is dead prior to 1995
 # 
 IS_trees1995 <- IS_trees1995 %>% 
-   filter(dec_corr < 23) # only removes 9 trees, ok
+   filter(dec_corr < 23) # only removes 9 trees, ok. excludes trees that were already dead in 1995
 
 #______________________________________________________________________________#
 # Prepping all IS sites in 2018
