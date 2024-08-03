@@ -103,19 +103,21 @@ IS_correction <- IS_correction %>%
 # 
 ## 5.2 New model and model comparison based on polynomials
 IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
-# IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
-# IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
-# IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
-# IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
+IS_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = IS_correction)
+IS_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = IS_correction)
+IS_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = IS_correction)
+IS_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = IS_correction)
 # summary(IS_lm)
 # summary(IS_lm3)
-# AIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5)#, IS_exp_inv, IS_exp)
+library(MuMIn)
+AICc(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5, IS_exp) # IS_lm4 has lowest AICc
+BIC(IS_lm, IS_lm2, IS_lm3, IS_lm4, IS_lm5, IS_exp) # IS_lm has lowest BIC and is more parsimonious
 # # 
 # # # IS_lm3 performs the best with an AIC of 980.7556, but as shown below its behavior at low and high dbh makes no sense :(
 # # # visualize the model!
-# ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
-#   geom_point() +
-#   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw= TRUE))
+ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
+  geom_point() +
+  stat_smooth(method = lm, formula = y ~ poly(x, 4, raw= TRUE)) # unrealistic behavior at high DBH
 # 
 # poly 2 is less over-fitted; bascially a straight line
 # ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
@@ -135,11 +137,11 @@ IS_lm <- lm(corrected_age ~ dbh, data = IS_correction)
 #       method.args=list(formula = y ~ a*(x^b) + c, start = list(a=1, b=2, c=5)),
 #       se=FALSE) +
 #   labs(x="Diameter at Breast Height (cm)", y="Age") +
-#   ggtitle("Age-Size Regression for Jeffrey Pine") 
-#  theme_bw(base_size=22)
+#   ggtitle("Age-Size Regression for Jeffrey Pine")
+
 
 # it looks almost indistinguishable from a straight line model
-IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
+#IS_exp <- nls(corrected_age ~ a*dbh^b, data = IS_correction, start = list(a=1, b=2))
 #summary(IS_exp) # a = 3.61166, b = 0.95850
 # plotting IS_exp and the 2-degree polynomial
 # ggplot(data=IS_correction,aes(x=dbh,y=corrected_age))+
@@ -387,7 +389,7 @@ IS_snags1995 <- IS_trees1995 %>%
    filter(dec_corr > 23) # any trees whose years-since-death (dec_corr) is > 23 (years since 1995) is dead prior to 1995
 # 
 IS_trees1995 <- IS_trees1995 %>% 
-   filter(dec_corr < 23) # only removes 9 trees, ok. excludes trees that were already dead in 1995
+   filter(dec_corr < 23) # excludes trees that were already dead in 1995
 
 #______________________________________________________________________________#
 # Prepping all IS sites in 2018
