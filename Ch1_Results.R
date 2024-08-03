@@ -7,24 +7,26 @@
 
 # Welch two-sample t-test, DBH
 t.test(IS_trees1941$dbh1941, IS_trees1995$dbh1995, var.equal=FALSE)
-# t = -0.79482, df = 607.51, p-value = 0.427  difference in means is not significant; 1995 trees are ~ same dbh as 1941
-t.test(IS_livetrees$dbh, IS_trees1995$dbh1995, var.equal=FALSE) # t = 7.0444, df = 699.89, p-value = 4.464e-12,  47.37528 - 33.48174 = 13.89354
+# t = -0.99664, df = 612.05, p-value = 0.3193  difference in means is not significant; 1995 trees are ~ same dbh as 1941
+t.test(IS_livetrees$dbh, IS_trees1995$dbh1995, var.equal=FALSE) # t = 6.9658, df = 706.3, p-value = 7.486e-12,  47.37528 - 33.56814 = 13.80714
 t.test(OH_trees1941$dbh1941, OH_trees2006$dbh2006, var.equal=FALSE)
-# p-value = 0.5022 difference in means not significant; *no change* in size at OH
-t.test(OH_livetrees$dbh, OH_trees2006$dbh2006, var.equal=FALSE) # p-value = 0.6546
+# p-value = 0.172 difference in means not significant; *no change* in size at OH
+t.test(OH_livetrees$dbh, OH_trees2006$dbh2006, var.equal=FALSE) # p-value = 0.3934
 
 # Welch two-sample t-test, QMD
-QMD_1941 <- unlist(lapply(c(2,4,6,8,10,12), function(x) plots_out[[x]][[5]][4]))
-QMD_FE <- unlist(lapply(c(13:18), function(x) plots_out[[x]][[5]][4]))
-QMD_2018 <- unlist(lapply(c(1,3,5,7,9,11), function(x) plots_out[[x]][[5]][4]))
+# QMD_1941 <- unlist(lapply(c(2,4,6,8,10,12), function(x) plots_out[[x]][[5]][4]))
+# QMD_FE <- unlist(lapply(c(13:18), function(x) plots_out[[x]][[5]][4]))
+# QMD_2018 <- unlist(lapply(c(1,3,5,7,9,11), function(x) plots_out[[x]][[5]][4]))
+
 # 1941 vs fire-excluded, all
-t.test(QMD_1941, QMD_FE) # p-value = 0.9876
+t.test(QMD_1941, QMD_FE) # p-value = 0.8886
 # fire-excluded vs 2018, all
-t.test(QMD_FE, QMD_2018) # p-value = 0.233
+t.test(QMD_FE, QMD_2018) # p-value = 0.168
 IS_QMD_1941 <- unlist(lapply(c(2,4,6), function(x) plots_out[[x]][[5]][4]))
 IS_QMD_FE <- unlist(lapply(c(13:15), function(x) plots_out[[x]][[5]][4]))
 IS_QMD_2018 <- unlist(lapply(c(1,3,5), function(x) plots_out[[x]][[5]][4]))
-t.test(IS_QMD_1941, IS_QMD_FE) # p-value = 0.8578
+#sqrt(sum(((IS_livetrees$dbh)^2))/nrow(IS_livetrees))
+t.test(IS_QMD_1941, IS_QMD_FE) # p-value = 0.8854
 t.test(IS_QMD_FE, IS_QMD_2018) # p-value = 0.05282
 
 OH_QMD_1941 <- unlist(lapply(c(8,10,12), function(x) plots_out[[x]][[5]][4]))
@@ -44,12 +46,12 @@ t.test(SDI_FE, SDI_2018) # p-value =  0.3341
 
 # TPH
 t.test(c(dotplots_ISn$TPH.2, dotplots_OHn$TPH.2), c(dotplots_ISn$TPH, dotplots_OHn$TPH)) # prefire v 1941
-# t = 2.6504, df = 8.2448, p-value = 0.02849 134.66667 - 71.33333 = 63.33334
+# t = 2.6436, df = 8.6219, p-value = 0.02772  132.16667 - 70.33333 = 61.83334
 t.test(c(dotplots_ISn$TPH.1, dotplots_OHn$TPH.1), c(dotplots_ISn$TPH.2, dotplots_OHn$TPH.2)) # prefire v 2018; p-value = p-value = 0.1284
 
 # BAH
 t.test(c(dotplots_ISn$BAH.2, dotplots_OHn$BAH.2), c(dotplots_ISn$BAH, dotplots_OHn$BAH)) # prefire v 1941
-# t = 7.5697, df = 6.9271, p-value = 0.0001365   23.31667 - 11.95000 = 11.36667
+# t = 6.7624, df = 6.6658, p-value = 0.0003249   22.63333 - 11.91667  = 10.71666
 t.test(c(dotplots_ISn$BAH.1, dotplots_OHn$BAH.1), c(dotplots_ISn$BAH.2, dotplots_OHn$BAH.2))# prefire v 2018; p-value = 0.5833
 
 
@@ -95,7 +97,7 @@ IS95_clusters_ub <- c(plots_out[[13]]$clusters$size, plots_out[[14]]$clusters$si
 # hist(IS41_clusters_ub, col=rgb(1,0,0,1/4), breaks = 6, xlim=c(0,15), ylim=c(0,170))
 # hist(IS18_clusters_ub, col=rgb(0,0,1,1/4), breaks = 15, xlim=c(0,15), ylim=c(0,170), add=T)
 
-# numbers 1-15, since max clust size at IS is 13; plus how many times that # shows up in each list (IS18, IS95 or IS41)
+# numbers 1-15, since max clust size at IS is 15; plus how many times that # shows up in each list (IS18, IS95 or IS41)
 IS_clust_ub_table <- data.frame(c(1:15))
 for (i in 1:15){
   IS_clust_ub_table[i,2] <- sum(i == IS18_clusters_ub)
@@ -104,7 +106,7 @@ for (i in 1:15){
 }
 names(IS_clust_ub_table) <- c("clust.sz","IS2018","IS1995","IS1941")
 fisher.test(t(IS_clust_ub_table)[3:4,], simulate.p.value=TRUE) # 1995 v 1941, p value =  0.0004998
-fisher.test(t(IS_clust_ub_table)[2:3,]) # 2018 v 1995, p-value = 0.9399
+fisher.test(t(IS_clust_ub_table)[2:3,]) # 2018 v 1995, p-value = 0.9445
 
 OH18_clusters_ub <- c(plots_out[[7]]$clusters$size, plots_out[[9]]$clusters$size, plots_out[[11]]$clusters$size)
 OH41_clusters_ub <- c(plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)
@@ -112,16 +114,16 @@ OH06_clusters_ub <- c(plots_out[[16]]$clusters$size, plots_out[[17]]$clusters$si
 # hist(OH41_clusters_ub, col=rgb(1,0,0,1/4), breaks = 4, xlim=c(0,20), ylim=c(0,100))
 # hist(OH18_clusters_ub, col=rgb(0,0,1,1/4), breaks = 20, xlim=c(0,20), ylim=c(0,100), add=T)
 
-OH_clust_ub_table <- data.frame(c(1:18))
-for (i in 1:18){
+OH_clust_ub_table <- data.frame(c(1:14))
+for (i in 1:14){
   OH_clust_ub_table[i,2] <- sum(i == OH18_clusters_ub)
   OH_clust_ub_table[i,3] <- sum(i == OH06_clusters_ub)
   OH_clust_ub_table[i,4] <- sum(i == OH41_clusters_ub)
 }
 
 names(OH_clust_ub_table) <- c("clust.sz","OH2018","OH2006","OH1941")
-fisher.test(t(OH_clust_ub_table)[3:4,]) # 2006 v 1941, p-value = 0.0255
-fisher.test(t(OH_clust_ub_table)[2:3,]) # 2018 v 2006, p-value = 0.9308
+fisher.test(t(OH_clust_ub_table)[3:4,]) # 2006 v 1941, p-value = 0.02704
+fisher.test(t(OH_clust_ub_table)[2:3,]) # 2018 v 2006, p-value = 0.9215
 
 ##############
 # binned forest openings
@@ -162,7 +164,7 @@ response_matrix <- obw_1[, gap_bins]
 adonis2(response_matrix ~ Year, obw_1, strata = obw_1$Plot) # Pr(>F) 0.03125 
 
 response_matrix <- obw_2[, gap_bins]
-adonis2(response_matrix ~ Year, obw_2, strata = obw_2$Plot) # Pr(>F) 0.25
+adonis2(response_matrix ~ Year, obw_2, strata = obw_2$Plot) # Pr(>F) 0.3125
 
 ##############
 # forest gaps + cluster sizes PERMANOVA
@@ -184,7 +186,8 @@ for (j in 1:length(plots_out)){
 clust_bins[,1] <- rep(plotyears, each = 4)
 clust_bins[,2] <- rep(plotnames, each = 4)
 clust_bins[,3] <- rep(bin_names,18)
-clust_bins[,4] <- unlist(plotClustCounts2)
+# clust_bins[,4] <- unlist(plotClustCounts2)
+clust_bins[,4] <- unlist(plotClustCounts)
 names(clust_bins) <- c("Year", "Plot", "clust_bin", "clustperha")
 
 clust_bins$clust_bin <- factor(clust_bins$clust_bin, levels = bin_names)
@@ -218,36 +221,36 @@ adonis2(response_matrix ~ Year, all_stx2, strata = all_stx2$Plot) # p = 0.0625
 
 # proportion of clusters that were [bin]
 # proportions of clusters in singletons, both sites
-sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1, plots_out[[8]]$clusters$size==1, plots_out[[10]]$clusters$size==1, plots_out[[12]]$clusters$size==1) # 242  in 1941
-length(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size, plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 315 clusters in 1941
-242/315 # 0.768254, 76.8% of clusters are singletons in 1941
+sum(c(plots_out[[2]]$clusters$size==1), plots_out[[4]]$clusters$size==1, plots_out[[6]]$clusters$size==1, plots_out[[8]]$clusters$size==1, plots_out[[10]]$clusters$size==1, plots_out[[12]]$clusters$size==1) # 238  in 1941
+length(c(plots_out[[2]]$clusters$size, plots_out[[4]]$clusters$size, plots_out[[6]]$clusters$size, plots_out[[8]]$clusters$size, plots_out[[10]]$clusters$size, plots_out[[12]]$clusters$size)) # 311 clusters in 1941
+238/311 # 0.7652733, 76.5% of clusters are singletons in 1941
 
 sum(c(plots_out[[13]]$clusters$size==1), plots_out[[14]]$clusters$size==1, plots_out[[15]]$clusters$size==1, plots_out[[16]]$clusters$size==1, plots_out[[17]]$clusters$size==1, plots_out[[18]]$clusters$size==1) # 224 prefire
-length(c(plots_out[[13]]$clusters$size, plots_out[[14]]$clusters$size, plots_out[[15]]$clusters$size, plots_out[[16]]$clusters$size, plots_out[[17]]$clusters$size, plots_out[[18]]$clusters$size)) # 387 clusters prefire
-224/387 # 0.5788114, 57.9% of clusters are singletons in fire-excluded year
+length(c(plots_out[[13]]$clusters$size, plots_out[[14]]$clusters$size, plots_out[[15]]$clusters$size, plots_out[[16]]$clusters$size, plots_out[[17]]$clusters$size, plots_out[[18]]$clusters$size)) # 384 clusters prefire
+224/384 # 0.5833333, 58.3% of clusters are singletons in fire-excluded year
 
 # proportions of clusters in small clusters (2-4)
 sum(c(plots_out[[2]]$clusters$bin=="2-4"), plots_out[[4]]$clusters$bin=="2-4", plots_out[[6]]$clusters$bin=="2-4", plots_out[[8]]$clusters$bin=="2-4", plots_out[[10]]$clusters$bin=="2-4", plots_out[[12]]$clusters$bin=="2-4") # 71 in 1941
-# 315 clusters in 1941
-71/315 # 0.2253968, 22.5% of clusters are 2-4s in 1941
-sum(c(plots_out[[13]]$clusters$bin=="2-4"), plots_out[[14]]$clusters$bin=="2-4", plots_out[[15]]$clusters$bin=="2-4", plots_out[[16]]$clusters$bin=="2-4", plots_out[[17]]$clusters$bin=="2-4", plots_out[[18]]$clusters$bin=="2-4") # 120 prefire
-130/387 # 0.3359173, 33.6%
+# 311 clusters in 1941
+71/311 # 0.2282958, 22.8% of clusters are 2-4s in 1941
+sum(c(plots_out[[13]]$clusters$bin=="2-4"), plots_out[[14]]$clusters$bin=="2-4", plots_out[[15]]$clusters$bin=="2-4", plots_out[[16]]$clusters$bin=="2-4", plots_out[[17]]$clusters$bin=="2-4", plots_out[[18]]$clusters$bin=="2-4") # 116 prefire
+130/384 # 0.3385417, 33.9%
 
 # proportions of clusters in medium clusters (5-9)
 sum(c(plots_out[[2]]$clusters$bin=="5-9"), plots_out[[4]]$clusters$bin=="5-9", plots_out[[6]]$clusters$bin=="5-9", plots_out[[8]]$clusters$bin=="5-9", plots_out[[10]]$clusters$bin=="5-9", plots_out[[12]]$clusters$bin=="5-9") # 1 in 1941
-# 315 clusters in 1941
-1/315 # 0.003174603, 0.3% of clusters are 5-9s in 1941
-sum(c(plots_out[[13]]$clusters$bin=="5-9"), plots_out[[14]]$clusters$bin=="5-9", plots_out[[15]]$clusters$bin=="5-9", plots_out[[16]]$clusters$bin=="5-9", plots_out[[17]]$clusters$bin=="5-9", plots_out[[18]]$clusters$bin=="5-9") # 33 in prefire
-# 387 clusters in prefire
-33/387 # 0.08527132, 8.5% of clusters are 5-9s in prefire
+# 311 clusters in 1941
+1/311 # 0.003215434, 0.3% of clusters are 5-9s in 1941
+sum(c(plots_out[[13]]$clusters$bin=="5-9"), plots_out[[14]]$clusters$bin=="5-9", plots_out[[15]]$clusters$bin=="5-9", plots_out[[16]]$clusters$bin=="5-9", plots_out[[17]]$clusters$bin=="5-9", plots_out[[18]]$clusters$bin=="5-9") # 35 in prefire
+# 384 clusters in prefire
+35/384 # 0.09114583, 9.1% of clusters are 5-9s in prefire
 
 # proportions of clusters in large clusters (10+)
 sum(c(plots_out[[2]]$clusters$bin=="10+"), plots_out[[4]]$clusters$bin=="10+", plots_out[[6]]$clusters$bin=="10+", plots_out[[8]]$clusters$bin=="10+", plots_out[[10]]$clusters$bin=="10+", plots_out[[12]]$clusters$bin=="10+") # 1 in 1941
-# 315 clusters in 1941
-1/315 # 0.003174603, 0.3% of clusters are 10+s in 1941
-sum(c(plots_out[[13]]$clusters$bin=="10+"), plots_out[[14]]$clusters$bin=="10+", plots_out[[15]]$clusters$bin=="10+", plots_out[[16]]$clusters$bin=="10+", plots_out[[17]]$clusters$bin=="10+", plots_out[[18]]$clusters$bin=="10+") # 10 prefire
-# 387 clusters in prefire
-10/387 # 0.02583979, 2.5% of clusters are 10+ prefire
+# 311 clusters in 1941
+1/311 # 0.003215434, 0.3% of clusters are 10+s in 1941
+sum(c(plots_out[[13]]$clusters$bin=="10+"), plots_out[[14]]$clusters$bin=="10+", plots_out[[15]]$clusters$bin=="10+", plots_out[[16]]$clusters$bin=="10+", plots_out[[17]]$clusters$bin=="10+", plots_out[[18]]$clusters$bin=="10+") # 9 prefire
+# 384 clusters in prefire
+9/384 # 0.0234375, 2.3% of clusters are 10+ prefire
 
 ##############
 # binned clump size contingency analysis
@@ -277,37 +280,37 @@ fisher.test(matrix(c(sum(bin_tests_41[4,3], na.rm = TRUE), sum(bin_tests_41[,3])
 # singletons
 fisher.test(matrix(c(sum(bin_tests_18[1,3]), sum(bin_tests_18[-1,3]), 
                      sum(bin_tests_prefire[c(1,5),3]), sum(bin_tests_prefire[-c(1,5),3])), byrow=TRUE, 2, 2))
-# p-value 0.5063
+# p-value 0.6287
 
 # 2-4
 fisher.test(matrix(c(sum(bin_tests_18[2,3]), sum(bin_tests_18[-2,3]), 
                      sum(bin_tests_prefire[c(2,6),3]), sum(bin_tests_prefire[-c(2,6),3])), byrow=TRUE, 2, 2))
-# p-value = 0.1054
+# p-value = 0.04325
 
 # 5-9
 fisher.test(matrix(c(sum(bin_tests_18[3,3]), sum(bin_tests_18[-3,3]), 
                      sum(bin_tests_prefire[c(3,7),3]), sum(bin_tests_prefire[-c(3,7),3])), byrow=TRUE, 2, 2))
-# p-value <  0.424
+# p-value <  0.1146
 
 # 10+
 fisher.test(matrix(c(sum(bin_tests_18[4,3], na.rm = TRUE), sum(bin_tests_18[,3]), sum(bin_tests_prefire[c(4,8),3]), sum(bin_tests_prefire[-c(4,8),3])), byrow=TRUE, 2, 2))
-# p-value = 0.003174
+# p-value = 0.02506
 
 
 
 ##############
 # openings per ha, average gap size
 # mean openings in 1941
-mean(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 1109.351
-min(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 121.46
-max(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 5665.3
+mean(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 1086.887
+min(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 136.32
+max(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area))) # 5713.91
 
 # mean openings in Fire Excluded
-mean(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 496.544
-min(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 117.52
-max(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 3380.15
+mean(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 493.691
+min(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 116.29
+max(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area))) # 1932.31
 t.test(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area)), unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area)))
-# p-value = 0.06904
+# p-value = 0.06755
 
 # mean openings in 2018
 mean(unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # 1014.161
@@ -317,7 +320,7 @@ t.test(unlist(lapply(c(13:18), function(x) opes_sr[[x]]$area)), unlist(lapply(c(
 # p-value =  0.1297
 
 # did 2018 gaps get restored to 1941 sizes?
-t.test(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area)), unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # p-value = 0.8263
+t.test(unlist(lapply(c(2,4,6,8,10,12), function(x) opes_sr[[x]]$area)), unlist(lapply(c(1,3,5,7,9,11), function(x) opes_sr[[x]]$area))) # p-value = 0.8664
 
 ##############
 # PERMANOVA on all structural categories
