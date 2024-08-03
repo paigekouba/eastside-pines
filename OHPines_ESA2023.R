@@ -145,13 +145,14 @@ library(ggplot2)
 
 ## 5.2 New model and model comparison based on polynomials
 OH_lm <- lm(corrected_age ~ dbh, data = OH_correction)
-# OH_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = OH_correction)
-# OH_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = OH_correction)
-# OH_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = OH_correction)
-# OH_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = OH_correction)
+OH_lm2 <- lm(corrected_age ~ dbh + I(dbh^2), data = OH_correction)
+OH_lm3 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3), data = OH_correction)
+OH_lm4 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = OH_correction)
+OH_lm5 <- lm(corrected_age ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = OH_correction)
 # OH_exp <- nls(corrected_age ~ a*dbh^b, data = OH_correction, start = list(a=1, b=2))
-# AIC(OH_lm, OH_lm2, OH_lm3, OH_lm4, OH_lm5, OH_exp)
-# # OH_lm is third-lowest but only by one point at 917. Pick OH_lm
+AICc(OH_lm, OH_lm2, OH_lm3, OH_lm4, OH_lm5) # OH_lm3 has lowest AICc (by <1)
+BIC(OH_lm, OH_lm2, OH_lm3, OH_lm4, OH_lm5) # OH_lm has lowest BIC and is most parsimonious
+# Pick OH_lm
 # 
 # summary(OH_lm)
 # I will proceed using OH_lm, which has the form age = 3.4328x + 26.2246
@@ -178,6 +179,12 @@ OH_ABCO <- OH_2023[OH_2023$spec == "ABCO",]
 #   ggtitle("Age-Size Regression for White Fir") +
 #   theme_bw(base_size=22)
 ABCO_lm <- lm(age_est ~ dbh, data = OH_ABCO)
+ABCO_lm2 <- lm(age_est ~ dbh + I(dbh^2), data = OH_ABCO)
+ABCO_lm3 <- lm(age_est ~ dbh + I(dbh^2) + I(dbh^3), data = OH_ABCO)
+ABCO_lm4 <- lm(age_est ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = OH_ABCO)
+ABCO_lm5 <- lm(age_est ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = OH_ABCO)
+AICc(ABCO_lm, ABCO_lm2, ABCO_lm3, ABCO_lm4, ABCO_lm5) # ABCO_lm has lowest AICc
+BIC(ABCO_lm, ABCO_lm2, ABCO_lm3, ABCO_lm4, ABCO_lm5) # ABCO_lm5 has lowest BIC but more terms
 #summary(ABCO_lm)
 # age = 0.7771x + 65.8335
 # Multiple R-squared:  0.5136,	Adjusted R-squared:  0.4528 
@@ -189,15 +196,24 @@ ABCO_lm <- lm(age_est ~ dbh, data = OH_ABCO)
 OH_PICO <- OH_2023[OH_2023$spec == "PICO",]
 # ggplot(data=OH_PICO,aes(x=dbh,y=age_est))+
 #   geom_point()+
-#   stat_smooth(method="lm",formula = y~x,se=F,color="blue")+
+#   stat_smooth(method="lm",formula = y~(x^2),se=F,color="blue")+
 #   labs(x="Diameter at Breast Height (cm)", y="Age") +
 #   ggtitle("Age-Size Regression for Lodgepole Pine") +
 #   theme_bw(base_size=22)
+ggplot(data=OH_PICO,aes(x=dbh,y=age_est))+
+  geom_point() +
+  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw= TRUE))
 PICO_lm <- lm(age_est ~ dbh, data = OH_PICO)
-#summary(PICO_lm)
+PICO_lm2 <- lm(age_est ~ dbh + I(dbh^2), data = OH_PICO)
+PICO_lm3 <- lm(age_est ~ dbh + I(dbh^2) + I(dbh^3), data = OH_PICO)
+PICO_lm4 <- lm(age_est ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4), data = OH_PICO)
+PICO_lm5 <- lm(age_est ~ dbh + I(dbh^2) + I(dbh^3) + I(dbh^4) + I(dbh^5), data = OH_PICO)
+AICc(PICO_lm, PICO_lm2, PICO_lm3, PICO_lm4, PICO_lm5) # PICO_lm2 has lowest AICc
+BIC(PICO_lm, PICO_lm2, PICO_lm3, PICO_lm4, PICO_lm5) # and PICO_lm3 has lowest BIC; lm2 ∆2
+#summary(PICO_lm2)
 # age = 1.1501x + 64.0018
-# Multiple R-squared:  0.5618,	Adjusted R-squared:  0.4992 
-# F-statistic: 8.973 on 1 and 7 DF,  p-value: 0.02007
+# Multiple R-squared:  0.8482,	Adjusted R-squared:  0.7976 
+# F-statistic: 16.76 on 2 and 6 DF,  p-value: 0.003497
 
 #______________________________________________________________________________#
 
@@ -242,7 +258,7 @@ OH_snags <- OH_snags %>%
   mutate(PIJE_est = predict(OH_lm, newdata = OH_snags)) %>% 
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
   mutate(ABCO_est = predict(ABCO_lm, newdata = OH_snags)) %>% 
-  mutate(PICO_est = predict(PICO_lm, newdata = OH_snags)) %>% 
+  mutate(PICO_est = predict(PICO_lm2, newdata = OH_snags)) %>% 
   mutate(age_est = case_when(Spec=="PIJE*" ~ PIJE_est, # fixing these 2/16/24
                              Spec=="UNK" ~ PIJE_est, # fixing these 2/16/24
                              Spec=="PIJE" ~ PIJE_est,
@@ -281,7 +297,7 @@ OH_livetrees <- OH_livetrees %>%
   mutate(PIJE_est = predict(OH_lm, newdata = OH_livetrees)) %>% 
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
   mutate(ABCO_est = predict(ABCO_lm, newdata = OH_livetrees)) %>% 
-  mutate(PICO_est = predict(PICO_lm, newdata = OH_livetrees)) %>% 
+  mutate(PICO_est = predict(PICO_lm2, newdata = OH_livetrees)) %>% 
   mutate(age_est = case_when(Spec=="PIJE" ~ PIJE_est,
                              Spec=="JUGR" ~ JUGR_est,
                              Spec=="ABCO" ~ ABCO_est,
@@ -397,7 +413,7 @@ OH_logs <- OH_logs %>%
   mutate(PIJE_est = predict(OH_lm, newdata = OH_logs)) %>% 
   mutate(JUGR_est = 39.9*log(dbh)+24.2) %>% 
   mutate(ABCO_est = predict(ABCO_lm, newdata = OH_logs)) %>% 
-  mutate(PICO_est = predict(PICO_lm, newdata = OH_logs)) %>% 
+  mutate(PICO_est = predict(PICO_lm2, newdata = OH_logs)) %>% 
   mutate(age_est = case_when(Spec=="PIJE*" ~ PIJE_est, # fixing these 2/17/24
                              Spec=="UNK" ~ PIJE_est, # fixing these 2/17/24
                              Spec=="PIJE" ~ PIJE_est,
@@ -463,10 +479,10 @@ OH_trees2006 <- OH_trees %>%
   filter(dbh2006>=5)
 
 # any tree whose years-since-death (dec_corr) is > 12 (years since 2006) is dead prior to 2006
-OH_snags2006 <- OH_trees2006 %>% 
-  filter(dec_corr > 12 & dec_corr <= 15) # snags if they had been dead 3y in 2006
-OH_logs2006 <- OH_trees2006 %>% 
-  filter(dec_corr > 15) # logs if they had been dead 4-23y in 2006
+# OH_snags2006 <- OH_trees2006 %>% 
+#   filter(dec_corr > 12 & dec_corr <= 15) # snags if they had been dead 3y in 2006
+# OH_logs2006 <- OH_trees2006 %>% 
+#   filter(dec_corr > 15) # logs if they had been dead 4-23y in 2006
 
 OH_trees2006 <- OH_trees2006 %>% 
   filter(dec_corr < 12) # remove trees dead before 2006, but keep all live trees as of 2006
