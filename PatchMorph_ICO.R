@@ -16,8 +16,8 @@ ggplot(as.data.frame(allcrwn), aes(x = allcrwn*2)) + # distribution of tree crow
   ggtitle("Crown Diameters, All Sites, All Years") +
   xlab("Crown Diamter (m)") + ylab("Frequency")
 
-sum(allcrwn < 1)*100/length(allcrwn) # 0.5085529
-sum(allcrwn > 5)*100/length(allcrwn) # 1.849283
+sum(allcrwn < 1)*100/length(allcrwn) # 0.6986493
+sum(allcrwn > 5)*100/length(allcrwn) # 1.863065
 # sum(allcrwn > 4)*100/length(allcrwn) # 9.98613
 
 min(allcrwn)*2 # 1.486 is the smallest tree crown across all the plots and both times
@@ -192,10 +192,11 @@ library(ggpubr)
 LydersenFig3 <- 
 ggbarplot(opes_bins, x="gap_bin", y = "countperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
   scale_fill_manual(values=c("#d8b365", "#5ab4ac", "black")) +
+  scale_y_continuous(expand = c(0,0)) +
   #stat_friedman_test(aes(wid=Plot, group=Year), within = "group", label = "p = {p.format}") +
   labs(title = "Gaps at Both Sites",
-       x = "Gap Size (m2)",
-       y = "Frequency / ha")
+       x = "Gap Size (sq. m)",
+       y = "Frequency / ha") + theme_classic(base_size = 18)
 
 
 # trying lydersenfig3 for one site at a time, IS first
@@ -294,10 +295,11 @@ library(ggpubr)
 LydersenFig3_clusters <- 
   ggbarplot(clust_bins, x="clust_bin", y = "clustperha",  add = "mean_se", fill = "Year", position = position_dodge(0.8)) +
   scale_fill_manual(values=c("#d8b365", "#5ab4ac", "black")) +
+  scale_y_continuous(expand = c(0,0)) +
   #stat_friedman_test(aes(wid=Plot, group=Year), within = "group", label = "p = {p.format}") +
   labs(title = "Clumps at Both Sites",
        x = "Clump Bin",
-       y = "Frequency / ha")
+       y = "Frequency / ha") + theme_classic(base_size = 18)
 
 
 # PERMANOVA
@@ -501,8 +503,9 @@ pie_IS18 <- ggplot(bins_IS18, aes(x="", y=bins_IS18[,], fill=factor(rownames(bin
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
   scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "IS in 2018", size = 10) +
-  theme(legend.position = "none")
+ # labs(title = "IS in 2018", size = 10) +
+  theme(legend.position = "none") +
+  theme_void()
   # guides(shape = guide_legend(override.aes = list(size = 1))) +
   # guides(color = guide_legend(override.aes = list(size = 1))) +
   # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
@@ -512,8 +515,9 @@ pie_IS95 <- ggplot(bins_IS95, aes(x="", y=bins_IS95[,], fill=factor(rownames(bin
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
   scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "IS in 1995", size = 10) +
-  theme(legend.position = "none")
+  #labs(title = "IS in 1995", size = 10) +
+  theme(legend.position = "none") +
+  theme_void()
 # guides(shape = guide_legend(override.aes = list(size = 1))) +
 # guides(color = guide_legend(override.aes = list(size = 1))) +
 # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
@@ -523,8 +527,9 @@ pie_IS41 <- ggplot(bins_IS41, aes(x="", y=bins_IS41[,], fill=factor(rownames(bin
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
   scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "IS in 1941", size = 10) +
-  theme(legend.position = "none")
+  #labs(title = "IS in 1941", size = 10) +
+  theme(legend.position = "none") +
+  theme_void()
 # guides(shape = guide_legend(override.aes = list(size = 1))) +
 # guides(color = guide_legend(override.aes = list(size = 1))) +
 # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
@@ -534,8 +539,9 @@ pie_OH18 <- ggplot(bins_OH18, aes(x="", y=bins_OH18[,], fill=factor(rownames(bin
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
   scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "OH in 2018", size = 10) +
-  theme(legend.position = "none")
+  #labs(title = "OH in 2018", size = 10) +
+  theme(legend.position = "none") +
+  theme_void()
 # guides(shape = guide_legend(override.aes = list(size = 1))) +
 # guides(color = guide_legend(override.aes = list(size = 1))) +
 # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
@@ -545,8 +551,9 @@ pie_OH06 <- ggplot(bins_OH06, aes(x="", y=bins_OH06[,], fill=factor(rownames(bin
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
   scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "OH in 2006", size = 10) +
-  theme(legend.position = "none")
+ # labs(title = "OH in 2006", size = 10) +
+  theme(legend.position = "none") +
+  theme_void()
 # guides(shape = guide_legend(override.aes = list(size = 1))) +
 # guides(color = guide_legend(override.aes = list(size = 1))) +
 # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
@@ -556,8 +563,9 @@ pie_OH41 <- ggplot(bins_OH41, aes(x="", y=bins_OH41[,], fill=factor(rownames(bin
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
   scale_fill_manual(values = pie.cols, name = "Cluster Size") + blank_theme +
-  labs(title = "OH in 1941", size = 10) +
-  theme(legend.position = "none")
+  #labs(title = "OH in 1941", size = 10) +
+  theme(legend.position = "none") +
+  theme_void()
 # guides(shape = guide_legend(override.aes = list(size = 1))) +
 # guides(color = guide_legend(override.aes = list(size = 1))) +
 # theme(legend.title = element_text(size = 5), legend.text = element_text(size = 5))
